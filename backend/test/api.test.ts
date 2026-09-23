@@ -32,7 +32,8 @@ async function listing(user:Account,extra:Record<string,unknown>={}) {
 }
 before(async()=>{
   if(!process.env.DATABASE_URL?.includes('havana_test')) throw new Error('Tests require a dedicated database URL containing havana_test.');
-  app=await createApp();await app.init();db=app.get(Db);http=request(app.getHttpServer());
+  // Listen once: otherwise supertest opens and closes a server per request, and parallel requests can reset each other.
+  app=await createApp();await app.listen(0,'127.0.0.1');db=app.get(Db);http=request(app.getHttpServer());
   await db.$executeRawUnsafe('TRUNCATE TABLE "users" CASCADE');
   await db.otpChallenge.deleteMany();
 });
