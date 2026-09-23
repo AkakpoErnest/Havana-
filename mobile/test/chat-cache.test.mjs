@@ -11,10 +11,11 @@ const message = (id, createdAt, offerStatus = null) => ({
   amount: offerStatus ? 100 : null,
   offerStatus,
 });
-const page = (messages, hasMore = false) => ({
+const page = (messages, hasMore = false, cursor = '2026-09-23T12:00:05Z') => ({
   conversation: { id: 'chat', item: { status: 'LIVE' } },
   messages,
   hasMore,
+  cursor,
 });
 
 test('a rolling poll retains already-loaded messages and replaces changed offers', () => {
@@ -35,6 +36,7 @@ test('a rolling poll retains already-loaded messages and replaces changed offers
   assert.equal(result.messages[1].offerStatus, 'ACCEPTED');
   assert.equal(result.conversation.item.status, 'RESERVED');
   assert.equal(result.hasMore, true);
+  assert.equal(result.cursor, '2026-09-23T12:00:05Z');
 });
 
 test('loading the final history page preserves fresh offer state and closes pagination', () => {
@@ -47,6 +49,7 @@ test('loading the final history page preserves fresh offer state and closes pagi
   assert.equal(result.messages.length, 2);
   assert.equal(result.messages[1].offerStatus, 'DECLINED');
   assert.equal(result.hasMore, false);
+  assert.equal(result.cursor, '2026-09-23T12:00:05Z');
   assert.equal(
     mergeLatest(result, page([message('next', '2026-09-23T12:00:00Z')], true)).hasMore,
     false,

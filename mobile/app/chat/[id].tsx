@@ -30,8 +30,12 @@ export default function ChatScreen() {
   const q = useQuery({
     queryKey: ['chat', id],
     queryFn: async () => {
-      const incoming = await api<ChatData>(`/conversations/${id}/messages`);
-      return mergeLatest(cache.getQueryData<ChatData>(['chat', id]), incoming);
+      const previous = cache.getQueryData<ChatData>(['chat', id]);
+      const path = previous?.cursor
+        ? `/conversations/${id}/messages?since=${encodeURIComponent(previous.cursor)}`
+        : `/conversations/${id}/messages`;
+      const incoming = await api<ChatData>(path);
+      return mergeLatest(previous, incoming);
     },
     enabled: active,
     refetchInterval: active ? 3000 : false,
@@ -107,7 +111,7 @@ export default function ChatScreen() {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <Page scroll={false}>

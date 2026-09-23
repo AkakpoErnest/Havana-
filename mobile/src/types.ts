@@ -22,6 +22,9 @@ export type Item = {
 export type User = {
   id: string;
   name: string;
+  area: string | null;
+  latitude: number | null;
+  longitude: number | null;
   identities: { type: 'PHONE' | 'EMAIL'; value: string }[];
   items: Item[];
   rating: number | null;
@@ -35,6 +38,7 @@ export type Message = {
   amount: number | null;
   offerStatus: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'COUNTERED' | null;
   createdAt: string;
+  updatedAt: string;
 };
 export type Conversation = {
   id: string;
@@ -49,5 +53,7 @@ export type Conversation = {
   buyerDone: boolean;
   sellerDone: boolean;
   completedAt: string | null;
+  hasChatted?: boolean;
+  isNewMatch?: boolean;
   messages?: Message[];
 };

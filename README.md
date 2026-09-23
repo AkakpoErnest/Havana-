@@ -2,6 +2,8 @@
 
 A second-hand marketplace for Accra: swipe to shop, haggle in chat, or match two items for a swap. One Expo/TypeScript app runs on Android and iPhone; a NestJS API stores shared accounts and marketplace data in PostgreSQL.
 
+How it fits together (diagrams, data model, key flows): see [ARCHITECTURE.md](ARCHITECTURE.md). Every API route: [API_CONTRACT.md](API_CONTRACT.md).
+
 ## What you need
 
 - Node.js **22.13 or newer in the Node 22 LTS line** (`node -v` to check). If you use nvm, run `nvm install` and `nvm use` in this folder.

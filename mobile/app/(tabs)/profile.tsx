@@ -3,6 +3,7 @@ import { Modal, View } from 'react-native';
 import { router } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../src/api';
+import * as Location from 'expo-location';
 import { Item, User } from '../../src/types';
 import { useSession } from '../../src/session';
 import {
@@ -25,7 +26,9 @@ export default function Profile() {
     cache = useQueryClient();
   const [tab, setTab] = useState('MY ITEMS'),
     [name, setName] = useState(''),
-    [selected, setSelected] = useState<Item | null>(null);
+    [area, setArea] = useState(''),
+    [selected, setSelected] = useState<Item | null>(null),
+    [locationError, setLocationError] = useState<Error | null>(null);
   const me = useQuery({ queryKey: ['me'], queryFn: () => api<User>('/me') });
   const saved = useQuery({ queryKey: ['saved'], queryFn: () => api<Item[]>('/saved') });
   const update = useMutation({
@@ -36,11 +39,36 @@ export default function Profile() {
       void cache.invalidateQueries({ queryKey: ['feed'] });
     },
   });
-  const rename = useMutation({
-    mutationFn: () => api('/me', 'PATCH', { name: name.trim() }),
+  const profile = useMutation({
+    mutationFn: (changes: Record<string, unknown>) => api<User>('/me', 'PATCH', changes),
     onSuccess: () => {
       setName('');
+      setArea('');
       void cache.invalidateQueries({ queryKey: ['me'] });
+      void cache.invalidateQueries({ queryKey: ['feed'] });
+    },
+  });
+  async function saveLocation() {
+    try {
+      setLocationError(null);
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (!permission.granted)
+        throw new Error('Allow location access to save your nearby-finds preference.');
+      const coordinates = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      await profile.mutateAsync({
+        latitude: coordinates.coords.latitude,
+        longitude: coordinates.coords.longitude,
+      });
+    } catch (error) {
+      setLocationError(error instanceof Error ? error : new Error('Could not save your location.'));
+    }
+  }
+  const unsave = useMutation({
+    mutationFn: (itemId: string) => api(`/saved/${itemId}`, 'DELETE'),
+    onSuccess: () => {
+      void cache.invalidateQueries({ queryKey: ['saved'] });
     },
   });
   function change(item: Item) {
@@ -99,28 +127,57 @@ export default function Profile() {
           onChangeText={setName}
           maxLength={60}
         />
+        <Field
+          label="Your area in Accra"
+          placeholder={me.data?.area ?? 'Osu, Madina, East Legon…'}
+          value={area}
+          onChangeText={setArea}
+          maxLength={80}
+        />
         <Button
-          title="Update name"
+          title="Save profile"
           outline
-          disabled={name.trim().length < 2 || rename.isPending}
-          onPress={() => rename.mutate()}
+          disabled={profile.isPending || (!name.trim() && !area.trim())}
+          onPress={() =>
+            profile.mutate({
+              ...(name.trim() ? { name: name.trim() } : {}),
+              ...(area.trim() ? { area: area.trim() } : {}),
+            })
+          }
+        />
+        <Button
+          title={me.data?.latitude != null ? 'Update saved location' : 'Save nearby-finds location'}
+          outline
+          disabled={profile.isPending}
+          onPress={() => void saveLocation()}
         />
       </View>
       <Chips values={['MY ITEMS', 'SWAP CLOSET', 'SAVED']} value={tab} onChange={setTab} />
       <T style={s.label}>Hold one of your items to change its status.</T>
       <ErrorBox
-        error={me.error ?? saved.error ?? update.error ?? rename.error}
+        error={
+          me.error ?? saved.error ?? update.error ?? profile.error ?? unsave.error ?? locationError
+        }
         retry={() => {
           void me.refetch();
           void saved.refetch();
         }}
       />
       {items?.map((item) => (
-        <ItemRow
-          key={item.id}
-          item={item}
-          onLongPress={item.ownerId === me.data?.id ? () => change(item) : undefined}
-        />
+        <View key={item.id} style={{ gap: 6 }}>
+          <ItemRow
+            item={item}
+            onLongPress={item.ownerId === me.data?.id ? () => change(item) : undefined}
+          />
+          {tab === 'SAVED' && (
+            <Button
+              title="Remove from saved"
+              outline
+              disabled={unsave.isPending}
+              onPress={() => unsave.mutate(item.id)}
+            />
+          )}
+        </View>
       ))}
       {items?.length === 0 && (
         <Empty

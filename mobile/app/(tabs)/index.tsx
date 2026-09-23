@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, useWindowDimensions, View } from 'react-native';
 import { router } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Location from 'expo-location';
-import { api } from '../../src/api';
+import { ApiError, api, photoUrl } from '../../src/api';
+import { Image } from 'expo-image';
 import { Conversation, Item, Mode } from '../../src/types';
 import { Button, C, Chips, Empty, ErrorBox, Loading, Page, T, categories, s } from '../../src/ui';
 import { useScreenActive } from '../../src/useScreenActive';
@@ -26,6 +27,12 @@ export default function Discover() {
       ),
   });
   const item = feed.data?.items[0];
+  useEffect(() => {
+    feed.data?.items.slice(1, 3).forEach((next) => {
+      const uri = photoUrl(next.photos[0]);
+      if (uri) void Image.prefetch(uri);
+    });
+  }, [feed.data?.items]);
   const swipe = useMutation({
     mutationFn: ({ id, direction }: { id: string; direction: 'LEFT' | 'RIGHT' | 'UP' }) =>
       api<{ match?: Conversation; conversation?: Conversation }>('/swipes', 'POST', {
@@ -33,12 +40,34 @@ export default function Discover() {
         mode,
         direction,
       }),
-    onSuccess: (data, variables) => {
-      const remaining = cache.getQueryData<typeof feed.data>(key)?.items.length;
+    onMutate: async (variables) => {
+      await cache.cancelQueries({ queryKey: key });
+      const previous = cache.getQueryData<typeof feed.data>(key);
       cache.setQueryData(key, (old: typeof feed.data) =>
-        old ? { ...old, items: old.items.filter((i) => i.id !== variables.id) } : old,
+        old
+          ? { ...old, items: old.items.filter((candidate) => candidate.id !== variables.id) }
+          : old,
       );
-      if (remaining === 1) void feed.refetch();
+      return {
+        previous,
+        removed: previous?.items.find((candidate) => candidate.id === variables.id),
+      };
+    },
+    onError: (error, _variables, context) => {
+      // A stale listing is safely dropped. Network failures put it back so it can be retried.
+      if (error instanceof ApiError && error.status >= 400 && error.status < 500) return;
+      if (context?.removed) {
+        cache.setQueryData(key, (old: typeof feed.data) =>
+          old && !old.items.some((candidate) => candidate.id === context.removed?.id)
+            ? { ...old, items: [context.removed, ...old.items] }
+            : old,
+        );
+      }
+    },
+    onSettled: () => {
+      void cache.invalidateQueries({ queryKey: key });
+    },
+    onSuccess: (data) => {
       void cache.invalidateQueries({ queryKey: ['saved'] });
       void cache.invalidateQueries({ queryKey: ['inbox'] });
       if (data.match) router.push({ pathname: '/match', params: { id: data.match.id } });

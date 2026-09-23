@@ -17,6 +17,14 @@ export async function saveToken(value: string | null) {
 export function photoUrl(path?: string) {
   return path?.startsWith('/') ? API_URL + path : path;
 }
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+  }
+}
 export async function api<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
   if (!API_URL)
     throw new Error(
@@ -24,7 +32,8 @@ export async function api<T>(path: string, method = 'GET', body?: unknown): Prom
     );
   let response: Response;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20000);
+  // Uploads on 3G can take longer than normal API requests.
+  const timeout = setTimeout(() => controller.abort(), body instanceof FormData ? 90_000 : 20_000);
   try {
     response = await fetch(API_URL + path, {
       method,
@@ -45,10 +54,11 @@ export async function api<T>(path: string, method = 'GET', body?: unknown): Prom
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     if (response.status === 401 && !path.startsWith('/auth/')) expired?.();
-    throw new Error(
+    throw new ApiError(
       Array.isArray(data.message)
         ? data.message.join('\n')
         : (data.message ?? 'Something went wrong. Please retry.'),
+      response.status,
     );
   }
   return data as T;

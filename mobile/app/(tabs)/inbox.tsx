@@ -16,7 +16,7 @@ export default function Inbox() {
     enabled: active,
     refetchInterval: active ? 3000 : false,
   });
-  const matches = inbox.data?.filter((c) => c.swapItem && !c.completedAt) ?? [];
+  const matches = inbox.data?.filter((c) => c.isNewMatch) ?? [];
   const open = (id: string) => router.push({ pathname: '/chat/[id]', params: { id } });
   return (
     <Page>
@@ -29,7 +29,7 @@ export default function Inbox() {
       {matches.length > 0 && (
         <>
           <T>
-            Swap matches <T style={{ color: C.pink }}>({matches.length})</T>
+            New swap matches <T style={{ color: C.pink }}>({matches.length})</T>
           </T>
           <ScrollView
             horizontal

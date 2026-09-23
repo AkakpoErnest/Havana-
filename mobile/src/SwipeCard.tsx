@@ -8,6 +8,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 import { Item, Mode } from './types';
 import { C, T, label, money } from './ui';
@@ -30,6 +31,7 @@ export function SwipeCard({
   const compact = height < 740;
   const x = useSharedValue(0),
     y = useSharedValue(0);
+  const leaving = useSharedValue(false);
   const pan = Gesture.Pan()
     .enabled(!disabled)
     .minDistance(12)
@@ -38,12 +40,26 @@ export function SwipeCard({
       y.value = e.translationY;
     })
     .onEnd(() => {
-      if (y.value < -90 && Math.abs(y.value) > Math.abs(x.value) && mode === 'SHOP')
-        runOnJS(onSwipe)('UP');
-      else if (x.value > 90) runOnJS(onSwipe)('RIGHT');
-      else if (x.value < -90) runOnJS(onSwipe)('LEFT');
-      x.value = withSpring(0);
-      y.value = withSpring(0);
+      if (leaving.value) return;
+      if (y.value < -90 && Math.abs(y.value) > Math.abs(x.value) && mode === 'SHOP') {
+        leaving.value = true;
+        y.value = withTiming(-height * 1.2, { duration: 180 }, (finished) => {
+          if (finished) runOnJS(onSwipe)('UP');
+        });
+      } else if (x.value > 90) {
+        leaving.value = true;
+        x.value = withTiming(width * 1.35, { duration: 180 }, (finished) => {
+          if (finished) runOnJS(onSwipe)('RIGHT');
+        });
+      } else if (x.value < -90) {
+        leaving.value = true;
+        x.value = withTiming(-width * 1.35, { duration: 180 }, (finished) => {
+          if (finished) runOnJS(onSwipe)('LEFT');
+        });
+      } else {
+        x.value = withSpring(0);
+        y.value = withSpring(0);
+      }
     });
   const transform = useAnimatedStyle(() => ({
     transform: [
