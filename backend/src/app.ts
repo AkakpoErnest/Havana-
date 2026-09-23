@@ -1,0 +1,79 @@
+import 'reflect-metadata';
+import 'dotenv/config';
+import { BadRequestException, Body, Controller, Delete, Get, Module, Param, ParseUUIDPipe, Patch, Post, Query, Req, UploadedFiles, UseGuards, UseInterceptors, ValidationPipe } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import { JwtModule } from '@nestjs/jwt';
+import { FilesInterceptor, NestExpressApplication } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { randomUUID } from 'node:crypto';
+import sharp from 'sharp';
+import { Auth, AuthedRequest, Guard, OtpRateGuard } from './auth';
+import { Db } from './db';
+import { Chat } from './chat';
+import { Market } from './market';
+import { ConversationDto, FeedDto, ListingDto, MessagesDto, ProfileDto, OfferActionDto, OfferDto, OtpDto, RatingDto, ReportDto, StatusDto, SwapActionDto, SwipeDto, TextDto, VerifyDto } from './dto';
+@Controller()
+class HealthController { @Get('health') health() { return {ok:true,app:'Havana'}; } }
+@Controller('auth')
+@UseGuards(OtpRateGuard)
+class AuthController {
+  constructor(private auth:Auth) {}
+  @Post('request') request(@Body() d:OtpDto) { return this.auth.request(d); }
+  @Post('verify') verify(@Body() d:VerifyDto) { return this.auth.verify(d); }
+  @Post('link/request') @UseGuards(Guard) linkRequest(@Req() r:AuthedRequest,@Body() d:OtpDto) { return this.auth.request(d,r.userId); }
+  @Post('link/verify') @UseGuards(Guard) linkVerify(@Req() r:AuthedRequest,@Body() d:VerifyDto) { return this.auth.verify(d,r.userId); }
+}
+@Controller()
+@UseGuards(Guard)
+class ApiController {
+  constructor(private market:Market,private chat:Chat,private db:Db) {}
+  @Get('me') me(@Req() r:AuthedRequest) { return this.market.me(r.userId); }
+  @Patch('me') profile(@Req() r:AuthedRequest,@Body() d:ProfileDto) { return this.market.profile(r.userId,d); }
+  @Get('feed') feed(@Req() r:AuthedRequest,@Query() q:FeedDto) { return this.market.feed(r.userId,q); }
+  @Get('saved') saved(@Req() r:AuthedRequest) { return this.market.saved(r.userId); }
+  @Delete('saved/:itemId') unsave(@Req() r:AuthedRequest,@Param('itemId',ParseUUIDPipe) itemId:string) { return this.market.unsave(r.userId,itemId); }
+  @Post('items') create(@Req() r:AuthedRequest,@Body() d:ListingDto) { return this.market.create(r.userId,d); }
+  @Get('items/:id') item(@Req() r:AuthedRequest,@Param('id',ParseUUIDPipe) id:string) { return this.market.item(id,r.userId); }
+  @Patch('items/:id/status') status(@Req() r:AuthedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() d:StatusDto) { return this.market.status(r.userId,id,d.status); }
+  @Post('items/:id/report') report(@Req() r:AuthedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() d:ReportDto) { return this.market.report(r.userId,id,d.reason); }
+  @Post('swipes') swipe(@Req() r:AuthedRequest,@Body() d:SwipeDto) { return this.market.swipe(r.userId,d); }
+  @Get('conversations') inbox(@Req() r:AuthedRequest) { return this.chat.inbox(r.userId); }
+  @Post('conversations') conversation(@Req() r:AuthedRequest,@Body() d:ConversationDto) { return this.db.atomic(tx=>this.market.shopConversation(tx,r.userId,d.itemId)); }
+  @Get('conversations/:id/messages') messages(@Req() r:AuthedRequest,@Param('id',ParseUUIDPipe) id:string,@Query() q:MessagesDto) { return this.chat.messages(id,r.userId,q); }
+  @Post('conversations/:id/messages') text(@Req() r:AuthedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() d:TextDto) { return this.chat.text(id,r.userId,d.text); }
+  @Post('conversations/:id/offers') offer(@Req() r:AuthedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() d:OfferDto) { return this.chat.offer(id,r.userId,d.amount); }
+  @Post('conversations/:id/offers/:messageId') respond(@Req() r:AuthedRequest,@Param('id',ParseUUIDPipe) id:string,@Param('messageId',ParseUUIDPipe) messageId:string,@Body() d:OfferActionDto) { return this.chat.respond(id,messageId,r.userId,d.action); }
+  @Post('conversations/:id/swap') swap(@Req() r:AuthedRequest,@Param('id',ParseUUIDPipe) id:string,@Body() d:SwapActionDto) { return this.chat.swap(id,r.userId,d.action); }
+  @Post('ratings') rate(@Req() r:AuthedRequest,@Body() d:RatingDto) { return this.market.rate(r.userId,d.toId,d.stars); }
+  @Post('uploads')
+  @UseInterceptors(FilesInterceptor('photos',6,{storage:memoryStorage(),limits:{fileSize:5*1024*1024},fileFilter:(_req,file,cb)=>cb(null,['image/jpeg','image/png','image/webp'].includes(file.mimetype))}))
+  async upload(@Req() r:AuthedRequest,@UploadedFiles() files:Express.Multer.File[]) {
+    if(!files?.length) throw new BadRequestException('Choose up to six JPEG, PNG, or WebP photos (5 MB each).');
+    const paths:string[]=[];
+    for(const file of files) {
+      let bytes:Buffer;
+      try { bytes=await sharp(file.buffer,{limitInputPixels:40_000_000}).rotate().resize(1200,1200,{fit:'inside',withoutEnlargement:true}).jpeg({quality:78}).toBuffer(); }
+      catch { throw new BadRequestException('One photo could not be read. Please choose a different image.'); }
+      const filename=randomUUID()+'.jpg'; const path='/uploads/'+filename;
+      await writeFile(resolve(process.env.UPLOAD_DIR??'uploads',filename),bytes);
+      await this.db.upload.create({data:{userId:r.userId,path}}); paths.push(path);
+    }
+    return {photos:paths};
+  }
+}
+@Module({imports:[JwtModule.registerAsync({useFactory:()=>({secret:process.env.JWT_SECRET,signOptions:{expiresIn:'30d'}})})],controllers:[HealthController,AuthController,ApiController],providers:[Db,Auth,Guard,OtpRateGuard,Market,Chat]})
+class AppModule {}
+export async function createApp() {
+  if(!process.env.JWT_SECRET||process.env.JWT_SECRET.length<32) throw new Error('JWT_SECRET must contain at least 32 characters.');
+  if(process.env.DEV_OTP!=='true'&&(!process.env.OTP_WEBHOOK_URL?.startsWith('https://')||!process.env.OTP_WEBHOOK_TOKEN)) throw new Error('Configure an HTTPS OTP_WEBHOOK_URL and token, or enable DEV_OTP for local testing.');
+  if(process.env.NODE_ENV==='production'&&process.env.DEV_OTP==='true') throw new Error('DEV_OTP must be disabled in production.');
+  const app=await NestFactory.create<NestExpressApplication>(AppModule,{logger:process.env.NODE_ENV==='test'?false:['log','warn','error']});
+  app.useGlobalPipes(new ValidationPipe({transform:true,whitelist:true,forbidNonWhitelisted:true}));
+  app.enableCors();
+  await mkdir(resolve(process.env.UPLOAD_DIR??'uploads'),{recursive:true});
+  app.useStaticAssets(resolve(process.env.UPLOAD_DIR??'uploads'),{prefix:'/uploads/',maxAge:'7d',setHeaders:res=>res.setHeader('X-Content-Type-Options','nosniff')});
+  app.enableShutdownHooks();
+  return app;
+}

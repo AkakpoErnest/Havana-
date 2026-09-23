@@ -1,0 +1,1 @@
+{"name":"havana","private":true,"scripts":{"typecheck":"npm --prefix backend run typecheck && npm --prefix mobile run typecheck","lint":"npm --prefix backend run lint && npm --prefix mobile run lint","test":"npm --prefix backend test"}}

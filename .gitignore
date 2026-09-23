@@ -1,0 +1,10 @@
+node_modules/
+.env
+.env.*
+!.env.example
+dist/
+.expo/
+backend/uploads/
+*.log
+.DS_Store
+coverage/

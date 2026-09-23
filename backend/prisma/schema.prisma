@@ -1,0 +1,217 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+enum IdentityType {
+  PHONE
+  EMAIL
+}
+enum Category {
+  CLOTHES
+  SHOES
+  BAGS
+  FURNITURE
+  ELECTRONICS
+  HOUSEHOLD
+  OTHER
+}
+enum Condition {
+  NEW
+  LIKE_NEW
+  GOOD
+  FAIR
+}
+enum ListingKind {
+  ITEM
+  RENTAL
+}
+enum ItemStatus {
+  LIVE
+  RESERVED
+  SOLD
+  SWAPPED
+  REMOVED
+}
+enum Mode {
+  SHOP
+  SWAP
+}
+enum Direction {
+  RIGHT
+  LEFT
+  UP
+}
+enum MessageType {
+  TEXT
+  OFFER
+  SYSTEM
+}
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  COUNTERED
+}
+model User {
+  id String @id @default(uuid())
+  name String @default("Havana neighbour")
+  area String?
+  latitude Float?
+  longitude Float?
+  createdAt DateTime @default(now())
+  identities AuthIdentity[]
+  items Item[]
+  uploads Upload[]
+  swipes Swipe[]
+  messages Message[]
+  reports Report[]
+  ratingsGiven Rating[] @relation("rater")
+  ratingsReceived Rating[] @relation("rated")
+  buying Conversation[] @relation("buyer")
+  selling Conversation[] @relation("seller")
+  orders Order[]
+  @@map("users")
+}
+model AuthIdentity {
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields:[userId], references:[id])
+  type IdentityType
+  value String @unique
+  verifiedAt DateTime @default(now()) @map("verified_at")
+  @@unique([userId,type])
+  @@map("auth_identities")
+}
+model OtpChallenge {
+  id String @id @default(uuid())
+  type IdentityType
+  value String
+  hash String
+  linkUserId String?
+  attempts Int @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  @@index([value,createdAt])
+}
+model Upload {
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields:[userId],references:[id])
+  path String @unique
+  createdAt DateTime @default(now())
+}
+model Item {
+  id String @id @default(uuid())
+  ownerId String
+  owner User @relation(fields:[ownerId],references:[id])
+  kind ListingKind @default(ITEM)
+  title String
+  description String
+  category Category
+  condition Condition
+  sell Boolean
+  swap Boolean
+  price Int?
+  swapValue Int?
+  photos String[]
+  area String
+  latitude Float?
+  longitude Float?
+  status ItemStatus @default(LIVE)
+  hidden Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  swipes Swipe[]
+  reports Report[]
+  conversations Conversation[] @relation("item")
+  swapConversations Conversation[] @relation("swapItem")
+  orders Order[]
+  @@index([status,hidden,createdAt])
+  @@index([ownerId])
+}
+model Swipe {
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields:[userId],references:[id])
+  itemId String
+  item Item @relation(fields:[itemId],references:[id])
+  mode Mode
+  direction Direction
+  createdAt DateTime @default(now())
+  @@unique([userId,itemId,mode])
+}
+model Conversation {
+  id String @id @default(uuid())
+  buyerId String
+  buyer User @relation("buyer",fields:[buyerId],references:[id])
+  sellerId String
+  seller User @relation("seller",fields:[sellerId],references:[id])
+  itemId String
+  item Item @relation("item",fields:[itemId],references:[id])
+  swapItemId String?
+  swapItem Item? @relation("swapItem",fields:[swapItemId],references:[id])
+  matchKey String? @unique
+  buyerAgreed Boolean @default(false)
+  sellerAgreed Boolean @default(false)
+  buyerDone Boolean @default(false)
+  sellerDone Boolean @default(false)
+  completedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  messages Message[]
+  @@index([buyerId,updatedAt])
+  @@index([sellerId,updatedAt])
+}
+model Message {
+  id String @id @default(uuid())
+  conversationId String
+  conversation Conversation @relation(fields:[conversationId],references:[id])
+  senderId String?
+  sender User? @relation(fields:[senderId],references:[id])
+  type MessageType
+  text String?
+  amount Int?
+  offerStatus OfferStatus?
+  createdAt DateTime @default(now())
+  // Bumped on offer status changes so chat polling can fetch only what changed.
+  updatedAt DateTime @default(now()) @updatedAt
+  @@index([conversationId,createdAt])
+  @@index([conversationId,updatedAt])
+}
+model Rating {
+  id String @id @default(uuid())
+  fromId String
+  from User @relation("rater",fields:[fromId],references:[id])
+  toId String
+  to User @relation("rated",fields:[toId],references:[id])
+  stars Int
+  createdAt DateTime @default(now())
+  @@unique([fromId,toId])
+}
+model Report {
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields:[userId],references:[id])
+  itemId String
+  item Item @relation(fields:[itemId],references:[id])
+  reason String
+  createdAt DateTime @default(now())
+  @@unique([userId,itemId])
+}
+// Reserved extension point. V1 never creates orders or takes payments.
+model Order {
+  id String @id @default(uuid())
+  buyerId String
+  buyer User @relation(fields:[buyerId],references:[id])
+  itemId String
+  item Item @relation(fields:[itemId],references:[id])
+  amount Int
+  currency String @default("GHS")
+  status String @default("DRAFT")
+  providerReference String? @unique
+  escrowMetadata Json?
+  createdAt DateTime @default(now())
+}

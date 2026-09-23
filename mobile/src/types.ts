@@ -1,0 +1,53 @@
+export type Mode = 'SHOP' | 'SWAP';
+export type Category =
+  'CLOTHES' | 'SHOES' | 'BAGS' | 'FURNITURE' | 'ELECTRONICS' | 'HOUSEHOLD' | 'OTHER';
+export type Item = {
+  id: string;
+  ownerId: string;
+  title: string;
+  description: string;
+  category: Category;
+  condition: string;
+  sell: boolean;
+  swap: boolean;
+  price: number | null;
+  swapValue: number | null;
+  photos: string[];
+  area: string;
+  status: string;
+  hidden: boolean;
+  distanceKm?: number | null;
+  owner: { id: string; name: string; rating?: number | null; ratingCount?: number };
+};
+export type User = {
+  id: string;
+  name: string;
+  identities: { type: 'PHONE' | 'EMAIL'; value: string }[];
+  items: Item[];
+  rating: number | null;
+  ratingCount: number;
+};
+export type Message = {
+  id: string;
+  senderId: string | null;
+  type: 'TEXT' | 'OFFER' | 'SYSTEM';
+  text: string | null;
+  amount: number | null;
+  offerStatus: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'COUNTERED' | null;
+  createdAt: string;
+};
+export type Conversation = {
+  id: string;
+  buyerId: string;
+  sellerId: string;
+  buyer: { id: string; name: string };
+  seller: { id: string; name: string };
+  item: Item;
+  swapItem: Item | null;
+  buyerAgreed: boolean;
+  sellerAgreed: boolean;
+  buyerDone: boolean;
+  sellerDone: boolean;
+  completedAt: string | null;
+  messages?: Message[];
+};
