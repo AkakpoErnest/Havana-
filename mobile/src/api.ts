@@ -1,17 +1,32 @@
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? '').replace(/\/$/, '');
 let token: string | null = null;
 let expired: (() => void) | undefined;
 export function onExpired(fn: () => void) {
   expired = fn;
 }
+const TOKEN_KEY = 'havana.token';
+// expo-secure-store has no web implementation; the browser build (for laptop testing) uses localStorage.
+const tokenStore =
+  Platform.OS === 'web'
+    ? {
+        get: async () => globalThis.localStorage?.getItem(TOKEN_KEY) ?? null,
+        set: async (value: string) => globalThis.localStorage?.setItem(TOKEN_KEY, value),
+        remove: async () => globalThis.localStorage?.removeItem(TOKEN_KEY),
+      }
+    : {
+        get: () => SecureStore.getItemAsync(TOKEN_KEY),
+        set: (value: string) => SecureStore.setItemAsync(TOKEN_KEY, value),
+        remove: () => SecureStore.deleteItemAsync(TOKEN_KEY),
+      };
 export async function loadToken() {
-  token = await SecureStore.getItemAsync('havana.token');
+  token = await tokenStore.get();
   return token;
 }
 export async function saveToken(value: string | null) {
-  if (value) await SecureStore.setItemAsync('havana.token', value);
-  else await SecureStore.deleteItemAsync('havana.token');
+  if (value) await tokenStore.set(value);
+  else await tokenStore.remove();
   token = value;
 }
 export function photoUrl(path?: string) {
