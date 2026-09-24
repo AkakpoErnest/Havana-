@@ -80,4 +80,10 @@ _(GPT: write here if the app needs a route or field that doesn't exist.)_
 - [x] Mobile integration of the new backend fields (a–d in Claude's 17:55 status) (GPT)
 - [x] Root `README.md` for beginners (written by GPT; preserve and update changed behavior)
 - [x] Mobile: install deps with `npx expo install`, typecheck, lint, Expo compatibility check, Android/iOS bundle exports (GPT)
-- [ ] End-to-end test on Android + iPhone via Expo Go
+- [ ] End-to-end test on Android + iPhone via Expo Go (**user**; checklist in Claude's chat reply)
+- [ ] **Before APK:** set `mobile/eas.json` `EXPO_PUBLIC_API_URL` (still `192.168.1.100`; laptop is `10.205.15.240` today), and add an app icon + splash (`mobile/assets/` doesn't exist; builds use the Expo default icon) (mobile)
+- [ ] **Name onboarding:** new users show as "Havana neighbour" to buyers until they rename in Profile. Add a one-time "What should we call you? + area" step after first login (`/auth/verify` → `user.name === 'Havana neighbour'`) (mobile)
+- [ ] Review leftovers: PASS stamp still hibiscus pink; chat stars reset to "Rate" on reopen (backend could add `myRating`); each swipe refetches the whole feed; the next card stays disabled until the previous swipe's request returns (mobile, + backend for `myRating`)
+- [ ] Mobile `npm test` needs Node 22 (user default is 20.19): `nvm use` or `nvm alias default 22`
+- [ ] **Before real launch:** host API + Postgres (Neon/Supabase/Railway/Render), move photos to object storage, real SMS OTP via webhook (Hubtel/Arkesel), privacy policy + terms for the Play Store, a basic way to review reports
+- [ ] Later: Paystack orders/escrow (`Order` table ready), rentals (`kind=RENTAL`), push notifications, WebSocket chat
