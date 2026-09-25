@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { View } from 'react-native';
 import { Stack, router, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -11,6 +12,7 @@ import { SessionProvider, useSession } from '../src/session';
 import { C, ErrorBox, Loading, Page } from '../src/ui';
 import { api } from '../src/api';
 import { User } from '../src/types';
+import { LaunchIntro } from '../src/LaunchIntro';
 const client = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 15000 }, mutations: { retry: false } },
 });
@@ -65,6 +67,8 @@ function Routes() {
   );
 }
 export default function Layout() {
+  const [introVisible, setIntroVisible] = useState(true);
+  const finishIntro = useCallback(() => setIntroVisible(false), []);
   const [loaded, error] = useFonts({ BricolageGrotesque_500Medium, BricolageGrotesque_700Bold });
   if (!loaded && !error) return null;
   return (
@@ -72,8 +76,15 @@ export default function Layout() {
       <SafeAreaProvider>
         <QueryClientProvider client={client}>
           <SessionProvider>
-            <StatusBar style="dark" />
-            <Routes />
+            <StatusBar style={introVisible ? 'light' : 'dark'} />
+            <View
+              style={{ flex: 1 }}
+              accessibilityElementsHidden={introVisible}
+              importantForAccessibility={introVisible ? 'no-hide-descendants' : 'auto'}
+            >
+              <Routes />
+            </View>
+            {introVisible && <LaunchIntro onFinish={finishIntro} />}
           </SessionProvider>
         </QueryClientProvider>
       </SafeAreaProvider>
