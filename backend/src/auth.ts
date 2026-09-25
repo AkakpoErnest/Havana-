@@ -7,6 +7,27 @@ import { Db } from './db';
 import { OtpDto, VerifyDto } from './dto';
 import { coded } from './errors';
 export type AuthedRequest = Request & { userId: string };
+type OtpChannel='brevo'|'webhook'|'dev';
+/** How a login type gets its code: Brevo email, the SMS/email webhook, dev mode (code logged + returned), or null = not offered yet. */
+export function otpChannel(type:'EMAIL'|'PHONE'):OtpChannel|null {
+  if(type==='EMAIL'&&process.env.BREVO_API_KEY) return 'brevo';
+  if(process.env.OTP_WEBHOOK_URL) return 'webhook';
+  if(process.env.DEV_OTP==='true') return 'dev';
+  return null;
+}
+export const loginMethods=()=>({email:otpChannel('EMAIL')!==null,phone:otpChannel('PHONE')!==null});
+async function sendEmailCode(to:string,code:string) {
+  const text=`Your Havana code is ${code}. It expires in 5 minutes.\n\nIf you didn't try to sign in to Havana, you can ignore this email.`;
+  const html=`<div style="font-family:Arial,sans-serif;max-width:420px;margin:auto;padding:24px;color:#16152E">
+<div style="font-size:30px;font-weight:bold;color:#23206B">havana<span style="color:#F0437B">.</span></div>
+<p style="font-size:16px">Here's your code to sign in:</p>
+<div style="font-size:36px;font-weight:bold;letter-spacing:8px;background:#FFB020;color:#16152E;display:inline-block;padding:12px 20px;border-radius:12px">${code}</div>
+<p style="color:#6B6A86;font-size:14px">It expires in 5 minutes. If you didn't try to sign in to Havana, you can ignore this email.</p>
+<p style="color:#1FA774;font-size:13px">Good deals, safe meetups: meet in public and check the item before paying.</p></div>`;
+  const response=await fetch('https://api.brevo.com/v3/smtp/email',{method:'POST',headers:{'api-key':process.env.BREVO_API_KEY!,'Content-Type':'application/json',Accept:'application/json'},
+    body:JSON.stringify({sender:{name:'Havana',email:process.env.OTP_EMAIL_FROM},to:[{email:to}],subject:`${code} is your Havana code`,textContent:text,htmlContent:html}),signal:AbortSignal.timeout(10000)});
+  if(!response.ok) throw new Error(`Brevo responded ${response.status}: ${(await response.text()).slice(0,200)}`);
+}
 export function normalize(type: 'EMAIL'|'PHONE', raw: string) {
   const value=raw.trim().toLowerCase();
   if (type==='EMAIL') {
@@ -31,19 +52,25 @@ export class Auth {
     }
     const recent=await this.db.otpChallenge.count({where:{value,createdAt:{gte:new Date(Date.now()-60_000)}}});
     if(recent>=1) throw new HttpException(coded('OTP_RATE_LIMITED','Please wait a minute before requesting another code.'),429);
+    const channel=otpChannel(dto.type);
+    if(!channel) throw new ServiceUnavailableException(coded(dto.type==='PHONE'?'PHONE_LOGIN_UNAVAILABLE':'EMAIL_LOGIN_UNAVAILABLE',dto.type==='PHONE'?'Phone login is coming soon. Please use your email for now.':'Email login is not available right now. Please try again later.'));
     const code=randomInt(0,1000000).toString().padStart(6,'0');
     const challenge=await this.db.otpChallenge.create({data:{type:dto.type,value,hash:this.hash(value,code),linkUserId,expiresAt:new Date(Date.now()+5*60_000)}});
-    if(process.env.DEV_OTP==='true') console.log(`[DEV OTP] ${value}: ${code}`);
+    if(channel==='dev') console.log(`[DEV OTP] ${value}: ${code}`);
     else {
       try {
-        const response=await fetch(process.env.OTP_WEBHOOK_URL!,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${process.env.OTP_WEBHOOK_TOKEN}`},body:JSON.stringify({type:dto.type,value,code}),signal:AbortSignal.timeout(10000)});
-        if(!response.ok) throw new Error('Delivery failed');
-      } catch {
+        if(channel==='brevo') await sendEmailCode(value,code);
+        else {
+          const response=await fetch(process.env.OTP_WEBHOOK_URL!,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${process.env.OTP_WEBHOOK_TOKEN}`},body:JSON.stringify({type:dto.type,value,code}),signal:AbortSignal.timeout(10000)});
+          if(!response.ok) throw new Error(`Webhook responded ${response.status}`);
+        }
+      } catch(e) {
+        console.error(`OTP delivery via ${channel} failed:`,e instanceof Error?e.message:e);
         await this.db.otpChallenge.delete({where:{id:challenge.id}});
         throw new ServiceUnavailableException(coded('OTP_DELIVERY_FAILED','Could not send your code. Try again shortly.'));
       }
     }
-    return {challengeId:challenge.id,expiresIn:300,...(process.env.DEV_OTP==='true'?{devCode:code}:{})};
+    return {challengeId:challenge.id,expiresIn:300,...(channel==='dev'?{devCode:code}:{})};
   }
   async verify(dto:VerifyDto, linkUserId?:string) {
     const result=await this.db.atomic(async tx=>{

@@ -7,7 +7,7 @@ import { FilesInterceptor, NestExpressApplication } from '@nestjs/platform-expre
 import { memoryStorage } from 'multer';
 import { mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { Auth, AuthedRequest, Guard, OtpRateGuard } from './auth';
+import { Auth, AuthedRequest, Guard, OtpRateGuard, loginMethods } from './auth';
 import { Db } from './db';
 import { Chat } from './chat';
 import { Market } from './market';
@@ -15,7 +15,11 @@ import { PhotoStore, encodePhoto } from './photos';
 import { ConversationDto, FeedDto, ListingDto, MessagesDto, ProfileDto, OfferActionDto, OfferDto, OtpDto, RatingDto, ReportDto, StatusDto, SwapActionDto, SwipeDto, TextDto, VerifyDto } from './dto';
 import { ErrorCodes, coded } from './errors';
 @Controller()
-class HealthController { @Get('health') health() { return {ok:true,app:'Havana'}; } }
+class HealthController {
+  @Get('health') health() { return {ok:true,app:'Havana'}; }
+  // Which login types this server can deliver codes for; the app hides the rest.
+  @Get('auth/methods') methods() { return loginMethods(); }
+}
 @Controller('auth')
 @UseGuards(OtpRateGuard)
 class AuthController {
@@ -66,7 +70,10 @@ class ApiController {
 class AppModule {}
 export async function createApp() {
   if(!process.env.JWT_SECRET||process.env.JWT_SECRET.length<32) throw new Error('JWT_SECRET must contain at least 32 characters.');
-  if(process.env.DEV_OTP!=='true'&&(!process.env.OTP_WEBHOOK_URL?.startsWith('https://')||!process.env.OTP_WEBHOOK_TOKEN)) throw new Error('Configure an HTTPS OTP_WEBHOOK_URL and token, or enable DEV_OTP for local testing.');
+  const webhook=process.env.OTP_WEBHOOK_URL;
+  if(webhook&&(!webhook.startsWith('https://')||!process.env.OTP_WEBHOOK_TOKEN)) throw new Error('OTP_WEBHOOK_URL must be HTTPS and needs OTP_WEBHOOK_TOKEN.');
+  if(process.env.BREVO_API_KEY&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(process.env.OTP_EMAIL_FROM??'')) throw new Error('BREVO_API_KEY is set, so OTP_EMAIL_FROM must be the sender email verified in Brevo.');
+  if(process.env.DEV_OTP!=='true'&&!webhook&&!process.env.BREVO_API_KEY) throw new Error('No way to send login codes: set BREVO_API_KEY (email), OTP_WEBHOOK_URL (SMS/email), or DEV_OTP=true for local testing.');
   if(process.env.NODE_ENV==='production'&&process.env.DEV_OTP==='true') {
     // Tester phase before SMS exists: codes are returned by the API, so anyone who knows a number can sign in as it.
     if(process.env.ALLOW_DEV_OTP_IN_PRODUCTION!=='true') throw new Error('DEV_OTP must be disabled in production (or set ALLOW_DEV_OTP_IN_PRODUCTION=true for a closed tester build).');

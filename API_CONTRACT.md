@@ -11,7 +11,7 @@ Written by Claude from the backend code in `backend/src`. Last updated 2026-09-2
 - Errors: `{ statusCode, error, message, code }`. `message` is a friendly string to show the user
   (string[] for validation errors). **`code` is stable. Use it for app logic, never the message text.**
   Specific codes: `LISTING_UNAVAILABLE` (item sold/reserved/removed/hidden or wrong mode: drop the card),
-  `CLOSET_EMPTY`, `OTP_INVALID`, `OTP_RATE_LIMITED`, `OTP_DELIVERY_FAILED`, `INVALID_IDENTIFIER`,
+  `CLOSET_EMPTY`, `OTP_INVALID`, `PHONE_LOGIN_UNAVAILABLE`, `EMAIL_LOGIN_UNAVAILABLE` (503), `OTP_RATE_LIMITED`, `OTP_DELIVERY_FAILED`, `INVALID_IDENTIFIER`,
   `IDENTITY_TAKEN`, `OFFER_NOT_PENDING`, `SWAP_NOT_AGREED`, `CANNOT_RATE`, `PHOTOS_NOT_OWNED`, `NO_PHOTOS`,
   `PHOTO_UNREADABLE`, `VALIDATION_ERROR`. Otherwise a default for the status: `BAD_REQUEST`, `UNAUTHORIZED`,
   `FORBIDDEN`, `NOT_FOUND`, `PAYLOAD_TOO_LARGE`, `RATE_LIMITED`, `SERVICE_UNAVAILABLE`, `INTERNAL_ERROR`.
@@ -20,10 +20,15 @@ Written by Claude from the backend code in `backend/src`. Last updated 2026-09-2
 | Method | Path | Body | Returns |
 |---|---|---|---|
 | GET | `/health` | | `{ok:true, app:'Havana'}` |
+| GET | `/auth/methods` | | `{email:boolean, phone:boolean}`: which login types this server can deliver codes for. Only offer those in the app. |
 | POST | `/auth/request` | `{type:'PHONE'\|'EMAIL', value}` | `{challengeId, expiresIn:300, devCode?}` (devCode only when `DEV_OTP=true`; the code is also logged) |
 | POST | `/auth/verify` | `{challengeId, code}` | `{token, user:{id,name}}`. Creates the account on first login. |
 | POST 🔒 | `/auth/link/request` | `{type, value}` | same as `/auth/request` (backup login) |
 | POST 🔒 | `/auth/link/verify` | `{challengeId, code}` | `{token, user}` (same account, now with 2 identities) |
+
+**Code delivery:** EMAIL codes are emailed via Brevo when `BREVO_API_KEY` is set; otherwise via `OTP_WEBHOOK_URL`, or dev mode
+(`DEV_OTP=true`: code logged and returned as `devCode`). `devCode` is **only** present for dev-mode deliveries.
+With no channel for a type, `/auth/request` returns 503 `PHONE_LOGIN_UNAVAILABLE` / `EMAIL_LOGIN_UNAVAILABLE`.
 
 Phone numbers are normalised: `0541234567`, `233541234567` and `054 123 4567` all become `+233541234567`.
 You can request a new code once a minute per identifier. A code expires after 5 minutes or 5 wrong attempts.

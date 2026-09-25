@@ -235,5 +235,8 @@ They are never committed. The Render blueprint asks for `DATABASE_URL`, `DIRECT_
    every 5–10 min.
 
 **Before a public launch:** `DEV_OTP=true` + `ALLOW_DEV_OTP_IN_PRODUCTION=true` (set in `render.yaml`) make the
-API return login codes, so anyone who knows a phone number could sign in as that person. Connect an SMS provider through
-`OTP_WEBHOOK_URL` / `OTP_WEBHOOK_TOKEN`, then remove both flags.
+API return login codes, so anyone who knows a phone number could sign in as that person. Instead:
+- **Email login (free):** create a Brevo account, verify a sender address, and set `BREVO_API_KEY` + `OTP_EMAIL_FROM`
+  on Render. Then set `DEV_OTP=false` and delete `ALLOW_DEV_OTP_IN_PRODUCTION`. Email codes are emailed, and phone login shows
+  "coming soon" (`GET /auth/methods` → `{email:true, phone:false}`).
+- **Phone login:** connect an SMS provider through `OTP_WEBHOOK_URL` / `OTP_WEBHOOK_TOKEN`.

@@ -215,3 +215,43 @@ test('errors carry stable codes and chats remember my rating',async()=>{
   assert.equal((await http.get(`/conversations/${chat.id}/messages`).set(as(a)).expect(200)).body.conversation.myRating,4);
   assert.equal((await http.get(`/conversations/${chat.id}/messages`).set(as(b)).expect(200)).body.conversation.myRating,null);
 });
+test('email codes go out through Brevo and phone login is switched off without SMS',async()=>{
+  (app.get(OtpRateGuard) as unknown as {buckets:Map<string,unknown>}).buckets.clear();
+  const saved={DEV_OTP:process.env.DEV_OTP,BREVO_API_KEY:process.env.BREVO_API_KEY,OTP_EMAIL_FROM:process.env.OTP_EMAIL_FROM};
+  const realFetch=globalThis.fetch;
+  const sent:{headers:Record<string,string>;body:{to:{email:string}[];subject:string;sender:{email:string};htmlContent:string}}[]=[];
+  let brevoStatus=201;
+  globalThis.fetch=(async(input:string|URL|Request,init?:RequestInit)=>{
+    if(String(input).startsWith('https://api.brevo.com/')) {
+      sent.push({headers:init!.headers as Record<string,string>,body:JSON.parse(String(init!.body))});
+      return new Response(brevoStatus===201?'{"messageId":"m1"}':'{"message":"Key not found"}',{status:brevoStatus});
+    }
+    return realFetch(input,init);
+  }) as typeof fetch;
+  try {
+    delete process.env.DEV_OTP; process.env.BREVO_API_KEY='test-brevo-key'; process.env.OTP_EMAIL_FROM='hello@havana.test';
+    assert.deepEqual((await http.get('/auth/methods').expect(200)).body,{email:true,phone:false});
+    const req=await http.post('/auth/request').send({type:'EMAIL',value:'Brevo.User@Test.com'}).expect(201);
+    assert.equal(req.body.devCode,undefined);
+    assert.equal(sent.length,1);
+    assert.equal(sent[0].headers['api-key'],'test-brevo-key');
+    assert.deepEqual(sent[0].body.to,[{email:'brevo.user@test.com'}]);
+    assert.equal(sent[0].body.sender.email,'hello@havana.test');
+    const emailed=sent[0].body.subject.match(/^(\d{6}) is your Havana code$/)![1];
+    assert.ok(sent[0].body.htmlContent.includes(emailed));
+    const v=await http.post('/auth/verify').send({challengeId:req.body.challengeId,code:emailed}).expect(201);
+    assert.ok(v.body.token);
+    const phone=await http.post('/auth/request').send({type:'PHONE',value:'0541112222'}).expect(503);
+    assert.equal(phone.body.code,'PHONE_LOGIN_UNAVAILABLE');
+    brevoStatus=401;
+    const failed=await http.post('/auth/request').send({type:'EMAIL',value:'bounce@test.com'}).expect(503);
+    assert.equal(failed.body.code,'OTP_DELIVERY_FAILED');
+    // The failed challenge is discarded, so the user can retry straight away instead of waiting a minute.
+    brevoStatus=201;
+    await http.post('/auth/request').send({type:'EMAIL',value:'bounce@test.com'}).expect(201);
+  } finally {
+    globalThis.fetch=realFetch;
+    for(const [k,v] of Object.entries(saved)) if(v===undefined) delete process.env[k]; else process.env[k]=v;
+  }
+  assert.deepEqual((await http.get('/auth/methods').expect(200)).body,{email:true,phone:true});
+});
