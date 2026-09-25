@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import 'dotenv/config';
-import { BadRequestException, Body, Controller, Delete, Get, Module, Param, ParseUUIDPipe, Patch, Post, Query, Req, UploadedFiles, UseGuards, UseInterceptors, ValidationPipe } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Header, Module, Param, ParseUUIDPipe, Patch, Post, Query, Req, UploadedFiles, UseGuards, UseInterceptors, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { FilesInterceptor, NestExpressApplication } from '@nestjs/platform-express';
@@ -15,7 +15,8 @@ import { DAY, HOUR, Limit, MINUTE, UserLimits } from './limits';
 import { PhotoStore, encodePhoto } from './photos';
 import { Push, isExpoPushToken } from './push';
 import { AdminGuard, Moderation } from './admin';
-import { ConversationDto, FeedDto, ListingDto, MessagesDto, ProfileDto, PushTokenDto, OfferActionDto, OfferDto, OtpDto, RatingDto, ReportDto, StatusDto, SwapActionDto, SwipeDto, TextDto, VerifyDto } from './dto';
+import { Accounts } from './account';
+import { ConversationDto, FeedDto, ListingDto, MessagesDto, ProfileDto, DeleteAccountDto, PushTokenDto, OfferActionDto, OfferDto, OtpDto, RatingDto, ReportDto, StatusDto, SwapActionDto, SwipeDto, TextDto, VerifyDto } from './dto';
 import { ErrorCodes, coded } from './errors';
 @Controller()
 @UseGuards(OtpRateGuard)
@@ -27,6 +28,16 @@ class PublicPushController {
 @Controller()
 class HealthController {
   @Get('health') health() { return {ok:true,app:'Havana'}; }
+  // Public page for Google Play's "account deletion URL" requirement.
+  @Get('account-deletion') @Header('Content-Type','text/html; charset=utf-8') deletionPage() {
+    const support=process.env.SUPPORT_EMAIL?`<p>Can't open the app? Email <a href="mailto:${process.env.SUPPORT_EMAIL}?subject=Delete%20my%20Havana%20account">${process.env.SUPPORT_EMAIL}</a> from the email on your account, or include your phone number, and we'll delete it within 7 days.</p>`:'';
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Delete your Havana account</title></head>
+<body style="font-family:Arial,sans-serif;max-width:560px;margin:40px auto;padding:0 16px;color:#16152E;line-height:1.5">
+<h1 style="color:#23206B">havana<span style="color:#F0437B">.</span></h1><h2>Delete your account</h2>
+<p>In the Havana app, open <b>You</b> (Profile), tap <b>Delete account</b> and confirm.</p>${support}
+<h3>What is deleted</h3><ul><li>Your name, area and location</li><li>Your phone number and email logins</li><li>Your listings and their photos</li><li>Your chat messages (the other person sees “Message deleted”), swipes, saved items, ratings and reports</li><li>Notification settings for your phones</li></ul>
+<h3>What is kept</h3><p>Offer amounts and system notes inside chats stay, without your name, so the other person's chat history still makes sense. Nothing else is kept.</p></body></html>`;
+  }
   // Which login types this server can deliver codes for; the app hides the rest.
   @Get('auth/methods') methods() { return loginMethods(); }
 }
@@ -50,13 +61,15 @@ class AdminController {
 @Controller()
 @UseGuards(Guard,UserLimits)
 class ApiController {
-  constructor(private market:Market,private chat:Chat,private db:Db,private photos:PhotoStore,private push:Push) {}
+  constructor(private market:Market,private chat:Chat,private db:Db,private photos:PhotoStore,private push:Push,private accounts:Accounts) {}
   @Get('me') me(@Req() r:AuthedRequest) { return this.market.me(r.userId,r.trusted); }
   @Post('me/push-token') pushToken(@Req() r:AuthedRequest,@Body() d:PushTokenDto) {
     if(!isExpoPushToken(d.token)) throw new BadRequestException(coded('INVALID_PUSH_TOKEN','That is not an Expo push token.'));
     return this.push.register(r.userId,d.token);
   }
   @Delete('me/push-token') removePushToken(@Req() r:AuthedRequest,@Body() d:PushTokenDto) { return this.push.unregister(r.userId,d.token); }
+  // Permanent. Body must be {confirm:'DELETE'} so it can't be triggered by accident.
+  @Delete('me') deleteAccount(@Req() r:AuthedRequest,@Body() d:DeleteAccountDto) { void d; return this.accounts.delete(r.userId); }
   @Patch('me') profile(@Req() r:AuthedRequest,@Body() d:ProfileDto) { return this.market.profile(r.userId,d,r.trusted); }
   @Get('feed') feed(@Req() r:AuthedRequest,@Query() q:FeedDto) { return this.market.feed(r.userId,q); }
   @Get('saved') saved(@Req() r:AuthedRequest) { return this.market.saved(r.userId); }
@@ -90,7 +103,7 @@ class ApiController {
     return {photos:paths};
   }
 }
-@Module({imports:[JwtModule.registerAsync({useFactory:()=>({secret:process.env.JWT_SECRET,signOptions:{expiresIn:'30d'}})})],controllers:[HealthController,PublicPushController,AuthController,ApiController,AdminController],providers:[Db,Auth,Guard,OtpRateGuard,Market,Chat,PhotoStore,UserLimits,Push,AdminGuard,Moderation]})
+@Module({imports:[JwtModule.registerAsync({useFactory:()=>({secret:process.env.JWT_SECRET,signOptions:{expiresIn:'30d'}})})],controllers:[HealthController,PublicPushController,AuthController,ApiController,AdminController],providers:[Db,Auth,Guard,OtpRateGuard,Market,Chat,PhotoStore,UserLimits,Push,AdminGuard,Moderation,Accounts]})
 class AppModule {}
 export async function createApp() {
   if(!process.env.JWT_SECRET||process.env.JWT_SECRET.length<32) throw new Error('JWT_SECRET must contain at least 32 characters.');

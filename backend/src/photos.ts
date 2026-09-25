@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
@@ -56,5 +56,16 @@ export class PhotoStore {
     await mkdir(dir, { recursive: true });
     await Promise.all(files.map(([file, body]) => writeFile(resolve(dir, file), body)));
     return `/uploads/${name}.webp`;
+  }
+  /** Deletes a stored photo and its preview. Photos we don't host (seed/Unsplash, another bucket) are ignored. */
+  async remove(url: string) {
+    const files = [url, thumbOf(url)];
+    const base = process.env.R2_PUBLIC_URL?.replace(/\/$/, '');
+    if (this.r2 && base && url.startsWith(`${base}/`)) {
+      await Promise.all(files.map((u) => this.r2!.send(new DeleteObjectCommand({ Bucket: process.env.R2_BUCKET, Key: u.slice(base.length + 1) }))));
+    } else if (url.startsWith('/uploads/')) {
+      const dir = resolve(process.env.UPLOAD_DIR ?? 'uploads');
+      await Promise.all(files.map((u) => rm(resolve(dir, u.slice('/uploads/'.length)), { force: true })));
+    }
   }
 }

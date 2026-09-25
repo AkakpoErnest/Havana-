@@ -1,4 +1,4 @@
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsEnum, IsInt, IsNumber, IsOptional, IsString, IsUUID, Length, Matches, Max, MaxLength, Min } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsEnum, IsIn, IsInt, IsNumber, IsOptional, IsString, IsUUID, Length, Matches, Max, MaxLength, Min } from 'class-validator';
 import { Category, Condition, Direction, IdentityType, ItemStatus, Mode } from '@prisma/client';
 import { Type } from 'class-transformer';
 export class OtpDto {
@@ -57,3 +57,4 @@ export class MessagesDto {
   @IsOptional() @IsString() @MaxLength(100) since?: string;
 }
 export class PushTokenDto { @IsString() @Length(10,200) token!: string; }
+export class DeleteAccountDto { @IsIn(['DELETE']) confirm!: 'DELETE'; }

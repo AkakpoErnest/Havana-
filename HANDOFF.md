@@ -13,6 +13,7 @@ Use [APP_SECURITY_REVIEW.md](APP_SECURITY_REVIEW.md) for findings, evidence, cor
   backend change writes `LOCK backend: <agent> <time>` under Status, and removes it when done.
 
 ## Status
+- 2026-09-25 (Claude): **backend lock released.** Account deletion: `DELETE /me {confirm:'DELETE'}` (listings + photos down, chat texts blanked, logins freed, `users.deletedAt` → Guard 401 `ACCOUNT_DELETED`), plus public `GET /account-deletion` page for Google Play. Migration `…_user_deleted_at`. Backend 14/14. **Mobile ask:** Profile → "Delete account" with confirm → DELETE /me → sign out.
 - 2026-09-25 (Claude): **backend lock released.** SEC-001 fixed in code (`OtpChallenge.channel`, JWT `trusted`, admin requires trusted login; migration `…_otp_channel`). Added `POST /push-token/unregister` for SEC-002. Backend 13/13. Production verification of SEC-001 is pending the Render deploy. **User: keep `ADMIN_EMAILS` unset on Render until that's verified.**
 - 2026-09-25 (Codex): Returned and read Claude’s push/moderation updates. Shared review ledger is `APP_SECURITY_REVIEW.md`; read it alongside CONVERSATION/HANDOFF. Open: SEC-001 development OTP + moderator identity (Claude backend review requested), SEC-002 push cleanup/session races and APP-001 stale notification taps (Codex mobile follow-up). Findings are source-reviewed, not yet fixed. No implementation lock taken in this documentation pass.
 - 2026-09-25 (Claude): **backend lock released.** Moderation: `ADMIN_EMAILS`, `me.isAdmin`, `GET /admin/reports`, `POST /admin/items/:id/restore|remove`, 403 `NOT_ADMIN`. Backend 12/12. User must add `ADMIN_EMAILS` on Render. The mobile moderation screen is still to do.
@@ -115,5 +116,6 @@ _(GPT: write here if the app needs a route or field that doesn't exist.)_
 - [ ] Review leftovers: PASS stamp still hibiscus pink; chat stars reset to "Rate" on reopen (backend could add `myRating`); each swipe refetches the whole feed; the next card stays disabled until the previous swipe's request returns (mobile, + backend for `myRating`)
 - [ ] Mobile `npm test` needs Node 22 (user default is 20.19): `nvm use` or `nvm alias default 22`
 - [ ] **Before real launch:** host API + Postgres (Neon/Supabase/Railway/Render), move photos to object storage, real SMS OTP via webhook (Hubtel/Arkesel), privacy policy + terms for the Play Store, a basic way to review reports
+- [ ] Mobile: Profile → "Delete account" (confirm dialog → `DELETE /me {confirm:'DELETE'}` → sign out). **Required for Google Play.**
 - [ ] Mobile: moderation screen for admins (`me.isAdmin` → Profile → "Review reports")
 - [ ] Later: Paystack orders/escrow (`Order` table ready), rentals (`kind=RENTAL`), push notifications, WebSocket chat

@@ -13,7 +13,7 @@ Written by Claude from the backend code in `backend/src`. Last updated 2026-09-2
   Specific codes: `LISTING_UNAVAILABLE` (item sold/reserved/removed/hidden or wrong mode: drop the card),
   `CLOSET_EMPTY`, `OTP_INVALID`, `PHONE_LOGIN_UNAVAILABLE`, `EMAIL_LOGIN_UNAVAILABLE` (503), `OTP_RATE_LIMITED`, `OTP_DELIVERY_FAILED`, `INVALID_IDENTIFIER`,
   `IDENTITY_TAKEN`, `OFFER_NOT_PENDING`, `SWAP_NOT_AGREED`, `CANNOT_RATE`, `PHOTOS_NOT_OWNED`, `NO_PHOTOS`,
-  `PHOTO_UNREADABLE`, `INVALID_PUSH_TOKEN`, `NOT_ADMIN` / `ADMIN_NEEDS_VERIFIED_LOGIN` (403), `RATE_LIMITED` (429, per-user limits below), `VALIDATION_ERROR`. Otherwise a default for the status: `BAD_REQUEST`, `UNAUTHORIZED`,
+  `PHOTO_UNREADABLE`, `INVALID_PUSH_TOKEN`, `NOT_ADMIN` / `ADMIN_NEEDS_VERIFIED_LOGIN` (403), `ACCOUNT_DELETED` (401), `RATE_LIMITED` (429, per-user limits below), `VALIDATION_ERROR`. Otherwise a default for the status: `BAD_REQUEST`, `UNAUTHORIZED`,
   `FORBIDDEN`, `NOT_FOUND`, `PAYLOAD_TOO_LARGE`, `RATE_LIMITED`, `SERVICE_UNAVAILABLE`, `INTERNAL_ERROR`.
 
 ## Auth
@@ -39,6 +39,7 @@ A user can have at most one PHONE and one EMAIL identity. Each IP gets 20 reques
 |---|---|---|---|
 | GET 🔒 | `/me` | | user (`id,name,area,latitude,longitude,createdAt`) + `identities[]` + `items[]` (all statuses, newest first) + `rating` (avg or null) + `ratingCount` |
 | PATCH 🔒 | `/me` | `{name?, area?, latitude?, longitude?}`. All optional; send lat and lng together. | same as `GET /me` (**changed**: it used to return `{id,name}`) |
+| DELETE 🔒 | `/me` | `{confirm:"DELETE"}` | `{deleted:true}`. **Permanent.** Removes logins (phone/email become free), listings + their photos, chat texts (→ "Message deleted"), swipes/saves, ratings, reports, push tokens; name becomes "Deleted user". All existing tokens → 401 `ACCOUNT_DELETED`. Sign the user out after success. |
 | GET 🔒 | `/saved` | | items I swiped RIGHT on in SHOP (not hidden/removed) |
 | DELETE 🔒 | `/saved/:itemId` | | `{saved:false}` (unsave; the item stays out of the Shop feed) |
 
@@ -129,3 +130,6 @@ Everyone else gets 403 `NOT_ADMIN`.
 | GET 🔒 | `/admin/reports` | reported items, most-reported first: Item + `owner`, `reportCount`, `hidden`, `reports:[{reason, createdAt}]` |
 | POST 🔒 | `/admin/items/:id/restore` | Item (unhidden; its reports cleared so it won't re-hide immediately) |
 | POST 🔒 | `/admin/items/:id/remove` | Item (`status: REMOVED`, hidden for everyone) |
+
+## Account deletion page
+`GET /account-deletion` → public HTML page for Google Play's "account deletion URL" (shows `SUPPORT_EMAIL` if set).

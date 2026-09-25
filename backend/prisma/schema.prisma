@@ -61,6 +61,8 @@ model User {
   area String?
   latitude Float?
   longitude Float?
+  // Set when the person deletes their account; their sessions stop working immediately.
+  deletedAt DateTime?
   createdAt DateTime @default(now())
   identities AuthIdentity[]
   items Item[]

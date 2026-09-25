@@ -98,16 +98,20 @@ export class Auth {
 }
 @Injectable()
 export class Guard implements CanActivate {
-  constructor(private jwt:JwtService) {}
-  canActivate(context:ExecutionContext) {
+  constructor(private jwt:JwtService,private db:Db) {}
+  async canActivate(context:ExecutionContext) {
     const req=context.switchToHttp().getRequest<AuthedRequest>();
     const token=req.headers.authorization?.match(/^Bearer (.+)$/)?.[1];
     try {
       if(!token) throw new Error();
       const payload=this.jwt.verify<{sub:string;trusted?:boolean}>(token);
-      req.userId=payload.sub; req.trusted=payload.trusted===true; return true;
+      req.userId=payload.sub; req.trusted=payload.trusted===true;
     }
     catch { throw new UnauthorizedException('Please sign in again.'); }
+    // Deleted accounts: every existing token stops working at once.
+    const user=await this.db.user.findUnique({where:{id:req.userId},select:{deletedAt:true}});
+    if(!user||user.deletedAt) throw new UnauthorizedException(coded('ACCOUNT_DELETED','This account no longer exists. Please sign in again.'));
+    return true;
   }
 }
 @Injectable()

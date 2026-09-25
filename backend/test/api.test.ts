@@ -367,3 +367,39 @@ test('a phone can drop its push token without a session (expired or offline logo
   assert.equal(await db.pushToken.count({where:{token:'ExponentPushToken[expired-session-phone]'}}),0);
   await http.post('/push-token/unregister').send({token:'ExponentPushToken[unknown]'}).expect(201);
 });
+test('deleting an account removes personal data, ends sessions and keeps the other side of chats readable',async()=>{
+  (app.get(OtpRateGuard) as unknown as {buckets:Map<string,unknown>}).buckets.clear();
+  const [,b]=accounts;
+  const leaver=await login('leaving@test.com');
+  await http.patch('/me').set(as(leaver)).send({name:'Esi Leaves',area:'Osu',latitude:5.55,longitude:-0.18}).expect(200);
+  const upload=await http.post('/uploads').set(as(leaver)).attach('photos',await sharp({create:{width:8,height:8,channels:3,background:'#23206B'}}).jpeg().toBuffer(),'x.jpg').expect(201);
+  const photo:string=upload.body.photos[0];
+  const item=(await http.post('/items').set(as(leaver)).send({...base,title:'Leaving soon chair',photos:[photo]}).expect(201)).body.id;
+  const target=await listing(b,{title:'Chat target',swap:false});
+  const chat=(await http.post('/conversations').set(as(leaver)).send({itemId:target}).expect(201)).body.id;
+  await http.post(`/conversations/${chat}/messages`).set(as(leaver)).send({text:'My number is 0240000000, call me'}).expect(201);
+  await http.post('/me/push-token').set(as(leaver)).send({token:'ExponentPushToken[leaver-phone]'}).expect(201);
+  const dir=process.env.UPLOAD_DIR??'uploads';
+  await stat(resolve(dir,photo.replace('/uploads/','')));
+  assert.equal((await http.delete('/me').set(as(leaver)).send({}).expect(400)).body.code,'VALIDATION_ERROR');
+  assert.deepEqual((await http.delete('/me').set(as(leaver)).send({confirm:'DELETE'}).expect(200)).body,{deleted:true});
+  // Every existing session ends immediately.
+  assert.equal((await http.get('/me').set(as(leaver)).expect(401)).body.code,'ACCOUNT_DELETED');
+  // Photos are gone from storage; the listing is down.
+  await assert.rejects(stat(resolve(dir,photo.replace('/uploads/',''))));
+  await assert.rejects(stat(resolve(dir,thumbOf(photo).replace('/uploads/',''))));
+  await http.get(`/items/${item}`).set(as(b)).expect(404);
+  assert.equal(await db.pushToken.count({where:{token:'ExponentPushToken[leaver-phone]'}}),0);
+  const gone=await db.user.findUniqueOrThrow({where:{id:leaver.id}});
+  assert.deepEqual([gone.name,gone.area,gone.latitude],['Deleted user',null,null]);
+  // The other person's thread still loads, without the leaver's words or name.
+  const thread=(await http.get(`/conversations/${chat}/messages`).set(as(b)).expect(200)).body;
+  assert.equal(thread.conversation.buyer.name,'Deleted user');
+  assert.ok(thread.messages.some((m:{text:string})=>m.text==='Message deleted'));
+  assert.ok(!JSON.stringify(thread).includes('0240000000'));
+  // The email is free again: signing up creates a brand-new account.
+  const again=await login('leaving@test.com');
+  assert.notEqual(again.id,leaver.id);
+  const page=await http.get('/account-deletion').expect(200).expect('Content-Type',/text\/html/);
+  assert.match(page.text,/Delete your account/);
+});
