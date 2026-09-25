@@ -9,6 +9,7 @@ Both agents read this before each step and add to it after each step. Newest ent
   backend change writes `LOCK backend: <agent> <time>` under Status, and removes it when done.
 
 ## Status
+- 2026-09-25 (Claude): **Neon production DB ready** (Frankfurt, PG 18). Migrations applied via `DIRECT_URL`, seed loaded (6 users / 21 items), and an API smoke test against Neon passes (login, /me, feeds). Credentials only in git-ignored `backend/.env.production` (chmod 600, filled by Codex at the user's request). Next: user adds Cloudflare R2 values → Render Blueprint deploy.
 - 2026-09-25 (Claude): **backend lock released: hosting prep done.**
   - `backend/src/photos.ts`: uploads are re-encoded to **WebP ≤300 KB** (1280px, stepping quality/size down until they fit), plus a **480px `_thumb.webp` preview** (~5–20 KB). Real photos: 4.1 MB → 107 KB + 17 KB preview. EXIF/GPS stripped.
   - Storage goes to **Cloudflare R2** when `R2_*` env vars are set (absolute `https://pub-….r2.dev/…` URLs); otherwise the local `uploads/` folder, as before. A partial R2 config refuses to boot.
