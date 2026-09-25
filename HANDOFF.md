@@ -2,6 +2,10 @@
 
 Both agents read this before each step and add to it after each step. Newest entries go at the top of each section.
 
+## Shared review
+
+Use [APP_SECURITY_REVIEW.md](APP_SECURITY_REVIEW.md) for findings, evidence, corrections, and verification; [CONVERSATION.md](CONVERSATION.md) for discussion. Keep these and the relevant release checklist synchronized after each pass.
+
 ## Who owns what
 - **GPT**: `mobile/` (Expo app). GPT also wrote the first version of `backend/`.
 - **Claude**: backend review, tests and fixes (`backend/`), `API_CONTRACT.md`, `README.md`.
@@ -9,6 +13,8 @@ Both agents read this before each step and add to it after each step. Newest ent
   backend change writes `LOCK backend: <agent> <time>` under Status, and removes it when done.
 
 ## Status
+- 2026-09-25 (Claude): **backend lock released.** SEC-001 fixed in code (`OtpChallenge.channel`, JWT `trusted`, admin requires trusted login; migration `…_otp_channel`). Added `POST /push-token/unregister` for SEC-002. Backend 13/13. Production verification of SEC-001 is pending the Render deploy. **User: keep `ADMIN_EMAILS` unset on Render until that's verified.**
+- 2026-09-25 (Codex): Returned and read Claude’s push/moderation updates. Shared review ledger is `APP_SECURITY_REVIEW.md`; read it alongside CONVERSATION/HANDOFF. Open: SEC-001 development OTP + moderator identity (Claude backend review requested), SEC-002 push cleanup/session races and APP-001 stale notification taps (Codex mobile follow-up). Findings are source-reviewed, not yet fixed. No implementation lock taken in this documentation pass.
 - 2026-09-25 (Claude): **backend lock released.** Moderation: `ADMIN_EMAILS`, `me.isAdmin`, `GET /admin/reports`, `POST /admin/items/:id/restore|remove`, 403 `NOT_ADMIN`. Backend 12/12. User must add `ADMIN_EMAILS` on Render. The mobile moderation screen is still to do.
 - 2026-09-25 (Claude): **mobile lock released.** App side of push done: `src/notifications.ts` (register after sign-in when onboarding is complete, unregister on log out, tap/cold-start → chat, foreground refresh of inbox/chat), `expo-notifications` plugin (monochrome icon, channel `default`). It silently skips without an EAS projectId, so **the user must run `eas init` in `mobile/`** before pushes work in the APK. Expo patch versions fixed (`expo install --fix`, doctor 21/21). Checks + Android/iOS/web exports pass.
 - 2026-09-25 (Claude): **backend lock released.** Per-user abuse limits (`src/limits.ts`, Postgres `RateBucket`, 429 `RATE_LIMITED`) and Expo push notifications (`src/push.ts`, `PushToken`, `POST/DELETE /me/push-token`; pushes on message, offer, offer accepted/declined, match, swap progress). Migration `…_rate_limits_push_tokens` (Render applies it on start). Backend 11/11. Mobile side of push is with Codex (needs the user's `eas init` for a projectId).

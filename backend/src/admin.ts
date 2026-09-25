@@ -13,7 +13,9 @@ export function isAdminIdentity(identities: { type: string; value: string }[]) {
 export class AdminGuard implements CanActivate {
   constructor(private db: Db) {}
   async canActivate(context: ExecutionContext) {
-    const { userId } = context.switchToHttp().getRequest<AuthedRequest>();
+    const { userId, trusted } = context.switchToHttp().getRequest<AuthedRequest>();
+    // Dev-mode codes are shown to whoever asks, so they never prove the admin owns the email (SEC-001).
+    if (!trusted) throw new ForbiddenException(coded('ADMIN_NEEDS_VERIFIED_LOGIN', 'Moderator tools need a login code sent by email or SMS. Please sign in again with your email.'));
     const identities = await this.db.authIdentity.findMany({ where: { userId }, select: { type: true, value: true } });
     if (!isAdminIdentity(identities)) throw new ForbiddenException(coded('NOT_ADMIN', 'Only Havana moderators can do this.'));
     return true;

@@ -92,6 +92,8 @@ model OtpChallenge {
   value String
   hash String
   linkUserId String?
+  // How the code reached the user (dev | brevo | webhook); only real channels prove ownership.
+  channel String @default("dev")
   attempts Int @default(0)
   expiresAt DateTime
   createdAt DateTime @default(now())

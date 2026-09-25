@@ -18,6 +18,13 @@ import { AdminGuard, Moderation } from './admin';
 import { ConversationDto, FeedDto, ListingDto, MessagesDto, ProfileDto, PushTokenDto, OfferActionDto, OfferDto, OtpDto, RatingDto, ReportDto, StatusDto, SwapActionDto, SwipeDto, TextDto, VerifyDto } from './dto';
 import { ErrorCodes, coded } from './errors';
 @Controller()
+@UseGuards(OtpRateGuard)
+class PublicPushController {
+  constructor(private push:Push) {}
+  // No login needed: lets a phone stop receiving pushes after its session expired or it logged out offline (SEC-002).
+  @Post('push-token/unregister') forget(@Body() d:PushTokenDto) { return this.push.forget(d.token); }
+}
+@Controller()
 class HealthController {
   @Get('health') health() { return {ok:true,app:'Havana'}; }
   // Which login types this server can deliver codes for; the app hides the rest.
@@ -30,7 +37,7 @@ class AuthController {
   @Post('request') request(@Body() d:OtpDto) { return this.auth.request(d); }
   @Post('verify') verify(@Body() d:VerifyDto) { return this.auth.verify(d); }
   @Post('link/request') @UseGuards(Guard) linkRequest(@Req() r:AuthedRequest,@Body() d:OtpDto) { return this.auth.request(d,r.userId); }
-  @Post('link/verify') @UseGuards(Guard) linkVerify(@Req() r:AuthedRequest,@Body() d:VerifyDto) { return this.auth.verify(d,r.userId); }
+  @Post('link/verify') @UseGuards(Guard) linkVerify(@Req() r:AuthedRequest,@Body() d:VerifyDto) { return this.auth.verify(d,r.userId,r.trusted); }
 }
 @Controller('admin')
 @UseGuards(Guard,AdminGuard)
@@ -44,13 +51,13 @@ class AdminController {
 @UseGuards(Guard,UserLimits)
 class ApiController {
   constructor(private market:Market,private chat:Chat,private db:Db,private photos:PhotoStore,private push:Push) {}
-  @Get('me') me(@Req() r:AuthedRequest) { return this.market.me(r.userId); }
+  @Get('me') me(@Req() r:AuthedRequest) { return this.market.me(r.userId,r.trusted); }
   @Post('me/push-token') pushToken(@Req() r:AuthedRequest,@Body() d:PushTokenDto) {
     if(!isExpoPushToken(d.token)) throw new BadRequestException(coded('INVALID_PUSH_TOKEN','That is not an Expo push token.'));
     return this.push.register(r.userId,d.token);
   }
   @Delete('me/push-token') removePushToken(@Req() r:AuthedRequest,@Body() d:PushTokenDto) { return this.push.unregister(r.userId,d.token); }
-  @Patch('me') profile(@Req() r:AuthedRequest,@Body() d:ProfileDto) { return this.market.profile(r.userId,d); }
+  @Patch('me') profile(@Req() r:AuthedRequest,@Body() d:ProfileDto) { return this.market.profile(r.userId,d,r.trusted); }
   @Get('feed') feed(@Req() r:AuthedRequest,@Query() q:FeedDto) { return this.market.feed(r.userId,q); }
   @Get('saved') saved(@Req() r:AuthedRequest) { return this.market.saved(r.userId); }
   @Delete('saved/:itemId') unsave(@Req() r:AuthedRequest,@Param('itemId',ParseUUIDPipe) itemId:string) { return this.market.unsave(r.userId,itemId); }
@@ -83,7 +90,7 @@ class ApiController {
     return {photos:paths};
   }
 }
-@Module({imports:[JwtModule.registerAsync({useFactory:()=>({secret:process.env.JWT_SECRET,signOptions:{expiresIn:'30d'}})})],controllers:[HealthController,AuthController,ApiController,AdminController],providers:[Db,Auth,Guard,OtpRateGuard,Market,Chat,PhotoStore,UserLimits,Push,AdminGuard,Moderation]})
+@Module({imports:[JwtModule.registerAsync({useFactory:()=>({secret:process.env.JWT_SECRET,signOptions:{expiresIn:'30d'}})})],controllers:[HealthController,PublicPushController,AuthController,ApiController,AdminController],providers:[Db,Auth,Guard,OtpRateGuard,Market,Chat,PhotoStore,UserLimits,Push,AdminGuard,Moderation]})
 class AppModule {}
 export async function createApp() {
   if(!process.env.JWT_SECRET||process.env.JWT_SECRET.length<32) throw new Error('JWT_SECRET must contain at least 32 characters.');

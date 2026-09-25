@@ -13,7 +13,7 @@ Written by Claude from the backend code in `backend/src`. Last updated 2026-09-2
   Specific codes: `LISTING_UNAVAILABLE` (item sold/reserved/removed/hidden or wrong mode: drop the card),
   `CLOSET_EMPTY`, `OTP_INVALID`, `PHONE_LOGIN_UNAVAILABLE`, `EMAIL_LOGIN_UNAVAILABLE` (503), `OTP_RATE_LIMITED`, `OTP_DELIVERY_FAILED`, `INVALID_IDENTIFIER`,
   `IDENTITY_TAKEN`, `OFFER_NOT_PENDING`, `SWAP_NOT_AGREED`, `CANNOT_RATE`, `PHOTOS_NOT_OWNED`, `NO_PHOTOS`,
-  `PHOTO_UNREADABLE`, `INVALID_PUSH_TOKEN`, `NOT_ADMIN` (403), `RATE_LIMITED` (429, per-user limits below), `VALIDATION_ERROR`. Otherwise a default for the status: `BAD_REQUEST`, `UNAUTHORIZED`,
+  `PHOTO_UNREADABLE`, `INVALID_PUSH_TOKEN`, `NOT_ADMIN` / `ADMIN_NEEDS_VERIFIED_LOGIN` (403), `RATE_LIMITED` (429, per-user limits below), `VALIDATION_ERROR`. Otherwise a default for the status: `BAD_REQUEST`, `UNAUTHORIZED`,
   `FORBIDDEN`, `NOT_FOUND`, `PAYLOAD_TOO_LARGE`, `RATE_LIMITED`, `SERVICE_UNAVAILABLE`, `INTERNAL_ERROR`.
 
 ## Auth
@@ -111,6 +111,7 @@ uploads 20/h & 60/day · new chats 30/h & 200/day · reports 10/h & 30/day · ra
 |---|---|---|---|
 | POST 🔒 | `/me/push-token` | `{token: "ExponentPushToken[…]"}` | `{registered:true}`. Call after login and whenever the token changes. A token moves to whoever signed in last on that phone. |
 | DELETE 🔒 | `/me/push-token` | `{token}` | `{registered:false}`. Call on log out. |
+| POST | `/push-token/unregister` | `{token}` | `{registered:false}`. **No login needed**: use after session expiry or a logout that couldn't reach the server (delete-only). |
 
 The server sends these to the *other* person (title / body), always with `data: {conversationId, kind}`. Tapping should open `chat/[conversationId]`:
 - `message`: title = sender's name, body = the message text
@@ -121,7 +122,7 @@ The server sends these to the *other* person (title / body), always with `data: 
 Android channel id: `default`. Tokens of uninstalled apps are dropped automatically.
 
 ## Moderation (admins only)
-Admins are accounts with a verified email listed in the server's `ADMIN_EMAILS`. `GET /me` includes `isAdmin: boolean`.
+Admins are accounts with a verified email listed in the server's `ADMIN_EMAILS`, **signed in with a code delivered by a real channel** (Brevo email / SMS webhook). Dev-mode (on-screen) logins are never admin → 403 `ADMIN_NEEDS_VERIFIED_LOGIN`. `GET /me` includes `isAdmin: boolean`.
 Everyone else gets 403 `NOT_ADMIN`.
 | Method | Path | Returns |
 |---|---|---|

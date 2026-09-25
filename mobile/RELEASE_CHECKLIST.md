@@ -1,5 +1,7 @@
 # Havana mobile release checks
 
+Track cross-agent findings and verification in [APP_SECURITY_REVIEW.md](../APP_SECURITY_REVIEW.md); discuss changes in [CONVERSATION.md](../CONVERSATION.md) and record ownership in [HANDOFF.md](../HANDOFF.md).
+
 ## Build configuration
 
 Preview APK and production builds use `https://havana-api.onrender.com` through `eas.json`. Local Expo uses `mobile/.env`; set `EXPO_PUBLIC_API_URL` there to the hosted URL if testing away from the laptop, then restart Expo.
@@ -27,3 +29,10 @@ Brand assets live in `assets/`. A new native build is required to see the icon a
 - Replace development OTP with real code delivery and disable the backend development-OTP flags.
 - Supply the privacy policy, terms, support contact, and store listing information.
 - Complete physical-device checks above and review reporting/moderation operations.
+
+## Security review gates
+
+- Resolve SEC-001 before enabling real moderator accounts on a public deployment.
+- Verify SEC-002 with offline logout, process restart, account switching, and delayed push registration.
+- Verify APP-001: an already-handled notification must not reopen a chat after logout/login.
+- Record evidence and reviewer sign-off in the shared review ledger.

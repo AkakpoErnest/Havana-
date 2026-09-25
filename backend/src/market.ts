@@ -14,14 +14,14 @@ export function distance(lat1:number,lon1:number,lat2:number,lon2:number) {
 @Injectable()
 export class Market {
   constructor(private db:Db,private push:Push) {}
-  async me(userId:string) {
+  async me(userId:string,trusted=false) {
     const [user,ratings]=await Promise.all([this.db.user.findUniqueOrThrow({where:{id:userId},include:{identities:{select:{type:true,value:true,verifiedAt:true}},items:{orderBy:{createdAt:'desc'}}}}),this.db.rating.aggregate({where:{toId:userId},_avg:{stars:true},_count:true})]);
-    return {...user,rating:ratings._avg.stars,ratingCount:ratings._count,isAdmin:isAdminIdentity(user.identities)};
+    return {...user,rating:ratings._avg.stars,ratingCount:ratings._count,isAdmin:trusted&&isAdminIdentity(user.identities)};
   }
-  async profile(userId:string,d:ProfileDto) {
+  async profile(userId:string,d:ProfileDto,trusted=false) {
     if((d.latitude==null)!==(d.longitude==null)) throw new BadRequestException('Both location coordinates are required.');
     await this.db.user.update({where:{id:userId},data:d});
-    return this.me(userId);
+    return this.me(userId,trusted);
   }
   async create(userId:string,d:ListingDto) {
     if(!d.sell&&!d.swap) throw new BadRequestException('Choose selling, swapping, or both.');

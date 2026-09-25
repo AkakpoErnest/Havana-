@@ -21,6 +21,12 @@ export class Push {
     return { registered: false };
   }
 
+  /** Logged-out cleanup (session expired, offline logout): holding the token proves it's this phone, and it can only delete. */
+  async forget(token: string) {
+    await this.db.pushToken.deleteMany({ where: { token } });
+    return { registered: false };
+  }
+
   notify(userId: string, notice: Notice) {
     void this.send(userId, notice).catch((e) => console.error('Push failed:', e instanceof Error ? e.message : e));
   }

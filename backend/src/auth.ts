@@ -6,7 +6,8 @@ import { Request } from 'express';
 import { Db } from './db';
 import { OtpDto, VerifyDto } from './dto';
 import { coded } from './errors';
-export type AuthedRequest = Request & { userId: string };
+/** `trusted`: this session's login code went through a real channel (email/SMS), not dev mode. Required for admin powers. */
+export type AuthedRequest = Request & { userId: string; trusted: boolean };
 type OtpChannel='brevo'|'webhook'|'dev';
 /** How a login type gets its code: Brevo email, the SMS/email webhook, dev mode (code logged + returned), or null = not offered yet. */
 export function otpChannel(type:'EMAIL'|'PHONE'):OtpChannel|null {
@@ -55,7 +56,7 @@ export class Auth {
     const channel=otpChannel(dto.type);
     if(!channel) throw new ServiceUnavailableException(coded(dto.type==='PHONE'?'PHONE_LOGIN_UNAVAILABLE':'EMAIL_LOGIN_UNAVAILABLE',dto.type==='PHONE'?'Phone login is coming soon. Please use your email for now.':'Email login is not available right now. Please try again later.'));
     const code=randomInt(0,1000000).toString().padStart(6,'0');
-    const challenge=await this.db.otpChallenge.create({data:{type:dto.type,value,hash:this.hash(value,code),linkUserId,expiresAt:new Date(Date.now()+5*60_000)}});
+    const challenge=await this.db.otpChallenge.create({data:{type:dto.type,value,hash:this.hash(value,code),linkUserId,channel,expiresAt:new Date(Date.now()+5*60_000)}});
     if(channel==='dev') console.log(`[DEV OTP] ${value}: ${code}`);
     else {
       try {
@@ -72,7 +73,8 @@ export class Auth {
     }
     return {challengeId:challenge.id,expiresIn:300,...(channel==='dev'?{devCode:code}:{})};
   }
-  async verify(dto:VerifyDto, linkUserId?:string) {
+  // Linking keeps the current session's trust: only a real-channel *login* makes a session trusted.
+  async verify(dto:VerifyDto, linkUserId?:string, linkTrusted=false) {
     const result=await this.db.atomic(async tx=>{
       const challenge=await tx.otpChallenge.findUnique({where:{id:dto.challengeId}});
       if(!challenge || challenge.expiresAt<new Date() || challenge.attempts>=5 || (challenge.linkUserId??undefined)!==linkUserId) return null;
@@ -87,10 +89,11 @@ export class Auth {
         identity=user.identities[0];
       }
       await tx.otpChallenge.deleteMany({where:{value:challenge.value}});
-      return tx.user.findUniqueOrThrow({where:{id:identity.userId},select:{id:true,name:true}});
+      const user=await tx.user.findUniqueOrThrow({where:{id:identity.userId},select:{id:true,name:true}});
+      return {user,trusted:linkUserId?linkTrusted:challenge.channel!=='dev'};
     });
     if(!result) throw new UnauthorizedException(coded('OTP_INVALID','Incorrect or expired code. Request a new code after five attempts.'));
-    return {token:this.jwt.sign({sub:result.id}),user:result};
+    return {token:this.jwt.sign({sub:result.user.id,trusted:result.trusted}),user:result.user};
   }
 }
 @Injectable()
@@ -99,7 +102,11 @@ export class Guard implements CanActivate {
   canActivate(context:ExecutionContext) {
     const req=context.switchToHttp().getRequest<AuthedRequest>();
     const token=req.headers.authorization?.match(/^Bearer (.+)$/)?.[1];
-    try { if(!token) throw new Error(); req.userId=this.jwt.verify<{sub:string}>(token).sub; return true; }
+    try {
+      if(!token) throw new Error();
+      const payload=this.jwt.verify<{sub:string;trusted?:boolean}>(token);
+      req.userId=payload.sub; req.trusted=payload.trusted===true; return true;
+    }
     catch { throw new UnauthorizedException('Please sign in again.'); }
   }
 }

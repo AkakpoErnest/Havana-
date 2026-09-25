@@ -302,13 +302,44 @@ test('push notifications reach the other person and per-user limits stop floods'
 test('moderators review reports and can restore or remove items',async()=>{
   (app.get(OtpRateGuard) as unknown as {buckets:Map<string,unknown>}).buckets.clear();
   const [a,b,c,d]=accounts;
-  const saved=process.env.ADMIN_EMAILS;
+  const saved={ADMIN_EMAILS:process.env.ADMIN_EMAILS,DEV_OTP:process.env.DEV_OTP,BREVO_API_KEY:process.env.BREVO_API_KEY,OTP_EMAIL_FROM:process.env.OTP_EMAIL_FROM};
+  const realFetch=globalThis.fetch;
+  const emailed:string[]=[];
+  // Login where the code is really delivered (stubbed Brevo) instead of returned to the requester.
+  const emailLogin=async(email:string):Promise<Account>=>{
+    process.env.BREVO_API_KEY='test-brevo-key';process.env.OTP_EMAIL_FROM='hello@havana.test';
+    globalThis.fetch=(async(input:string|URL|Request,init?:RequestInit)=>{
+      if(String(input).startsWith('https://api.brevo.com/')) { emailed.push(JSON.parse(String(init!.body)).subject.slice(0,6)); return new Response('{}',{status:201}); }
+      return realFetch(input,init);
+    }) as typeof fetch;
+    try {
+      const c=await http.post('/auth/request').send({type:'EMAIL',value:email}).expect(201);
+      assert.equal(c.body.devCode,undefined);
+      const v=await http.post('/auth/verify').send({challengeId:c.body.challengeId,code:emailed.at(-1)}).expect(201);
+      return {id:v.body.user.id,token:v.body.token};
+    } finally { globalThis.fetch=realFetch; delete process.env.BREVO_API_KEY; delete process.env.OTP_EMAIL_FROM; }
+  };
   process.env.ADMIN_EMAILS=' someone@else.com , Mod@Test.com ';
   try {
-    const mod=await login('mod@test.com');
+    // SEC-001: a dev-mode code (returned to whoever asked) must never grant moderator powers, even for a listed email.
+    const impostor=await login('mod@test.com');
+    assert.equal((await http.get('/me').set(as(impostor)).expect(200)).body.isAdmin,false);
+    assert.equal((await http.get('/admin/reports').set(as(impostor)).expect(403)).body.code,'ADMIN_NEEDS_VERIFIED_LOGIN');
+    // The real owner signs in with an emailed code: same account, now trusted.
+    const mod=await emailLogin('mod@test.com');
+    assert.equal(mod.id,impostor.id);
     assert.equal((await http.get('/me').set(as(mod)).expect(200)).body.isAdmin,true);
-    assert.equal((await http.get('/me').set(as(a)).expect(200)).body.isAdmin,false);
-    assert.equal((await http.get('/admin/reports').set(as(a)).expect(403)).body.code,'NOT_ADMIN');
+    // A trusted login alone isn't enough: the email must be listed.
+    const regular=await emailLogin('regular@test.com');
+    assert.equal((await http.get('/me').set(as(regular)).expect(200)).body.isAdmin,false);
+    assert.equal((await http.get('/admin/reports').set(as(regular)).expect(403)).body.code,'NOT_ADMIN');
+    assert.equal((await http.get('/admin/reports').set(as(a)).expect(403)).body.code,'ADMIN_NEEDS_VERIFIED_LOGIN');
+    // Linking a backup login keeps the session's trust (an untrusted session stays untrusted).
+    const untrusted=await login('untrusted-mod@test.com');
+    const link=await http.post('/auth/link/request').set(as(untrusted)).send({type:'PHONE',value:'0551239876'}).expect(201);
+    const linked=await http.post('/auth/link/verify').set(as(untrusted)).send({challengeId:link.body.challengeId,code:link.body.devCode}).expect(201);
+    process.env.ADMIN_EMAILS+=',untrusted-mod@test.com';
+    assert.equal((await http.get('/me').set('Authorization',`Bearer ${linked.body.token}`).expect(200)).body.isAdmin,false);
     const item=await listing(b,{title:'Moderation test lamp'});
     for(const u of [a,c,d]) await http.post(`/items/${item}/report`).set(as(u)).send({reason:`Looks fake (${u.id.slice(0,4)})`}).expect(201);
     await http.get(`/items/${item}`).set(as(a)).expect(404);
@@ -323,5 +354,16 @@ test('moderators review reports and can restore or remove items',async()=>{
     await http.get(`/items/${item}`).set(as(a)).expect(404);
     assert.equal((await db.item.findUniqueOrThrow({where:{id:item}})).status,'REMOVED');
     await http.post('/admin/items/00000000-0000-4000-8000-999999999999/remove').set(as(mod)).expect(404);
-  } finally { if(saved===undefined) delete process.env.ADMIN_EMAILS; else process.env.ADMIN_EMAILS=saved; }
+  } finally {
+    globalThis.fetch=realFetch;
+    for(const [k,v] of Object.entries(saved)) if(v===undefined) delete process.env[k]; else process.env[k]=v;
+  }
+});
+test('a phone can drop its push token without a session (expired or offline logout)',async()=>{
+  const [a]=accounts;
+  await http.post('/me/push-token').set(as(a)).send({token:'ExponentPushToken[expired-session-phone]'}).expect(201);
+  assert.equal(await db.pushToken.count({where:{token:'ExponentPushToken[expired-session-phone]'}}),1);
+  await http.post('/push-token/unregister').send({token:'ExponentPushToken[expired-session-phone]'}).expect(201);
+  assert.equal(await db.pushToken.count({where:{token:'ExponentPushToken[expired-session-phone]'}}),0);
+  await http.post('/push-token/unregister').send({token:'ExponentPushToken[unknown]'}).expect(201);
 });
