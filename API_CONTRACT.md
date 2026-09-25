@@ -13,7 +13,7 @@ Written by Claude from the backend code in `backend/src`. Last updated 2026-09-2
   Specific codes: `LISTING_UNAVAILABLE` (item sold/reserved/removed/hidden or wrong mode: drop the card),
   `CLOSET_EMPTY`, `OTP_INVALID`, `PHONE_LOGIN_UNAVAILABLE`, `EMAIL_LOGIN_UNAVAILABLE` (503), `OTP_RATE_LIMITED`, `OTP_DELIVERY_FAILED`, `INVALID_IDENTIFIER`,
   `IDENTITY_TAKEN`, `OFFER_NOT_PENDING`, `SWAP_NOT_AGREED`, `CANNOT_RATE`, `PHOTOS_NOT_OWNED`, `NO_PHOTOS`,
-  `PHOTO_UNREADABLE`, `INVALID_PUSH_TOKEN`, `RATE_LIMITED` (429, per-user limits below), `VALIDATION_ERROR`. Otherwise a default for the status: `BAD_REQUEST`, `UNAUTHORIZED`,
+  `PHOTO_UNREADABLE`, `INVALID_PUSH_TOKEN`, `NOT_ADMIN` (403), `RATE_LIMITED` (429, per-user limits below), `VALIDATION_ERROR`. Otherwise a default for the status: `BAD_REQUEST`, `UNAUTHORIZED`,
   `FORBIDDEN`, `NOT_FOUND`, `PAYLOAD_TOO_LARGE`, `RATE_LIMITED`, `SERVICE_UNAVAILABLE`, `INTERNAL_ERROR`.
 
 ## Auth
@@ -119,3 +119,12 @@ The server sends these to the *other* person (title / body), always with `data: 
 - `match`: "It's a Havana Match! 🎉", "<name> wants to swap for your <item>. Say hello!"
 - `swap`: "Swap update" ("<name> agreed to the swap." / "confirmed the handover.") or "Swap done ✓"
 Android channel id: `default`. Tokens of uninstalled apps are dropped automatically.
+
+## Moderation (admins only)
+Admins are accounts with a verified email listed in the server's `ADMIN_EMAILS`. `GET /me` includes `isAdmin: boolean`.
+Everyone else gets 403 `NOT_ADMIN`.
+| Method | Path | Returns |
+|---|---|---|
+| GET 🔒 | `/admin/reports` | reported items, most-reported first: Item + `owner`, `reportCount`, `hidden`, `reports:[{reason, createdAt}]` |
+| POST 🔒 | `/admin/items/:id/restore` | Item (unhidden; its reports cleared so it won't re-hide immediately) |
+| POST 🔒 | `/admin/items/:id/remove` | Item (`status: REMOVED`, hidden for everyone) |

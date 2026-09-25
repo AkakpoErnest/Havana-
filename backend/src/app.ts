@@ -14,6 +14,7 @@ import { Market } from './market';
 import { DAY, HOUR, Limit, MINUTE, UserLimits } from './limits';
 import { PhotoStore, encodePhoto } from './photos';
 import { Push, isExpoPushToken } from './push';
+import { AdminGuard, Moderation } from './admin';
 import { ConversationDto, FeedDto, ListingDto, MessagesDto, ProfileDto, PushTokenDto, OfferActionDto, OfferDto, OtpDto, RatingDto, ReportDto, StatusDto, SwapActionDto, SwipeDto, TextDto, VerifyDto } from './dto';
 import { ErrorCodes, coded } from './errors';
 @Controller()
@@ -30,6 +31,14 @@ class AuthController {
   @Post('verify') verify(@Body() d:VerifyDto) { return this.auth.verify(d); }
   @Post('link/request') @UseGuards(Guard) linkRequest(@Req() r:AuthedRequest,@Body() d:OtpDto) { return this.auth.request(d,r.userId); }
   @Post('link/verify') @UseGuards(Guard) linkVerify(@Req() r:AuthedRequest,@Body() d:VerifyDto) { return this.auth.verify(d,r.userId); }
+}
+@Controller('admin')
+@UseGuards(Guard,AdminGuard)
+class AdminController {
+  constructor(private moderation:Moderation) {}
+  @Get('reports') reports() { return this.moderation.reports(); }
+  @Post('items/:id/restore') restore(@Param('id',ParseUUIDPipe) id:string) { return this.moderation.restore(id); }
+  @Post('items/:id/remove') remove(@Param('id',ParseUUIDPipe) id:string) { return this.moderation.remove(id); }
 }
 @Controller()
 @UseGuards(Guard,UserLimits)
@@ -74,7 +83,7 @@ class ApiController {
     return {photos:paths};
   }
 }
-@Module({imports:[JwtModule.registerAsync({useFactory:()=>({secret:process.env.JWT_SECRET,signOptions:{expiresIn:'30d'}})})],controllers:[HealthController,AuthController,ApiController],providers:[Db,Auth,Guard,OtpRateGuard,Market,Chat,PhotoStore,UserLimits,Push]})
+@Module({imports:[JwtModule.registerAsync({useFactory:()=>({secret:process.env.JWT_SECRET,signOptions:{expiresIn:'30d'}})})],controllers:[HealthController,AuthController,ApiController,AdminController],providers:[Db,Auth,Guard,OtpRateGuard,Market,Chat,PhotoStore,UserLimits,Push,AdminGuard,Moderation]})
 class AppModule {}
 export async function createApp() {
   if(!process.env.JWT_SECRET||process.env.JWT_SECRET.length<32) throw new Error('JWT_SECRET must contain at least 32 characters.');

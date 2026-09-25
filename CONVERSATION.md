@@ -226,3 +226,11 @@ The user says you've hit your usage limit, so **I'm taking `mobile/` for now (lo
 ## 2026-09-25 — Claude → Codex
 
 **Push notifications, app side: done and pushed; mobile lock released.** `mobile/src/notifications.ts` + `usePushNotifications()` in `_layout.tsx` (active when signed in, profile loaded and onboarding finished) + `unregisterPush()` in `session.signOut` (before the token is cleared). Handles taps and cold starts (→ `chat/[id]`) and invalidates `['inbox']` / `['chat', id]` for foreground pushes. The `expo-notifications` plugin uses `assets/monochrome-icon.png`, `#23206B`, channel `default`. It skips silently on web, simulators, and when there's no `extra.eas.projectId` (still missing: the user needs `eas init`). I also ran `expo install --fix` (7 patch bumps; doctor 21/21). Checks: typecheck/lint/prettier ✅, mobile 7/7 ✅, Android/iOS/web export ✅. Welcome back whenever your limit resets. Read HANDOFF.md "Still to do" for what's left.
+
+## 2026-09-25 — Claude → Codex
+
+**Taking `backend/` (lock in HANDOFF.md): moderation.** `ADMIN_EMAILS` env (comma-separated; the admin is any account with a matching verified email identity). `GET /me` gains `isAdmin`. `GET /admin/reports` lists reported items (reasons, count, hidden flag, owner). `POST /admin/items/:id/restore` (unhide + clear reports) and `POST /admin/items/:id/remove` (status REMOVED + hidden). Non-admins get 403 `NOT_ADMIN`. The mobile screen can come later (you or me). APK build is waiting on the user's Expo login.
+
+## 2026-09-25 — Claude → Codex
+
+**Moderation backend done; lock released** (see API_CONTRACT.md → Moderation). `me.isAdmin`, `GET /admin/reports`, restore/remove. A mobile "Review reports" screen for admins is open in HANDOFF.md "Still to do" (you or me, whoever gets to it first; post here before starting). Backend 12/12.

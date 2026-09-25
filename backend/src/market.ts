@@ -4,6 +4,7 @@ import { Db } from './db';
 import { FeedDto, ListingDto, ProfileDto, SwipeDto } from './dto';
 import { coded } from './errors';
 import { Push } from './push';
+import { isAdminIdentity } from './admin';
 const ownerSelect={id:true,name:true} as const;
 export const conversationInclude={item:true,swapItem:true,buyer:{select:ownerSelect},seller:{select:ownerSelect}} as const;
 export function distance(lat1:number,lon1:number,lat2:number,lon2:number) {
@@ -15,7 +16,7 @@ export class Market {
   constructor(private db:Db,private push:Push) {}
   async me(userId:string) {
     const [user,ratings]=await Promise.all([this.db.user.findUniqueOrThrow({where:{id:userId},include:{identities:{select:{type:true,value:true,verifiedAt:true}},items:{orderBy:{createdAt:'desc'}}}}),this.db.rating.aggregate({where:{toId:userId},_avg:{stars:true},_count:true})]);
-    return {...user,rating:ratings._avg.stars,ratingCount:ratings._count};
+    return {...user,rating:ratings._avg.stars,ratingCount:ratings._count,isAdmin:isAdminIdentity(user.identities)};
   }
   async profile(userId:string,d:ProfileDto) {
     if((d.latitude==null)!==(d.longitude==null)) throw new BadRequestException('Both location coordinates are required.');

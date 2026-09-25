@@ -9,6 +9,7 @@ Both agents read this before each step and add to it after each step. Newest ent
   backend change writes `LOCK backend: <agent> <time>` under Status, and removes it when done.
 
 ## Status
+- 2026-09-25 (Claude): **backend lock released.** Moderation: `ADMIN_EMAILS`, `me.isAdmin`, `GET /admin/reports`, `POST /admin/items/:id/restore|remove`, 403 `NOT_ADMIN`. Backend 12/12. User must add `ADMIN_EMAILS` on Render. The mobile moderation screen is still to do.
 - 2026-09-25 (Claude): **mobile lock released.** App side of push done: `src/notifications.ts` (register after sign-in when onboarding is complete, unregister on log out, tap/cold-start → chat, foreground refresh of inbox/chat), `expo-notifications` plugin (monochrome icon, channel `default`). It silently skips without an EAS projectId, so **the user must run `eas init` in `mobile/`** before pushes work in the APK. Expo patch versions fixed (`expo install --fix`, doctor 21/21). Checks + Android/iOS/web exports pass.
 - 2026-09-25 (Claude): **backend lock released.** Per-user abuse limits (`src/limits.ts`, Postgres `RateBucket`, 429 `RATE_LIMITED`) and Expo push notifications (`src/push.ts`, `PushToken`, `POST/DELETE /me/push-token`; pushes on message, offer, offer accepted/declined, match, swap progress). Migration `…_rate_limits_push_tokens` (Render applies it on start). Backend 11/11. Mobile side of push is with Codex (needs the user's `eas init` for a projectId).
 - 2026-09-25 (Claude): **mobile lock released.** Completed Codex's pending pass (browser photo uploads as file bytes, `ApiError.code` + card drop on `LISTING_UNAVAILABLE`, chat stars from `myRating`, list/profile draft fixes, 7 mobile tests) and added `src/login-methods.ts`: login/backup offer only what `/auth/methods` allows, with a "phone login coming soon" note. All checks and Android/iOS/web exports pass.
@@ -108,4 +109,5 @@ _(GPT: write here if the app needs a route or field that doesn't exist.)_
 - [ ] Review leftovers: PASS stamp still hibiscus pink; chat stars reset to "Rate" on reopen (backend could add `myRating`); each swipe refetches the whole feed; the next card stays disabled until the previous swipe's request returns (mobile, + backend for `myRating`)
 - [ ] Mobile `npm test` needs Node 22 (user default is 20.19): `nvm use` or `nvm alias default 22`
 - [ ] **Before real launch:** host API + Postgres (Neon/Supabase/Railway/Render), move photos to object storage, real SMS OTP via webhook (Hubtel/Arkesel), privacy policy + terms for the Play Store, a basic way to review reports
+- [ ] Mobile: moderation screen for admins (`me.isAdmin` → Profile → "Review reports")
 - [ ] Later: Paystack orders/escrow (`Order` table ready), rentals (`kind=RENTAL`), push notifications, WebSocket chat

@@ -299,3 +299,29 @@ test('push notifications reach the other person and per-user limits stop floods'
     assert.equal(status,429);assert.equal(sentNow,31,'the 31st message this minute is the first refused');assert.equal(body.code,'RATE_LIMITED');assert.match(body.message!,/a little fast with messages/);
   } finally { globalThis.fetch=realFetch; }
 });
+test('moderators review reports and can restore or remove items',async()=>{
+  (app.get(OtpRateGuard) as unknown as {buckets:Map<string,unknown>}).buckets.clear();
+  const [a,b,c,d]=accounts;
+  const saved=process.env.ADMIN_EMAILS;
+  process.env.ADMIN_EMAILS=' someone@else.com , Mod@Test.com ';
+  try {
+    const mod=await login('mod@test.com');
+    assert.equal((await http.get('/me').set(as(mod)).expect(200)).body.isAdmin,true);
+    assert.equal((await http.get('/me').set(as(a)).expect(200)).body.isAdmin,false);
+    assert.equal((await http.get('/admin/reports').set(as(a)).expect(403)).body.code,'NOT_ADMIN');
+    const item=await listing(b,{title:'Moderation test lamp'});
+    for(const u of [a,c,d]) await http.post(`/items/${item}/report`).set(as(u)).send({reason:`Looks fake (${u.id.slice(0,4)})`}).expect(201);
+    await http.get(`/items/${item}`).set(as(a)).expect(404);
+    const queue=(await http.get('/admin/reports').set(as(mod)).expect(200)).body as {id:string;reportCount:number;hidden:boolean;reports:{reason:string}[];owner:{id:string}}[];
+    const entry=queue.find(q=>q.id===item)!;
+    assert.equal(entry.reportCount,3);assert.equal(entry.hidden,true);assert.equal(entry.owner.id,b.id);assert.match(entry.reports[0].reason,/Looks fake/);
+    await http.post(`/admin/items/${item}/restore`).set(as(mod)).expect(201);
+    await http.get(`/items/${item}`).set(as(a)).expect(200);
+    assert.equal(((await http.get('/admin/reports').set(as(mod))).body as {id:string}[]).some(q=>q.id===item),false);
+    await http.post(`/items/${item}/report`).set(as(a)).send({reason:'Still suspicious'}).expect(201);
+    await http.post(`/admin/items/${item}/remove`).set(as(mod)).expect(201);
+    await http.get(`/items/${item}`).set(as(a)).expect(404);
+    assert.equal((await db.item.findUniqueOrThrow({where:{id:item}})).status,'REMOVED');
+    await http.post('/admin/items/00000000-0000-4000-8000-999999999999/remove').set(as(mod)).expect(404);
+  } finally { if(saved===undefined) delete process.env.ADMIN_EMAILS; else process.env.ADMIN_EMAILS=saved; }
+});

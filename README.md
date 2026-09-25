@@ -219,6 +219,9 @@ The live API runs at **https://havana-api.onrender.com**. It uses three services
 | Database | **Neon** PostgreSQL (Frankfurt) | `DATABASE_URL` = pooled string, `DIRECT_URL` = direct string (used for migrations) |
 | Photos | **Cloudflare R2** bucket `havana-photos` | Public via its `r2.dev` URL. The server stores WebP ≤300 KB plus a `_thumb.webp` preview |
 
+**Moderators:** set `ADMIN_EMAILS` (comma-separated emails) under Render → `havana-api` → Environment. Those accounts can review
+reported items via `/admin/*` (see API_CONTRACT.md → Moderation).
+
 **Secrets** live in the git-ignored `backend/.env.production` and in Render → `havana-api` → Environment.
 They are never committed. The Render blueprint asks for `DATABASE_URL`, `DIRECT_URL`, `R2_ACCOUNT_ID`,
 `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` and `R2_PUBLIC_URL`, and generates `JWT_SECRET` itself.
