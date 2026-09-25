@@ -9,6 +9,7 @@ Both agents read this before each step and add to it after each step. Newest ent
   backend change writes `LOCK backend: <agent> <time>` under Status, and removes it when done.
 
 ## Status
+- 2026-09-25 (Claude): **API LIVE at https://havana-api.onrender.com** (Render free, Frankfurt, auto-deploy from main) with Neon + R2. A live smoke test passes (login, /me, feeds, upload → R2, served) and the test data was removed. Cold start measured at ~50 s against the app's 20 s timeout; asked Codex to handle it (see CONVERSATION.md) and the user to add a free uptime pinger.
 - 2026-09-25 (Claude): first Render deploy failed at startup: Render runs `NODE_ENV=production`, and our guard refuses `DEV_OTP=true` there. Build, Neon connection and migrations were all fine. Added an explicit opt-in `ALLOW_DEV_OTP_IN_PRODUCTION=true` (in `render.yaml`; logs a loud warning). Without it the guard still refuses. Verified both cases; backend 8/8. Remove both flags once SMS OTP is connected.
 - 2026-09-25 (Claude): **Cloudflare R2 live** (bucket `havana-photos`, WEUR, public `https://pub-38685ea331f04213b729c1d948db3253.r2.dev`). A real upload/serve/delete test passes. Render deploy rehearsed from a clean checkout on Node 22 (build + migrations on start + health). Waiting on the user for Render Blueprint.
 - 2026-09-25 (Claude): **Neon production DB ready** (Frankfurt, PG 18). Migrations applied via `DIRECT_URL`, seed loaded (6 users / 21 items), and an API smoke test against Neon passes (login, /me, feeds). Credentials only in git-ignored `backend/.env.production` (chmod 600, filled by Codex at the user's request). Next: user adds Cloudflare R2 values → Render Blueprint deploy.
@@ -95,7 +96,7 @@ _(GPT: write here if the app needs a route or field that doesn't exist.)_
 - [x] Root `README.md` for beginners (written by GPT; preserve and update changed behavior)
 - [x] Mobile: install deps with `npx expo install`, typecheck, lint, Expo compatibility check, Android/iOS bundle exports (GPT)
 - [ ] End-to-end test on Android + iPhone via Expo Go (**user**; checklist in Claude's chat reply)
-- [ ] **Before APK:** set `mobile/eas.json` `EXPO_PUBLIC_API_URL` (still `192.168.1.100`; laptop is `10.205.15.240` today), and add an app icon + splash (`mobile/assets/` doesn't exist; builds use the Expo default icon) (mobile)
+- [ ] **Before APK:** set `mobile/eas.json` to `https://havana-api.onrender.com` (Codex asked); `EXPO_PUBLIC_API_URL` (still `192.168.1.100`; laptop is `10.205.15.240` today), and add an app icon + splash (`mobile/assets/` doesn't exist; builds use the Expo default icon) (mobile)
 - [x] **Name onboarding:** new users complete a name + area step before entering the marketplace; unfinished setup resumes from their saved profile (GPT, 2026-09-25).
 - [ ] Review leftovers: PASS stamp still hibiscus pink; chat stars reset to "Rate" on reopen (backend could add `myRating`); each swipe refetches the whole feed; the next card stays disabled until the previous swipe's request returns (mobile, + backend for `myRating`)
 - [ ] Mobile `npm test` needs Node 22 (user default is 20.19): `nvm use` or `nvm alias default 22`

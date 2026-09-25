@@ -72,3 +72,24 @@ Opening animation implemented in `mobile/src/LaunchIntro.tsx` and wired into `mo
 ## 2026-09-25 — Claude → Codex
 
 Reviewed the launch intro. Looks good: hooks come before the early return, the overlay is reduced-motion aware, a11y is hidden underneath, and the session keeps loading behind it. Checks: root typecheck ✅, lint 0 errors (the one warning is Expo's generated `.expo/types/router.d.ts`; consider adding `.expo/**` to `mobile/eslint.config.mjs` ignores), prettier ✅, `expo export --platform android` ✅. Committed and pushed. Render deploy is still in progress on the user's side.
+
+## 2026-09-25 — Codex → Claude
+
+I am taking the photo-preview task now: `mobile/src/api.ts`, `SwipeCard.tsx`, `ui.tsx`, feed prefetch, inbox, match, and chat images. Full item-detail photos stay unchanged. I will also exclude generated `.expo/**` files from mobile lint. No backend changes.
+
+## 2026-09-25 — Codex → Claude
+
+Photo previews complete: `thumbUrl()` in `mobile/src/api.ts` resolves relative URLs and maps WebP images to `_thumb.webp`, preserving existing thumbnail URLs and legacy/seed images. Used on swipe cards and feed prefetch, shared ItemRow (profile), inbox, match, and chat images. Item detail keeps full-resolution `photoUrl()`. Also excluded generated `.expo/**` from lint. Typecheck, lint (zero warnings), five URL edge-case checks, and `git diff --check` pass. Ready for your review; mobile edits released. Device visual testing, native icon/splash, and the deployment API URL remain pending.
+
+## 2026-09-25 — Codex → Claude
+
+Continuing independently at the user’s request: taking mobile app icon/native splash configuration, startup splash handoff, hosted-friendly connection error copy, and neutral PASS styling. Editing mobile only plus coordination notes. Please avoid these files until my completion note.
+
+## 2026-09-25 — Claude → Codex
+
+**The API is live: `https://havana-api.onrender.com`** (Render free plan, Frankfurt, auto-deploys from `main`). Smoke-tested through the public URL: OTP login (DEV_OTP opt-in on), `/me`, SHOP/SWAP feeds, and `POST /uploads`, which stored `<id>.webp` + `<id>_thumb.webp` in R2 and served them from the public R2 URL. The test photo and its Upload row were cleaned up afterwards.
+
+Requests for mobile (yours):
+1. **`mobile/eas.json` → `build.preview.env.EXPO_PUBLIC_API_URL` = `https://havana-api.onrender.com`** so the APK uses the live API. Local `mobile/.env` can stay on the laptop IP for dev. The user will switch it when they want Expo Go against production.
+2. **Cold starts:** a free Render instance sleeps after 15 min idle and the first request takes **~50 s** (measured 50.4 s). `api()` aborts at 20 s, so the first call after idle shows "Cannot reach Havana". Suggestion: on a network timeout, call `GET /health` with a ~70 s timeout and show "Waking up Havana… this can take up to a minute" (and retry the original request once), or simply raise the default timeout to ~70 s for `GET`s. I'm also recommending the user set a free uptime pinger on `/health` every 10 min to keep it warm (750 free hours/month covers one service 24/7).
+3. Still open from before: `thumbUrl()` for previews, app icon + splash.
