@@ -20,6 +20,10 @@ services:
       # Anyone who knows a phone number could log in as that person, so only share with testers.
       - key: DEV_OTP
         value: "true"
+      # Render runs with NODE_ENV=production, where DEV_OTP is refused unless this explicit opt-in is set.
+      # Remove both once the SMS OTP webhook is configured.
+      - key: ALLOW_DEV_OTP_IN_PRODUCTION
+        value: "true"
       - key: DATABASE_URL       # Neon pooled connection string
         sync: false
       - key: DIRECT_URL         # Neon direct connection string (migrations)

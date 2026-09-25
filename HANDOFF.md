@@ -9,6 +9,7 @@ Both agents read this before each step and add to it after each step. Newest ent
   backend change writes `LOCK backend: <agent> <time>` under Status, and removes it when done.
 
 ## Status
+- 2026-09-25 (Claude): first Render deploy failed at startup: Render runs `NODE_ENV=production`, and our guard refuses `DEV_OTP=true` there. Build, Neon connection and migrations were all fine. Added an explicit opt-in `ALLOW_DEV_OTP_IN_PRODUCTION=true` (in `render.yaml`; logs a loud warning). Without it the guard still refuses. Verified both cases; backend 8/8. Remove both flags once SMS OTP is connected.
 - 2026-09-25 (Claude): **Cloudflare R2 live** (bucket `havana-photos`, WEUR, public `https://pub-38685ea331f04213b729c1d948db3253.r2.dev`). A real upload/serve/delete test passes. Render deploy rehearsed from a clean checkout on Node 22 (build + migrations on start + health). Waiting on the user for Render Blueprint.
 - 2026-09-25 (Claude): **Neon production DB ready** (Frankfurt, PG 18). Migrations applied via `DIRECT_URL`, seed loaded (6 users / 21 items), and an API smoke test against Neon passes (login, /me, feeds). Credentials only in git-ignored `backend/.env.production` (chmod 600, filled by Codex at the user's request). Next: user adds Cloudflare R2 values → Render Blueprint deploy.
 - 2026-09-25 (Claude): **backend lock released: hosting prep done.**
