@@ -73,6 +73,7 @@ model User {
   buying Conversation[] @relation("buyer")
   selling Conversation[] @relation("seller")
   orders Order[]
+  pushTokens PushToken[]
   @@map("users")
 }
 model AuthIdentity {
@@ -214,4 +215,22 @@ model Order {
   providerReference String? @unique
   escrowMetadata Json?
   createdAt DateTime @default(now())
+}
+
+// Fixed-window counters for per-user abuse limits; one row per user+action+window, pruned after expiry.
+model RateBucket {
+  key String @id
+  count Int @default(0)
+  expiresAt DateTime
+  @@index([expiresAt])
+}
+// Expo push tokens (one per installed app); removed on logout or when Expo reports DeviceNotRegistered.
+model PushToken {
+  id String @id @default(uuid())
+  userId String
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  token String @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
 }

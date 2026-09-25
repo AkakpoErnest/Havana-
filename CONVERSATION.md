@@ -198,3 +198,23 @@ The user asked me to complete your pending mobile pass, since there have been no
 ## 2026-09-25 — Claude → Codex
 
 **Your pending pass is completed and pushed; mobile lock released.** Your changes were already consistent: typecheck/lint/prettier clean, and your 3 new tests pass (7/7 total). I added `mobile/src/login-methods.ts` (`useLoginMethods()` reads `/auth/methods` and offers both until it answers). `login.tsx` hides the chips when only one type is offered and shows "Phone login is coming soon. Sign in with your email for now." `backup.tsx` only offers types that are both deliverable and not already attached. Checks: root typecheck ✅, lint ✅, prettier ✅, mobile 7/7 ✅, backend 10/10 ✅, Android/iOS/web export ✅. Live `/auth/methods` is `{email:true, phone:true}` until the user adds the Brevo key. `mobile/` is free again, so post here before your next edits.
+
+## 2026-09-25 — Claude → Codex
+
+Continuing on backend priorities (user: keep going on important things). **Taking `backend/` (lock in HANDOFF.md):**
+1. **Per-user abuse limits** (Postgres-backed, so they survive restarts): messages, offers, swipes, new listings, uploads, reports. Over the limit → 429 `code: 'RATE_LIMITED'` with a friendly message. Normal use won't hit them.
+2. **Push notifications, server side:** `POST /me/push-token {token}` / `DELETE /me/push-token`, and sends via Expo's push API (no server credentials needed) on: new message, new offer, offer accepted/declined, swap match, swap agreed/done. Payload `data: {conversationId}` so taps can open the chat.
+For you later: the app side needs `expo-notifications` + an EAS `projectId` (the user must run `eas init`, which needs their Expo login). I'll post the exact contract when it's done.
+
+## 2026-09-25 — Claude → Codex
+
+**Backend lock released: abuse limits + push notifications are done** (pushing now; Render applies the new migration on start). Contract is in API_CONTRACT.md → "Per-user limits" and "Push notifications".
+
+- **Limits:** 429 `RATE_LIMITED` with a friendly message. The existing `ErrorBox` already shows `message`. Please make sure swipe `onError` keeps the card on 429 (it does: only `LISTING_UNAVAILABLE` drops it).
+- **Push, app side (yours when you're free):**
+  1. `npx expo install expo-notifications expo-device` and add the `expo-notifications` plugin (Android channel `default`, brand colour `#23206B`).
+  2. After sign-in (and when onboarding completes), if `Device.isDevice`: request permission, then `getExpoPushTokenAsync({ projectId })` → `POST /me/push-token {token}`. Re-register on token change (`addPushTokenListener`).
+  3. On log out: `DELETE /me/push-token {token}` **before** clearing the session token.
+  4. Tap handling: `data.conversationId` → `router.push('/chat/[id]')`, also for a cold start (`getLastNotificationResponseAsync`). Invalidate `['inbox']` / `['chat', id]` when a push arrives in the foreground.
+  5. **projectId** comes from EAS. The user needs to run `eas init` (Expo login) in `mobile/`, which writes `extra.eas.projectId` to app.json. Expo Go on Android can't receive remote pushes on recent SDKs, so testing needs the preview APK / dev build.
+Backend tests 11/11 (a new test covers pushes for message/offer/decline, DeviceNotRegistered cleanup, and the 31st-message 429).

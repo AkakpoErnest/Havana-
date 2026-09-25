@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { Db } from './db';
 import { FeedDto, ListingDto, ProfileDto, SwipeDto } from './dto';
 import { coded } from './errors';
+import { Push } from './push';
 const ownerSelect={id:true,name:true} as const;
 export const conversationInclude={item:true,swapItem:true,buyer:{select:ownerSelect},seller:{select:ownerSelect}} as const;
 export function distance(lat1:number,lon1:number,lat2:number,lon2:number) {
@@ -11,7 +12,7 @@ export function distance(lat1:number,lon1:number,lat2:number,lon2:number) {
 }
 @Injectable()
 export class Market {
-  constructor(private db:Db) {}
+  constructor(private db:Db,private push:Push) {}
   async me(userId:string) {
     const [user,ratings]=await Promise.all([this.db.user.findUniqueOrThrow({where:{id:userId},include:{identities:{select:{type:true,value:true,verifiedAt:true}},items:{orderBy:{createdAt:'desc'}}}}),this.db.rating.aggregate({where:{toId:userId},_avg:{stars:true},_count:true})]);
     return {...user,rating:ratings._avg.stars,ratingCount:ratings._count};
@@ -67,7 +68,7 @@ export class Market {
     return {saved:false};
   }
   async swipe(userId:string,d:SwipeDto) {
-    return this.db.atomic(async tx=>{
+    const result=await this.db.atomic(async tx=>{
       const item=await tx.item.findUnique({where:{id:d.itemId}});
       if(!item||item.ownerId===userId||item.hidden||item.status!=='LIVE'||(d.mode==='SHOP'?!item.sell:!item.swap)) throw new BadRequestException(coded('LISTING_UNAVAILABLE','This item is unavailable in this mode.'));
       if(d.mode==='SWAP'&&d.direction==='UP') throw new BadRequestException('Offers are available in Shop mode.');
@@ -87,6 +88,12 @@ export class Market {
       }
       return {saved:d.direction==='RIGHT'};
     });
+    // Tell the other owner about a brand-new match (repeat swipes re-find the existing one).
+    if('match' in result&&result.match&&Date.now()-result.match.createdAt.getTime()<60_000) {
+      const m=result.match;
+      this.push.notify(m.sellerId,{title:"It's a Havana Match! 🎉",body:`${m.buyer.name} wants to swap for your ${m.item.title}. Say hello!`,data:{conversationId:m.id,kind:'match'}});
+    }
+    return result;
   }
   async shopConversation(tx:Prisma.TransactionClient,userId:string,itemId:string) {
     const item=await tx.item.findUnique({where:{id:itemId}});

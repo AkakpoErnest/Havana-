@@ -13,7 +13,7 @@ Written by Claude from the backend code in `backend/src`. Last updated 2026-09-2
   Specific codes: `LISTING_UNAVAILABLE` (item sold/reserved/removed/hidden or wrong mode: drop the card),
   `CLOSET_EMPTY`, `OTP_INVALID`, `PHONE_LOGIN_UNAVAILABLE`, `EMAIL_LOGIN_UNAVAILABLE` (503), `OTP_RATE_LIMITED`, `OTP_DELIVERY_FAILED`, `INVALID_IDENTIFIER`,
   `IDENTITY_TAKEN`, `OFFER_NOT_PENDING`, `SWAP_NOT_AGREED`, `CANNOT_RATE`, `PHOTOS_NOT_OWNED`, `NO_PHOTOS`,
-  `PHOTO_UNREADABLE`, `VALIDATION_ERROR`. Otherwise a default for the status: `BAD_REQUEST`, `UNAUTHORIZED`,
+  `PHOTO_UNREADABLE`, `INVALID_PUSH_TOKEN`, `RATE_LIMITED` (429, per-user limits below), `VALIDATION_ERROR`. Otherwise a default for the status: `BAD_REQUEST`, `UNAUTHORIZED`,
   `FORBIDDEN`, `NOT_FOUND`, `PAYLOAD_TOO_LARGE`, `RATE_LIMITED`, `SERVICE_UNAVAILABLE`, `INTERNAL_ERROR`.
 
 ## Auth
@@ -99,3 +99,23 @@ Message: `{id, conversationId, senderId|null, type: TEXT|OFFER|SYSTEM, text, amo
 21 items: a mix of sell-only, swap-only and both. Re-running the seed is safe.
 **One-tap match demo:** Kofi has already swap-righted Ama's black leather biker jacket, so log in as Ama and swap-right any Kofi item.
 Likewise, Esi has swap-righted Yaw's smartwatch, so log in as Yaw and swap-right any Esi swap item.
+
+## Per-user limits
+Over a limit → **429** `code: 'RATE_LIMITED'` with a friendly `message` ("You're going a little fast with messages…" /
+"You've reached today's limit for …"). Normal use never gets close:
+messages 30/min & 500/day · offers + offer replies 15/min & 150/day · swipes 120/min & 3000/day · new listings 10/h & 30/day ·
+uploads 20/h & 60/day · new chats 30/h & 200/day · reports 10/h & 30/day · ratings 20/h & 100/day.
+
+## Push notifications (Expo)
+| Method | Path | Body | Returns |
+|---|---|---|---|
+| POST 🔒 | `/me/push-token` | `{token: "ExponentPushToken[…]"}` | `{registered:true}`. Call after login and whenever the token changes. A token moves to whoever signed in last on that phone. |
+| DELETE 🔒 | `/me/push-token` | `{token}` | `{registered:false}`. Call on log out. |
+
+The server sends these to the *other* person (title / body), always with `data: {conversationId, kind}`. Tapping should open `chat/[conversationId]`:
+- `message`: title = sender's name, body = the message text
+- `offer`: "New offer on <item>", "<name> offered GH₵<amount>. Accept, counter or decline."
+- `offer_accepted` / `offer_declined`: "Offer accepted 🎉" / "Offer declined"
+- `match`: "It's a Havana Match! 🎉", "<name> wants to swap for your <item>. Say hello!"
+- `swap`: "Swap update" ("<name> agreed to the swap." / "confirmed the handover.") or "Swap done ✓"
+Android channel id: `default`. Tokens of uninstalled apps are dropped automatically.

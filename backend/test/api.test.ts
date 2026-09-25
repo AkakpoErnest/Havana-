@@ -8,6 +8,7 @@ import { Db } from '../src/db';
 import { createApp } from '../src/app';
 import { OtpRateGuard, normalize } from '../src/auth';
 import { FULL_MAX_BYTES, thumbOf } from '../src/photos';
+import { EXPO_PUSH_URL } from '../src/push';
 import { stat } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 import { resolve } from 'node:path';
@@ -254,4 +255,47 @@ test('email codes go out through Brevo and phone login is switched off without S
     for(const [k,v] of Object.entries(saved)) if(v===undefined) delete process.env[k]; else process.env[k]=v;
   }
   assert.deepEqual((await http.get('/auth/methods').expect(200)).body,{email:true,phone:true});
+});
+test('push notifications reach the other person and per-user limits stop floods',async()=>{
+  (app.get(OtpRateGuard) as unknown as {buckets:Map<string,unknown>}).buckets.clear();
+  const [x,y]=[await login('push-buyer@test.com'),await login('push-seller@test.com')];
+  await http.patch('/me').set(as(x)).send({name:'Abena'}).expect(200);
+  await http.patch('/me').set(as(y)).send({name:'Kojo'}).expect(200);
+  const item=await listing(y,{title:'Push test radio',swap:false});
+  const chat=(await http.post('/conversations').set(as(x)).send({itemId:item}).expect(201)).body.id;
+  assert.equal((await http.post('/me/push-token').set(as(y)).send({token:'not-a-token-at-all'}).expect(400)).body.code,'INVALID_PUSH_TOKEN');
+  await http.post('/me/push-token').set(as(y)).send({token:'ExponentPushToken[seller-phone]'}).expect(201);
+  await http.post('/me/push-token').set(as(x)).send({token:'ExponentPushToken[buyer-phone]'}).expect(201);
+  const realFetch=globalThis.fetch;
+  const pushes:{to:string;title:string;body:string;data:{conversationId:string;kind:string}}[]=[];
+  let ticket:object={status:'ok'};
+  globalThis.fetch=(async(input:string|URL|Request,init?:RequestInit)=>{
+    if(String(input)===EXPO_PUSH_URL) { const msgs=JSON.parse(String(init!.body)); pushes.push(...msgs); return new Response(JSON.stringify({data:msgs.map(()=>ticket)}),{status:200}); }
+    return realFetch(input,init);
+  }) as typeof fetch;
+  const until=async(check:()=>boolean)=>{ for(let i=0;i<100;i++){ if(check()) return; await new Promise(r=>setTimeout(r,20)); } throw new Error('push not sent'); };
+  try {
+    await http.post(`/conversations/${chat}/messages`).set(as(x)).send({text:'Hi, is the radio still available?'}).expect(201);
+    await until(()=>pushes.length===1);
+    assert.deepEqual(pushes[0],{...pushes[0],to:'ExponentPushToken[seller-phone]',title:'Abena',body:'Hi, is the radio still available?',data:{conversationId:chat,kind:'message'}});
+    const offer=(await http.post(`/conversations/${chat}/offers`).set(as(x)).send({amount:80}).expect(201)).body.id;
+    await until(()=>pushes.length===2);
+    assert.equal(pushes[1].title,'New offer on Push test radio');assert.match(pushes[1].body,/Abena offered GH₵80/);
+    await http.post(`/conversations/${chat}/offers/${offer}`).set(as(y)).send({action:'DECLINE'}).expect(201);
+    await until(()=>pushes.length===3);
+    assert.equal(pushes[2].to,'ExponentPushToken[buyer-phone]');assert.equal(pushes[2].data.kind,'offer_declined');
+    // An uninstalled app is forgotten after Expo reports it.
+    ticket={status:'error',details:{error:'DeviceNotRegistered'}};
+    await http.post(`/conversations/${chat}/messages`).set(as(x)).send({text:'Hello?'}).expect(201);
+    await until(()=>pushes.length===4);
+    for(let i=0;i<100&&await db.pushToken.count({where:{token:'ExponentPushToken[seller-phone]'}});i++) await new Promise(r=>setTimeout(r,20));
+    assert.equal(await db.pushToken.count({where:{token:'ExponentPushToken[seller-phone]'}}),0);
+    // 30 messages a minute is plenty; the 31st is refused. Start early in a minute so the window can't roll over mid-test.
+    while(new Date().getSeconds()>40) await new Promise(r=>setTimeout(r,500));
+    const window=Math.floor(Date.now()/60000)*60;
+    const already=(await db.rateBucket.findUnique({where:{key:`${x.id}:message:60:${window}`}}))?.count??0;
+    let status=0,sentNow=already,body:{code?:string;message?:string}={};
+    while(sentNow<40) { const res=await http.post(`/conversations/${chat}/messages`).set(as(x)).send({text:`spam ${sentNow}`}); sentNow++; status=res.status; body=res.body; if(status===429) break; }
+    assert.equal(status,429);assert.equal(sentNow,31,'the 31st message this minute is the first refused');assert.equal(body.code,'RATE_LIMITED');assert.match(body.message!,/a little fast with messages/);
+  } finally { globalThis.fetch=realFetch; }
 });

@@ -56,3 +56,4 @@ export class MessagesDto {
   // Poll cursor: pass the previous response's `cursor` to get only new or changed messages.
   @IsOptional() @IsString() @MaxLength(100) since?: string;
 }
+export class PushTokenDto { @IsString() @Length(10,200) token!: string; }

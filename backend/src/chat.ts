@@ -4,11 +4,15 @@ import { Db } from './db';
 import { conversationInclude } from './market';
 import { MessagesDto } from './dto';
 import { coded } from './errors';
+import { Push } from './push';
 // Poll cursors overlap by this much so rows from transactions that committed late are not missed.
 const CURSOR_OVERLAP_MS=5000;
 @Injectable()
 export class Chat {
-  constructor(private db:Db) {}
+  constructor(private db:Db,private push:Push) {}
+  // The other participant, and how the current user appears in notifications.
+  private other(c:{buyerId:string;sellerId:string},userId:string) { return c.buyerId===userId?c.sellerId:c.buyerId; }
+  private nameOf(c:{buyerId:string;buyer:{name:string};seller:{name:string}},userId:string) { return c.buyerId===userId?c.buyer.name:c.seller.name; }
   async member(tx:Prisma.TransactionClient,id:string,userId:string) {
     const c=await tx.conversation.findUnique({where:{id},include:conversationInclude});
     if(!c) throw new NotFoundException('Chat not found.');
@@ -45,23 +49,27 @@ export class Chat {
   }
   async text(id:string,userId:string,text:string) {
     if(!text.trim()) throw new BadRequestException('Write a message first.');
-    return this.db.atomic(async tx=>{
-      await this.member(tx,id,userId);
+    const {message,c}=await this.db.atomic(async tx=>{
+      const c=await this.member(tx,id,userId);
       const message=await tx.message.create({data:{conversationId:id,senderId:userId,type:'TEXT',text:text.trim()}});
-      await tx.conversation.update({where:{id},data:{updatedAt:new Date()}}); return message;
+      await tx.conversation.update({where:{id},data:{updatedAt:new Date()}}); return {message,c};
     });
+    this.push.notify(this.other(c,userId),{title:this.nameOf(c,userId),body:message.text!,data:{conversationId:id,kind:'message'}});
+    return message;
   }
   async offer(id:string,userId:string,amount:number) {
-    return this.db.atomic(async tx=>{
+    const {message,c}=await this.db.atomic(async tx=>{
       const c=await this.member(tx,id,userId);
       if(c.swapItemId||!c.item.sell||c.item.status!=='LIVE'||c.item.hidden) throw new BadRequestException(coded('LISTING_UNAVAILABLE','Offers are only available on live sale items.'));
       await tx.message.updateMany({where:{conversationId:id,offerStatus:'PENDING'},data:{offerStatus:'COUNTERED'}});
       const message=await tx.message.create({data:{conversationId:id,senderId:userId,type:'OFFER',amount,offerStatus:'PENDING'}});
-      await tx.conversation.update({where:{id},data:{updatedAt:new Date()}}); return message;
+      await tx.conversation.update({where:{id},data:{updatedAt:new Date()}}); return {message,c};
     });
+    this.push.notify(this.other(c,userId),{title:`New offer on ${c.item.title}`,body:`${this.nameOf(c,userId)} offered GH₵${amount}. Accept, counter or decline.`,data:{conversationId:id,kind:'offer'}});
+    return message;
   }
   async respond(id:string,messageId:string,userId:string,action:'ACCEPT'|'DECLINE') {
-    return this.db.atomic(async tx=>{
+    const {c,offer}=await this.db.atomic(async tx=>{
       const c=await this.member(tx,id,userId);
       const offer=await tx.message.findUnique({where:{id:messageId}});
       if(!offer||offer.conversationId!==id||offer.type!=='OFFER'||offer.offerStatus!=='PENDING'||offer.senderId===userId) throw new BadRequestException(coded('OFFER_NOT_PENDING','Only the recipient can respond to a pending offer.'));
@@ -74,11 +82,17 @@ export class Chat {
         await tx.message.create({data:{conversationId:id,type:'SYSTEM',text:`Offer accepted: GH₵${offer.amount}. Item reserved. Meet in public and check before paying.`}});
       }
       await tx.conversation.update({where:{id},data:{updatedAt:new Date()}});
-      return {ok:true};
+      return {c,offer};
     });
+    const who=this.nameOf(c,userId);
+    this.push.notify(offer.senderId!,action==='ACCEPT'
+      ?{title:'Offer accepted 🎉',body:`${who} accepted GH₵${offer.amount} for ${c.item.title}. Arrange pickup and pay directly.`,data:{conversationId:id,kind:'offer_accepted'}}
+      :{title:'Offer declined',body:`${who} declined GH₵${offer.amount} for ${c.item.title}. You can make another offer.`,data:{conversationId:id,kind:'offer_declined'}});
+    return {ok:true};
   }
   async swap(id:string,userId:string,action:'AGREE'|'DONE') {
-    return this.db.atomic(async tx=>{
+    let notice:{to:string;title:string;body:string}|undefined;
+    const result=await this.db.atomic(async tx=>{
       const c=await this.member(tx,id,userId);
       if(!c.swapItemId||!c.swapItem) throw new BadRequestException('This is not a swap match.');
       if(c.completedAt) return c;
@@ -88,12 +102,18 @@ export class Chat {
       if(c[field]) return c;
       const next=await tx.conversation.update({where:{id},data:{[field]:true}});
       await tx.message.create({data:{conversationId:id,type:'SYSTEM',text:`${userId===c.buyerId?c.buyer.name:c.seller.name} ${action==='AGREE'?'agreed to the swap.':'confirmed the handover.'}`}});
+      const who=userId===c.buyerId?c.buyer.name:c.seller.name;
+      notice={to:this.other(c,userId),title:'Swap update',body:action==='AGREE'?`${who} agreed to the swap.`:`${who} confirmed the handover.`};
       if(next.buyerDone&&next.sellerDone) {
         await tx.item.updateMany({where:{id:{in:[c.itemId,c.swapItemId]}},data:{status:'SWAPPED'}});
         await tx.conversation.update({where:{id},data:{completedAt:new Date()}});
         await tx.message.create({data:{conversationId:id,type:'SYSTEM',text:'Swap done! Both items have a new home. Leave each other a rating.'}});
+        notice={...notice,title:'Swap done ✓',body:'Both items have a new home. Leave each other a rating.'};
       }
       return tx.conversation.findUniqueOrThrow({where:{id},include:conversationInclude});
     });
+    // Serializable transactions may retry, so notify once, after the final commit.
+    if(notice) this.push.notify(notice.to,{title:notice.title,body:notice.body,data:{conversationId:id,kind:'swap'}});
+    return result;
   }
 }
