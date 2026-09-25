@@ -22,7 +22,10 @@ export default function Login() {
   const session = useSession();
   const send = useMutation({
     mutationFn: () =>
-      api<{ challengeId: string; devCode?: string }>('/auth/request', 'POST', { type, value }),
+      api<{ challengeId: string; devCode?: string }>('/auth/request', 'POST', {
+        type,
+        value: value.trim(),
+      }),
   });
   const verify = useMutation({
     mutationFn: async () => {
@@ -56,11 +59,17 @@ export default function Login() {
       </View>
       {!send.data ? (
         <>
-          <Chips values={['PHONE', 'EMAIL']} value={type} onChange={setType} />
+          <Chips
+            values={['PHONE', 'EMAIL']}
+            value={type}
+            onChange={setType}
+            disabled={send.isPending}
+          />
           <Field
             label={type === 'PHONE' ? 'Your Ghana phone number' : 'Your email'}
             value={value}
             onChangeText={setValue}
+            editable={!send.isPending}
             keyboardType={type === 'PHONE' ? 'phone-pad' : 'email-address'}
             autoCapitalize="none"
             placeholder={type === 'PHONE' ? '0541234567' : 'you@example.com'}
@@ -81,7 +90,8 @@ export default function Login() {
           <Field
             label="Your code"
             value={code}
-            onChangeText={setCode}
+            onChangeText={(text) => setCode(text.replace(/\D/g, '').slice(0, 6))}
+            editable={!verify.isPending}
             keyboardType="number-pad"
             maxLength={6}
             autoComplete="one-time-code"
@@ -93,6 +103,7 @@ export default function Login() {
           />
           <Button
             title="Change login / request another code"
+            disabled={verify.isPending}
             outline
             onPress={() => {
               send.reset();

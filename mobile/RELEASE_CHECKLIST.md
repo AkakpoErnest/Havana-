@@ -17,7 +17,8 @@ Brand assets live in `assets/`. A new native build is required to see the icon a
 - Use a new account: complete name and area, restart, and confirm onboarding stays completed.
 - Upload a photo and check its previews in the feed/profile, then open the listing and confirm the full photo loads.
 - On two phones: send an offer, accept/counter it, swap, and exchange chat messages. Check the keyboard does not cover the composer.
-- Verify logout returns to login; restarting while signed out must not reveal account information.
+- While a login or backup code request is pending, the phone/email selector and destination field must stay locked. During verification, the code and restart button must stay locked. Restarting a failed attempt clears the old code and error.
+- Verify logout returns to login; restarting while signed out must not reveal account information. Open an item/chat deep link while signed out and confirm login is shown. Back navigation must not reopen account screens after logout or bypass unfinished onboarding.
 
 ## Before a public launch
 

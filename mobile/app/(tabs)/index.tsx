@@ -3,7 +3,7 @@ import { Pressable, useWindowDimensions, View } from 'react-native';
 import { router } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Location from 'expo-location';
-import { ApiError, api, thumbUrl } from '../../src/api';
+import { ApiError, api, photoUrl } from '../../src/api';
 import { Image } from 'expo-image';
 import { Conversation, Item, Mode } from '../../src/types';
 import { Button, C, Chips, Empty, ErrorBox, Loading, Page, T, categories, s } from '../../src/ui';
@@ -29,7 +29,7 @@ export default function Discover() {
   const item = feed.data?.items[0];
   useEffect(() => {
     feed.data?.items.slice(1, 3).forEach((next) => {
-      const uri = thumbUrl(next.photos[0]);
+      const uri = photoUrl(next.photos[0]);
       if (uri) void Image.prefetch(uri);
     });
   }, [feed.data?.items]);

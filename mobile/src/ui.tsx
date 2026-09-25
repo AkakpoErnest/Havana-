@@ -134,10 +134,12 @@ export function Chips({
   values,
   value,
   onChange,
+  disabled = false,
 }: {
   values: readonly string[];
   value: string;
   onChange: (v: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <ScrollView
@@ -149,6 +151,8 @@ export function Chips({
         <Pressable
           accessibilityRole="button"
           key={v}
+          disabled={disabled}
+          accessibilityState={{ disabled, selected: value === v }}
           onPress={() => onChange(v)}
           style={[s.chip, value === v && { backgroundColor: C.brand, borderColor: C.brand }]}
         >

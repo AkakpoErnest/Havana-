@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View } from 'react-native';
-import { Stack, router, useSegments } from 'expo-router';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -22,22 +22,12 @@ const client = new QueryClient({
 });
 function Routes() {
   const { ready, signedIn } = useSession();
-  const segments = useSegments();
   const profile = useQuery({
     queryKey: ['me'],
     queryFn: () => api<User>('/me'),
     enabled: ready && signedIn,
   });
   const needsOnboarding = profile.data?.name === 'Havana neighbour';
-  useEffect(() => {
-    if (!ready) return;
-    if (!signedIn && segments[0] !== 'login') router.replace('/login');
-    if (signedIn && profile.data) {
-      if (needsOnboarding && segments[0] !== 'onboarding') router.replace('/onboarding');
-      else if (!needsOnboarding && (segments[0] === 'login' || segments[0] === 'onboarding'))
-        router.replace('/(tabs)');
-    }
-  }, [ready, signedIn, segments, profile.data, needsOnboarding]);
   if (!ready) return <Loading />;
   if (signedIn && !profile.data) {
     return profile.error ? (
@@ -57,16 +47,22 @@ function Routes() {
         contentStyle: { backgroundColor: C.bg },
       }}
     >
-      <Stack.Screen name="login" options={{ headerShown: false }} />
-      <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="item/[id]" options={{ title: 'A good find' }} />
-      <Stack.Screen name="chat/[id]" options={{ title: 'Make a little deal' }} />
-      <Stack.Screen
-        name="match"
-        options={{ headerShown: false, presentation: 'fullScreenModal' }}
-      />
-      <Stack.Screen name="backup" options={{ title: 'Backup login' }} />
+      <Stack.Protected guard={!signedIn}>
+        <Stack.Screen name="login" options={{ headerShown: false }} />
+      </Stack.Protected>
+      <Stack.Protected guard={signedIn && needsOnboarding}>
+        <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
+      </Stack.Protected>
+      <Stack.Protected guard={signedIn && !!profile.data && !needsOnboarding}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="item/[id]" options={{ title: 'A good find' }} />
+        <Stack.Screen name="chat/[id]" options={{ title: 'Make a little deal' }} />
+        <Stack.Screen
+          name="match"
+          options={{ headerShown: false, presentation: 'fullScreenModal' }}
+        />
+        <Stack.Screen name="backup" options={{ title: 'Backup login' }} />
+      </Stack.Protected>
     </Stack>
   );
 }
@@ -85,7 +81,7 @@ export default function Layout() {
           <SessionProvider>
             <StatusBar style={introVisible ? 'light' : 'dark'} />
             <View
-              style={{ flex: 1 }}
+              style={{ flex: 1, backgroundColor: C.bg }}
               accessibilityElementsHidden={introVisible}
               importantForAccessibility={introVisible ? 'no-hide-descendants' : 'auto'}
             >

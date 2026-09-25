@@ -11,7 +11,10 @@ export default function Backup() {
   const me = useQuery({ queryKey: ['me'], queryFn: () => api<User>('/me') });
   const send = useMutation({
     mutationFn: () =>
-      api<{ challengeId: string; devCode?: string }>('/auth/link/request', 'POST', { type, value }),
+      api<{ challengeId: string; devCode?: string }>('/auth/link/request', 'POST', {
+        type,
+        value: value.trim(),
+      }),
   });
   const verify = useMutation({
     mutationFn: () =>
@@ -38,17 +41,23 @@ export default function Backup() {
         <T>You’re covered — both login methods are attached.</T>
       ) : !send.data ? (
         <>
-          <Chips values={['EMAIL', 'PHONE']} value={type} onChange={setType} />
+          <Chips
+            values={['EMAIL', 'PHONE']}
+            value={type}
+            onChange={setType}
+            disabled={send.isPending}
+          />
           <Field
             label="Backup login"
             value={value}
             onChangeText={setValue}
+            editable={!send.isPending}
             autoCapitalize="none"
             keyboardType={type === 'PHONE' ? 'phone-pad' : 'email-address'}
           />
           <Button
             title="Send verification code"
-            disabled={send.isPending || !value}
+            disabled={send.isPending || !value.trim()}
             onPress={() => send.mutate()}
           />
         </>
@@ -58,16 +67,27 @@ export default function Backup() {
           <Field
             label="6-digit code"
             value={code}
-            onChangeText={setCode}
+            onChangeText={(text) => setCode(text.replace(/\D/g, '').slice(0, 6))}
+            editable={!verify.isPending}
             keyboardType="number-pad"
             maxLength={6}
+            autoComplete="one-time-code"
           />
           <Button
             title="Verify & link"
             disabled={verify.isPending || code.length !== 6}
             onPress={() => verify.mutate()}
           />
-          <Button title="Start again" outline onPress={() => send.reset()} />
+          <Button
+            title="Start again"
+            outline
+            disabled={verify.isPending}
+            onPress={() => {
+              send.reset();
+              verify.reset();
+              setCode('');
+            }}
+          />
         </>
       )}
       {(send.isPending || verify.isPending) && <ConnectionWait />}
