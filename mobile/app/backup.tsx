@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../src/api';
 import { User } from '../src/types';
-import { Button, Chips, ErrorBox, Field, Page, T, Title } from '../src/ui';
+import { Button, Chips, ConnectionWait, ErrorBox, Field, Page, T, Title } from '../src/ui';
 export default function Backup() {
   const [type, setType] = useState('EMAIL'),
     [value, setValue] = useState(''),
@@ -70,6 +70,7 @@ export default function Backup() {
           <Button title="Start again" outline onPress={() => send.reset()} />
         </>
       )}
+      {(send.isPending || verify.isPending) && <ConnectionWait />}
       <ErrorBox error={send.error ?? verify.error} />
       {verify.isSuccess && <T>Backup login linked successfully.</T>}
     </Page>

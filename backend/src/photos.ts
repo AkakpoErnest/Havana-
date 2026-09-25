@@ -44,9 +44,9 @@ export class PhotoStore {
       })
     : null;
   get backend() { return this.r2 ? 'r2' : 'local'; }
-  /** Saves the full photo and its preview; returns the full photo's URL (absolute for R2, `/uploads/…` locally). */
-  async save(full: Buffer, thumb: Buffer) {
-    const name = randomUUID();
+  /** Saves the full photo and its preview; returns the full photo's URL (absolute for R2, `/uploads/…` locally).
+   *  A fixed `name` overwrites the same files on re-runs (used by the seed). */
+  async save(full: Buffer, thumb: Buffer, name: string = randomUUID()) {
     const files: [string, Buffer][] = [[`${name}.webp`, full], [`${name}_thumb.webp`, thumb]];
     if (this.r2) {
       await Promise.all(files.map(([key, body]) => this.r2!.send(new PutObjectCommand({ Bucket: process.env.R2_BUCKET, Key: key, Body: body, ContentType: 'image/webp', CacheControl: 'public, max-age=31536000, immutable' }))));

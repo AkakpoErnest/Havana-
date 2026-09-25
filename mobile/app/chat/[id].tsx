@@ -11,7 +11,7 @@ import {
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, photoUrl } from '../../src/api';
+import { api, thumbUrl } from '../../src/api';
 import { ChatData, mergeHistory, mergeLatest } from '../../src/chat-cache';
 import { useScreenActive } from '../../src/useScreenActive';
 import { Message, User } from '../../src/types';
@@ -117,7 +117,7 @@ export default function ChatScreen() {
       <Page scroll={false}>
         <View style={s.row}>
           <Image
-            source={photoUrl(c.item.photos[0])}
+            source={thumbUrl(c.item.photos[0])}
             style={{ width: 48, height: 48, borderRadius: 12 }}
           />
           <View style={{ flex: 1 }}>
@@ -130,7 +130,7 @@ export default function ChatScreen() {
             <>
               <T style={{ color: C.pink, fontSize: 23 }}>↔</T>
               <Image
-                source={photoUrl(c.swapItem.photos[0])}
+                source={thumbUrl(c.swapItem.photos[0])}
                 style={{ width: 48, height: 48, borderRadius: 12 }}
               />
             </>

@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useScreenActive } from '../../src/useScreenActive';
-import { api, photoUrl } from '../../src/api';
+import { api, thumbUrl } from '../../src/api';
 import { Conversation, User } from '../../src/types';
 import { C, Empty, ErrorBox, Loading, Page, T, Title, s } from '../../src/ui';
 export default function Inbox() {
@@ -43,7 +43,7 @@ export default function Inbox() {
                 style={{ alignItems: 'center', width: 90, gap: 7 }}
               >
                 <Image
-                  source={photoUrl(c.item.photos[0])}
+                  source={thumbUrl(c.item.photos[0])}
                   style={{
                     width: 80,
                     height: 80,
@@ -64,7 +64,7 @@ export default function Inbox() {
       {inbox.data?.map((c) => (
         <Pressable key={c.id} style={s.row} onPress={() => open(c.id)}>
           <Image
-            source={photoUrl(c.item.photos[0])}
+            source={thumbUrl(c.item.photos[0])}
             style={{ width: 65, height: 65, borderRadius: 17 }}
           />
           <View style={{ flex: 1, gap: 5 }}>

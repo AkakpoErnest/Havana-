@@ -73,7 +73,7 @@ The seed creates 21 demo listings around Accra and six sellers. Each seller can 
 | `0241000005` | `akosua@havana.demo` | Spintex |
 | `0241000006` | `kwame@havana.demo` | Kaneshie |
 
-**Quick match test:** Kofi has already swiped right on Ama's denim jacket in Swap mode. Log in as Ama (`0241000001`), switch to **Swap**, and swipe right on any Kofi item: you'll get "It's a Havana Match!" straight away. (The same works for Yaw with any Esi item.) Running `npm run db:seed` again is safe.
+**Quick match test:** Kofi has already swiped right on Ama's black leather biker jacket in Swap mode. Log in as Ama (`0241000001`), switch to **Swap**, and swipe right on any Kofi item: you'll get "It's a Havana Match!" straight away. (The same works for Yaw with any Esi item.) Running `npm run db:seed` again is safe.
 
 Log in with any of these, or your own email / Ghana phone number. In development, the six-digit code is shown in the app and logged in the API terminal. No SMS/email provider is needed. Seed photos are remote demo images; they need internet on first load. Uploaded photos are served from the laptop.
 

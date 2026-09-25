@@ -13,6 +13,10 @@ import { C, ErrorBox, Loading, Page } from '../src/ui';
 import { api } from '../src/api';
 import { User } from '../src/types';
 import { LaunchIntro } from '../src/LaunchIntro';
+import * as SplashScreen from 'expo-splash-screen';
+
+// Keep the native brand screen visible until fonts and the first app frame are ready.
+void SplashScreen.preventAutoHideAsync().catch(() => {});
 const client = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 15000 }, mutations: { retry: false } },
 });
@@ -72,7 +76,10 @@ export default function Layout() {
   const [loaded, error] = useFonts({ BricolageGrotesque_500Medium, BricolageGrotesque_700Bold });
   if (!loaded && !error) return null;
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView
+      style={{ flex: 1, backgroundColor: C.brand }}
+      onLayout={() => void SplashScreen.hideAsync().catch(() => {})}
+    >
       <SafeAreaProvider>
         <QueryClientProvider client={client}>
           <SessionProvider>

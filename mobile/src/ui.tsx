@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Item } from './types';
-import { photoUrl } from './api';
+import { thumbUrl } from './api';
 export const C = {
   brand: '#23206B',
   mango: '#FFB020',
@@ -167,8 +167,28 @@ export function ErrorBox({ error, retry }: { error: unknown; retry?: () => void 
     </View>
   );
 }
+export function ConnectionWait() {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setSlow(true), 8000);
+    return () => clearTimeout(timer);
+  }, []);
+  return slow ? (
+    <T
+      accessibilityLiveRegion="polite"
+      style={{ color: C.muted, textAlign: 'center', padding: 16 }}
+    >
+      Connecting to Havana… this can take about a minute. Thanks for waiting.
+    </T>
+  ) : null;
+}
 export function Loading() {
-  return <ActivityIndicator style={{ padding: 30 }} color={C.brand} />;
+  return (
+    <View>
+      <ActivityIndicator style={{ padding: 30 }} color={C.brand} />
+      <ConnectionWait />
+    </View>
+  );
 }
 export function Empty({ title, body }: { title: string; body: string }) {
   return (
@@ -196,7 +216,7 @@ export function ItemRow({ item, onLongPress }: { item: Item; onLongPress?: () =>
       style={s.row}
     >
       <Image
-        source={photoUrl(item.photos[0])}
+        source={thumbUrl(item.photos[0])}
         style={{ width: 76, height: 76, borderRadius: 15 }}
         contentFit="cover"
       />

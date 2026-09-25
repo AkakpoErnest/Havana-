@@ -16,7 +16,12 @@
       }
     },
     "android": {
-      "package": "com.havana.market"
+      "package": "com.havana.market",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#23206B",
+        "monochromeImage": "./assets/monochrome-icon.png"
+      }
     },
     "plugins": [
       "expo-router",
@@ -45,10 +50,22 @@
       ],
       "expo-image",
       "expo-font",
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#23206B",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 240
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "icon": "./assets/icon.png",
+    "web": {
+      "favicon": "./assets/favicon.png"
     }
   }
 }

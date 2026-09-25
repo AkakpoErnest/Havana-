@@ -3,7 +3,18 @@ import { View } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
 import { api } from '../src/api';
 import { useSession } from '../src/session';
-import { Button, C, Chips, ErrorBox, Field, Page, Safety, T, Title } from '../src/ui';
+import {
+  Button,
+  C,
+  Chips,
+  ConnectionWait,
+  ErrorBox,
+  Field,
+  Page,
+  Safety,
+  T,
+  Title,
+} from '../src/ui';
 export default function Login() {
   const [type, setType] = useState('PHONE'),
     [value, setValue] = useState(''),
@@ -91,6 +102,7 @@ export default function Login() {
           />
         </>
       )}
+      {(send.isPending || verify.isPending) && <ConnectionWait />}
       <ErrorBox error={send.error ?? verify.error} />
       <Safety />
     </Page>

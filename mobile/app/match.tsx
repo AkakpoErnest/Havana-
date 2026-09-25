@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { api, photoUrl } from '../src/api';
+import { api, thumbUrl } from '../src/api';
 import { Conversation } from '../src/types';
 import { Button, C, ErrorBox, Page, T } from '../src/ui';
 export default function Match() {
@@ -36,7 +36,7 @@ export default function Match() {
               item && (
                 <Image
                   key={item.id}
-                  source={photoUrl(item.photos[0])}
+                  source={thumbUrl(item.photos[0])}
                   style={{
                     width: 140,
                     height: 175,

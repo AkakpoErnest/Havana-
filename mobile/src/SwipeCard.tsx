@@ -12,7 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Item, Mode } from './types';
 import { C, T, label, money } from './ui';
-import { photoUrl } from './api';
+import { thumbUrl } from './api';
 export function SwipeCard({
   item,
   mode,
@@ -94,7 +94,7 @@ export function SwipeCard({
       >
         <Pressable accessibilityLabel={`View ${item.title}`} onPress={onOpen} style={{ flex: 1 }}>
           <Image
-            source={photoUrl(item.photos[0])}
+            source={thumbUrl(item.photos[0])}
             contentFit="cover"
             transition={150}
             cachePolicy="memory-disk"
@@ -149,7 +149,7 @@ export function SwipeCard({
                 top: 95,
                 right: 20,
                 borderWidth: 4,
-                borderColor: C.pink,
+                borderColor: C.muted,
                 padding: 10,
                 borderRadius: 8,
                 backgroundColor: 'white',
@@ -157,7 +157,7 @@ export function SwipeCard({
               left,
             ]}
           >
-            <T style={{ fontSize: 28, color: C.pink }}>PASS</T>
+            <T style={{ fontSize: 28, color: C.muted }}>PASS</T>
           </Animated.View>
           <Animated.View
             style={[

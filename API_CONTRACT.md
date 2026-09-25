@@ -87,5 +87,5 @@ Message: `{id, conversationId, senderId|null, type: TEXT|OFFER|SYSTEM, text, amo
 `0241000001` / `ama@havana.demo` Osu · `0241000002` / `kofi@havana.demo` Madina · `0241000003` / `esi@havana.demo` East Legon ·
 `0241000004` / `yaw@havana.demo` Labone · `0241000005` / `akosua@havana.demo` Spintex · `0241000006` / `kwame@havana.demo` Kaneshie.
 21 items: a mix of sell-only, swap-only and both. Re-running the seed is safe.
-**One-tap match demo:** Kofi has already swap-righted Ama's denim jacket, so log in as Ama and swap-right any Kofi item.
+**One-tap match demo:** Kofi has already swap-righted Ama's black leather biker jacket, so log in as Ama and swap-right any Kofi item.
 Likewise, Esi has swap-righted Yaw's smartwatch, so log in as Yaw and swap-right any Esi swap item.

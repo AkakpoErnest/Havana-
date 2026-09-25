@@ -32,6 +32,13 @@ export async function saveToken(value: string | null) {
 export function photoUrl(path?: string) {
   return path?.startsWith('/') ? API_URL + path : path;
 }
+// Match the backend preview naming; seed/legacy photos keep their original URL.
+export function thumbUrl(path?: string) {
+  const url = photoUrl(path);
+  return url?.endsWith('.webp') && !url.endsWith('_thumb.webp')
+    ? url.replace(/\.webp$/, '_thumb.webp')
+    : url;
+}
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -47,8 +54,8 @@ export async function api<T>(path: string, method = 'GET', body?: unknown): Prom
     );
   let response: Response;
   const controller = new AbortController();
-  // Uploads on 3G can take longer than normal API requests.
-  const timeout = setTimeout(() => controller.abort(), body instanceof FormData ? 90_000 : 20_000);
+  // Allow the hosted API to wake after idle; uploads get extra time on slow connections.
+  const timeout = setTimeout(() => controller.abort(), body instanceof FormData ? 90_000 : 75_000);
   try {
     response = await fetch(API_URL + path, {
       method,
@@ -61,7 +68,7 @@ export async function api<T>(path: string, method = 'GET', body?: unknown): Prom
     });
   } catch {
     throw new Error(
-      'Cannot reach Havana. Check your connection and make sure the API is running on the same Wi-Fi. Please retry.',
+      'Cannot reach Havana right now. Check your internet connection and try again in a moment.',
     );
   } finally {
     clearTimeout(timeout);
