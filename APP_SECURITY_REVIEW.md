@@ -17,7 +17,7 @@ Shared review ledger for Codex and Claude. Requested by the user on 2026-09-25.
 
 - Severity: Critical if development OTP and real admin identities are enabled together on a publicly reachable deployment.
 - Reviewer: Codex. Owner requested: Claude (backend/deployment).
-- Status: **Fixed in code, awaiting production verification** (Claude, 2026-09-25).
+- Status: **Fixed and verified on production** (Claude, 2026-09-25). Codex: please review and co-sign or reopen.
 - Evidence: `backend/src/auth.ts` selects development delivery when DEV_OTP=true; `backend/src/app.ts` permits that in production with ALLOW_DEV_OTP_IN_PRODUCTION=true. `backend/src/admin.ts` grants admin access based on a verified email matching ADMIN_EMAILS. Development codes returned to the requester cannot establish ownership of an email address. The Blueprint includes the development-OTP opt-in.
 - Impact: A requester who knows an allowed admin email could authenticate as that account in development-OTP mode and reach moderation actions.
 - Correction: Do not enable real admin identities until real OTP delivery is enabled and development OTP is disabled. Add a backend guard or deny moderator authorization in development-OTP mode. Confirm deployed settings without exposing secrets.
@@ -25,7 +25,8 @@ Shared review ledger for Codex and Claude. Requested by the user on 2026-09-25.
 - Contributing mistake (Claude): I instructed the user to add `ADMIN_EMAILS` on Render while production still runs dev OTP. I retracted that instruction and asked the user to leave it unset or remove it until this fix is deployed.
 - Fix (Claude): trust is tracked per *session*, not per identity. `OtpChallenge.channel` records how each code was delivered (`dev` | `brevo` | `webhook`; migration `…_otp_channel`, existing rows default to `dev`). `/auth/verify` signs the JWT with `trusted: channel !== 'dev'`. Backup-link tokens inherit the current session's trust and are never upgraded. The `Guard` exposes `req.trusted` (missing claim = untrusted). `AdminGuard` refuses untrusted sessions with 403 `ADMIN_NEEDS_VERIFIED_LOGIN` before checking `ADMIN_EMAILS`, and `me.isAdmin` requires `trusted`.
 - Evidence: backend test 12 covers: a dev-OTP login with a listed admin email gets `isAdmin:false` and 403 `ADMIN_NEEDS_VERIFIED_LOGIN`. The same account signed in via a (stubbed) Brevo-delivered code gets `isAdmin:true`, and review/restore/remove work. A trusted login with a non-listed email gets 403 `NOT_ADMIN`. An untrusted session that links a backup identity stays non-admin even when its email is listed. The suite passes 13/13.
-- Remaining: after Render deploys the fix, confirm on production (with a throwaway test email, not a real user) that `/admin/reports` returns `ADMIN_NEEDS_VERIFIED_LOGIN` for a dev-OTP session. Only then may the user set `ADMIN_EMAILS`, and admin powers will still require an emailed code (Brevo) to be live.
+- Production verification (Claude, 2026-09-25, commit `4cbdad7` live): a dev-OTP session for a throwaway `sec001-probe-…@havana.test` account got `me.isAdmin:false` and `GET /admin/reports` → 403 `ADMIN_NEEDS_VERIFIED_LOGIN`. The probe account was deleted afterwards. `ADMIN_EMAILS` is not needed for this check: trust is enforced before the list.
+- Was remaining: after Render deploys the fix, confirm on production (with a throwaway test email, not a real user) that `/admin/reports` returns `ADMIN_NEEDS_VERIFIED_LOGIN` for a dev-OTP session. Only then may the user set `ADMIN_EMAILS`, and admin powers will still require an emailed code (Brevo) to be live.
 
 ### SEC-002 — Push registration is remembered only in process memory
 
@@ -64,6 +65,8 @@ Shared review ledger for Codex and Claude. Requested by the user on 2026-09-25.
 | FIX-005 | Auth screens relied on post-render redirects; Stack.Protected now guards login, onboarding, and account routes. | Codex; reviewed by Claude | Combined checks/exports passed; emulator login screens rendered. Full login/back/deep-link test was interrupted, not passed. |
 
 ## Review log
+
+- 2026-09-25 — Claude: verified SEC-001 on production (see finding). Awaiting Codex co-sign.
 
 - 2026-09-25 — Claude: fixed SEC-001 in code (session-level trust; tests 12–13 pass, 13/13 total); production verification pending the Render deploy. Posted the SEC-002 server-side review and added `POST /push-token/unregister`. Recorded my own contributing mistake (premature `ADMIN_EMAILS` instruction).
 
