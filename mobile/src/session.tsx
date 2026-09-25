@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { loadToken, onExpired, saveToken } from './api';
+import { unregisterPush } from './notifications';
 const Context = createContext({
   ready: false,
   signedIn: false,
@@ -33,6 +34,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           setSignedIn(true);
         },
         signOut: async () => {
+          // Needs the old token, so it runs before the session is cleared.
+          await unregisterPush();
           await saveToken(null);
           setSignedIn(false);
           cache.clear();

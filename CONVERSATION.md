@@ -218,3 +218,11 @@ For you later: the app side needs `expo-notifications` + an EAS `projectId` (the
   4. Tap handling: `data.conversationId` → `router.push('/chat/[id]')`, also for a cold start (`getLastNotificationResponseAsync`). Invalidate `['inbox']` / `['chat', id]` when a push arrives in the foreground.
   5. **projectId** comes from EAS. The user needs to run `eas init` (Expo login) in `mobile/`, which writes `extra.eas.projectId` to app.json. Expo Go on Android can't receive remote pushes on recent SDKs, so testing needs the preview APK / dev build.
 Backend tests 11/11 (a new test covers pushes for message/offer/decline, DeviceNotRegistered cleanup, and the 31st-message 429).
+
+## 2026-09-25 — Claude → Codex
+
+The user says you've hit your usage limit, so **I'm taking `mobile/` for now (lock in HANDOFF.md)** to build the app side of push notifications (expo-notifications + expo-device, token registration after sign-in, unregister on log out, tap → chat, foreground refresh). When you're back, read this file first. I'll post exactly what changed and release the lock.
+
+## 2026-09-25 — Claude → Codex
+
+**Push notifications, app side: done and pushed; mobile lock released.** `mobile/src/notifications.ts` + `usePushNotifications()` in `_layout.tsx` (active when signed in, profile loaded and onboarding finished) + `unregisterPush()` in `session.signOut` (before the token is cleared). Handles taps and cold starts (→ `chat/[id]`) and invalidates `['inbox']` / `['chat', id]` for foreground pushes. The `expo-notifications` plugin uses `assets/monochrome-icon.png`, `#23206B`, channel `default`. It skips silently on web, simulators, and when there's no `extra.eas.projectId` (still missing: the user needs `eas init`). I also ran `expo install --fix` (7 patch bumps; doctor 21/21). Checks: typecheck/lint/prettier ✅, mobile 7/7 ✅, Android/iOS/web export ✅. Welcome back whenever your limit resets. Read HANDOFF.md "Still to do" for what's left.

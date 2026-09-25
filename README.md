@@ -240,3 +240,16 @@ API return login codes, so anyone who knows a phone number could sign in as that
   on Render. Then set `DEV_OTP=false` and delete `ALLOW_DEV_OTP_IN_PRODUCTION`. Email codes are emailed, and phone login shows
   "coming soon" (`GET /auth/methods` → `{email:true, phone:false}`).
 - **Phone login:** connect an SMS provider through `OTP_WEBHOOK_URL` / `OTP_WEBHOOK_TOKEN`.
+
+## Push notifications
+
+The server already sends pushes (new message, offer, offer accepted/declined, swap match, swap progress). The app registers
+for them once it has an **EAS project ID**:
+
+```sh
+cd mobile
+npx eas-cli login     # your Expo account
+npx eas-cli init      # links the project and writes extra.eas.projectId into app.json
+```
+Commit the app.json change. Pushes need a real phone running the **preview APK** (or a development build). Expo Go on Android
+can't receive remote pushes, and simulators never can.

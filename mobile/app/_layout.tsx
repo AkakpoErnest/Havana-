@@ -13,6 +13,7 @@ import { C, ErrorBox, Loading, Page } from '../src/ui';
 import { api } from '../src/api';
 import { User } from '../src/types';
 import { LaunchIntro } from '../src/LaunchIntro';
+import { usePushNotifications } from '../src/notifications';
 import * as SplashScreen from 'expo-splash-screen';
 
 // Keep the native brand screen visible until fonts and the first app frame are ready.
@@ -28,6 +29,7 @@ function Routes() {
     enabled: ready && signedIn,
   });
   const needsOnboarding = profile.data?.name === 'Havana neighbour';
+  usePushNotifications(signedIn && !!profile.data && !needsOnboarding);
   if (!ready) return <Loading />;
   if (signedIn && !profile.data) {
     return profile.error ? (
