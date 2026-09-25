@@ -33,9 +33,12 @@ A user can have at most one PHONE and one EMAIL identity. Each IP gets 20 reques
 | DELETE 🔒 | `/saved/:itemId` | | `{saved:false}` (unsave; the item stays out of the Shop feed) |
 
 ## Items (listings)
+**Photo previews:** for any photo URL ending in `.webp`, the preview is the same URL with `.webp` replaced by `_thumb.webp`
+(`…/abc.webp` → `…/abc_thumb.webp`). Use previews on swipe cards and in lists, and the full URL on the item page.
+Seed/older photos (Unsplash, `.jpg`) have no preview, so use them as-is.
 | Method | Path | Body / query | Returns |
 |---|---|---|---|
-| POST 🔒 | `/uploads` | multipart `photos` (1–6 files, jpeg/png/webp, max 5 MB each) | `{photos:['/uploads/…jpg']}`. The server resizes to 1200px, JPEG q78. |
+| POST 🔒 | `/uploads` | multipart `photos` (1–6 files, jpeg/png/webp, max 5 MB each) | `{photos:[url]}`. The server re-encodes each photo as **WebP**, at most 1280px and **≤300 KB** (typically 25–140 KB), strips EXIF/GPS, and also stores a **~5–20 KB preview**. URLs are `/uploads/<id>.webp` locally, or absolute `https://pub-….r2.dev/<id>.webp` when Cloudflare R2 is configured. |
 | POST 🔒 | `/items` | `{title 3–100, description 5–2000, category, condition, sell, swap, price?, swapValue?, photos[1–6] (your own upload paths), area 2–80, latitude?, longitude?}` | Item |
 | GET 🔒 | `/items/:id` | | Item + `owner:{id,name,rating,ratingCount}` (404 if hidden/removed, unless it's yours) |
 | PATCH 🔒 | `/items/:id/status` | `{status: LIVE\|RESERVED\|SOLD\|REMOVED}` | Item (owner only; SWAPPED is set only by completing a swap) |

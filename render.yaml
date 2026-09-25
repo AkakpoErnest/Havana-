@@ -1,0 +1,36 @@
+# Render Blueprint for the Havana API (free plan).
+# Render dashboard → New → Blueprint → pick this repo. It asks for the secret values marked sync:false.
+services:
+  - type: web
+    name: havana-api
+    runtime: node
+    plan: free            # sleeps after 15 min idle (~30-60s wake-up); switch to "starter" for real users
+    region: frankfurt     # closest Render region to Ghana
+    rootDir: backend
+    buildCommand: npm ci && npx prisma generate && npm run build
+    startCommand: npm run start:prod   # applies pending migrations, then starts the API
+    healthCheckPath: /health
+    autoDeploy: true      # every push to main redeploys
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: JWT_SECRET
+        generateValue: true
+      # Until a real SMS/email OTP provider is connected, login codes are shown in the app.
+      # Anyone who knows a phone number could log in as that person, so only share with testers.
+      - key: DEV_OTP
+        value: "true"
+      - key: DATABASE_URL       # Neon pooled connection string
+        sync: false
+      - key: DIRECT_URL         # Neon direct connection string (migrations)
+        sync: false
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        value: havana-photos
+      - key: R2_PUBLIC_URL      # https://pub-xxxx.r2.dev
+        sync: false

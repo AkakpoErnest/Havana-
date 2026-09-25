@@ -11,16 +11,19 @@
     "test": "tsc && node --test --test-concurrency=1 dist/test/*.test.js",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "db:migrate:prod": "sh -c 'DATABASE_URL=\"${DIRECT_URL:-$DATABASE_URL}\" prisma migrate deploy'",
+    "start:prod": "npm run db:migrate:prod && node dist/src/main.js"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1140.0",
     "@nestjs/common": "^11.1.0",
     "@nestjs/core": "^11.1.0",
-    "@nestjs/platform-express": "^11.1.0",
     "@nestjs/jwt": "^11.0.0",
+    "@nestjs/platform-express": "^11.1.0",
     "@prisma/client": "6.19.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
@@ -36,10 +39,13 @@
     "@types/node": "^22.0.0",
     "@types/supertest": "^6.0.0",
     "eslint": "^9.0.0",
-    "typescript-eslint": "^8.0.0",
     "prisma": "6.19.0",
     "supertest": "^7.1.0",
     "tsx": "^4.20.0",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "typescript-eslint": "^8.0.0"
+  },
+  "engines": {
+    "node": ">=20.19"
   }
 }

@@ -5,14 +5,13 @@ import { NestFactory } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { FilesInterceptor, NestExpressApplication } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { randomUUID } from 'node:crypto';
-import sharp from 'sharp';
 import { Auth, AuthedRequest, Guard, OtpRateGuard } from './auth';
 import { Db } from './db';
 import { Chat } from './chat';
 import { Market } from './market';
+import { PhotoStore, encodePhoto } from './photos';
 import { ConversationDto, FeedDto, ListingDto, MessagesDto, ProfileDto, OfferActionDto, OfferDto, OtpDto, RatingDto, ReportDto, StatusDto, SwapActionDto, SwipeDto, TextDto, VerifyDto } from './dto';
 @Controller()
 class HealthController { @Get('health') health() { return {ok:true,app:'Havana'}; } }
@@ -28,7 +27,7 @@ class AuthController {
 @Controller()
 @UseGuards(Guard)
 class ApiController {
-  constructor(private market:Market,private chat:Chat,private db:Db) {}
+  constructor(private market:Market,private chat:Chat,private db:Db,private photos:PhotoStore) {}
   @Get('me') me(@Req() r:AuthedRequest) { return this.market.me(r.userId); }
   @Patch('me') profile(@Req() r:AuthedRequest,@Body() d:ProfileDto) { return this.market.profile(r.userId,d); }
   @Get('feed') feed(@Req() r:AuthedRequest,@Query() q:FeedDto) { return this.market.feed(r.userId,q); }
@@ -53,22 +52,24 @@ class ApiController {
     if(!files?.length) throw new BadRequestException('Choose up to six JPEG, PNG, or WebP photos (5 MB each).');
     const paths:string[]=[];
     for(const file of files) {
-      let bytes:Buffer;
-      try { bytes=await sharp(file.buffer,{limitInputPixels:40_000_000}).rotate().resize(1200,1200,{fit:'inside',withoutEnlargement:true}).jpeg({quality:78}).toBuffer(); }
+      let encoded:Awaited<ReturnType<typeof encodePhoto>>;
+      try { encoded=await encodePhoto(file.buffer); }
       catch { throw new BadRequestException('One photo could not be read. Please choose a different image.'); }
-      const filename=randomUUID()+'.jpg'; const path='/uploads/'+filename;
-      await writeFile(resolve(process.env.UPLOAD_DIR??'uploads',filename),bytes);
+      const path=await this.photos.save(encoded.full,encoded.thumb);
       await this.db.upload.create({data:{userId:r.userId,path}}); paths.push(path);
     }
     return {photos:paths};
   }
 }
-@Module({imports:[JwtModule.registerAsync({useFactory:()=>({secret:process.env.JWT_SECRET,signOptions:{expiresIn:'30d'}})})],controllers:[HealthController,AuthController,ApiController],providers:[Db,Auth,Guard,OtpRateGuard,Market,Chat]})
+@Module({imports:[JwtModule.registerAsync({useFactory:()=>({secret:process.env.JWT_SECRET,signOptions:{expiresIn:'30d'}})})],controllers:[HealthController,AuthController,ApiController],providers:[Db,Auth,Guard,OtpRateGuard,Market,Chat,PhotoStore]})
 class AppModule {}
 export async function createApp() {
   if(!process.env.JWT_SECRET||process.env.JWT_SECRET.length<32) throw new Error('JWT_SECRET must contain at least 32 characters.');
   if(process.env.DEV_OTP!=='true'&&(!process.env.OTP_WEBHOOK_URL?.startsWith('https://')||!process.env.OTP_WEBHOOK_TOKEN)) throw new Error('Configure an HTTPS OTP_WEBHOOK_URL and token, or enable DEV_OTP for local testing.');
   if(process.env.NODE_ENV==='production'&&process.env.DEV_OTP==='true') throw new Error('DEV_OTP must be disabled in production.');
+  const r2Vars=['R2_ACCOUNT_ID','R2_ACCESS_KEY_ID','R2_SECRET_ACCESS_KEY','R2_BUCKET','R2_PUBLIC_URL'];
+  const missingR2=r2Vars.filter(v=>!process.env[v]);
+  if(process.env.R2_ACCESS_KEY_ID&&missingR2.length) throw new Error(`Cloudflare R2 is partly configured. Missing: ${missingR2.join(', ')}.`);
   const app=await NestFactory.create<NestExpressApplication>(AppModule,{logger:process.env.NODE_ENV==='test'?false:['log','warn','error']});
   app.useGlobalPipes(new ValidationPipe({transform:true,whitelist:true,forbidNonWhitelisted:true}));
   app.enableCors();

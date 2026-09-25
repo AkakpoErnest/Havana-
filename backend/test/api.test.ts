@@ -7,6 +7,10 @@ import sharp from 'sharp';
 import { Db } from '../src/db';
 import { createApp } from '../src/app';
 import { normalize } from '../src/auth';
+import { FULL_MAX_BYTES, thumbOf } from '../src/photos';
+import { stat } from 'node:fs/promises';
+import { randomBytes } from 'node:crypto';
+import { resolve } from 'node:path';
 process.env.NODE_ENV='test';
 process.env.DEV_OTP='true';
 process.env.JWT_SECRET='test-secret-with-at-least-32-characters';
@@ -168,4 +172,20 @@ test('profile location, empty-closet pass, unsave, incremental polling and inbox
   await http.post(`/conversations/${matchId}/messages`).set(as(c)).send({text:'Deal?'}).expect(201);
   assert.equal((await inbox()).isNewMatch,false);
   assert.equal(((await http.get('/conversations').set(as(d))).body as Row[]).find(r=>r.id===chat)!.hasChatted,true);
+});
+test('uploads become WebP under the size cap with a small preview',async()=>{
+  const [a]=accounts;
+  // Random noise is the worst case for compression.
+  const noisy=await sharp(randomBytes(1600*1600*3),{raw:{width:1600,height:1600,channels:3}}).jpeg({quality:80}).toBuffer();
+  assert.ok(noisy.length<5*1024*1024);
+  const res=await http.post('/uploads').set(as(a)).attach('photos',noisy,'big.jpg').expect(201);
+  const path:string=res.body.photos[0];
+  assert.match(path,/^\/uploads\/[0-9a-f-]+\.webp$/);
+  const dir=process.env.UPLOAD_DIR??'uploads';
+  const full=await stat(resolve(dir,path.replace('/uploads/','')));
+  const thumb=await stat(resolve(dir,thumbOf(path).replace('/uploads/','')));
+  assert.ok(full.size<=FULL_MAX_BYTES,`full photo is ${full.size} bytes`);
+  assert.ok(thumb.size<full.size/3,`preview is ${thumb.size} bytes`);
+  await http.get(thumbOf(path)).expect(200).expect('Content-Type',/image\/webp/);
+  assert.equal(thumbOf('https://images.unsplash.com/photo-1?w=900'),'https://images.unsplash.com/photo-1?w=900');
 });
