@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, View } from 'react-native';
+import { Modal, Pressable, View } from 'react-native';
 import { router } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../src/api';
@@ -72,6 +72,14 @@ export default function Profile() {
     }
   }
   const logout = useMutation({ mutationFn: () => session.signOut() });
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  // Permanent (Google Play requirement). The server ends every session, so sign out right after.
+  const deleteAccount = useMutation({
+    mutationFn: async () => {
+      await api('/me', 'DELETE', { confirm: 'DELETE' });
+      await session.signOut();
+    },
+  });
   const unsave = useMutation({
     mutationFn: (itemId: string) => api(`/saved/${itemId}`, 'DELETE'),
     onSuccess: () => {
@@ -216,6 +224,47 @@ export default function Profile() {
         outline
         onPress={() => logout.mutate()}
       />
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => setConfirmDelete(true)}
+        style={{ alignSelf: 'center', padding: 8 }}
+      >
+        <T style={{ color: C.muted, fontSize: 13, textDecorationLine: 'underline' }}>
+          Delete account
+        </T>
+      </Pressable>
+      <Modal
+        visible={confirmDelete}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !deleteAccount.isPending && setConfirmDelete(false)}
+      >
+        <View
+          style={{ flex: 1, backgroundColor: '#16152E88', justifyContent: 'center', padding: 20 }}
+        >
+          <View style={s.box}>
+            <Title>Delete your account?</Title>
+            <T style={{ lineHeight: 22 }}>
+              This can’t be undone. Your listings and photos, your chat messages, saved items,
+              ratings and your phone/email logins are removed. People you chatted with will see
+              “Deleted user”.
+            </T>
+            <ErrorBox error={deleteAccount.error} />
+            <Button
+              title={deleteAccount.isPending ? 'Deleting…' : 'Delete forever'}
+              color={C.pink}
+              disabled={deleteAccount.isPending}
+              onPress={() => deleteAccount.mutate()}
+            />
+            <Button
+              title="Keep my account"
+              outline
+              disabled={deleteAccount.isPending}
+              onPress={() => setConfirmDelete(false)}
+            />
+          </View>
+        </View>
+      </Modal>
     </Page>
   );
 }
