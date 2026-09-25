@@ -6,7 +6,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import sharp from 'sharp';
 import { Db } from '../src/db';
 import { createApp } from '../src/app';
-import { normalize } from '../src/auth';
+import { OtpRateGuard, normalize } from '../src/auth';
 import { FULL_MAX_BYTES, thumbOf } from '../src/photos';
 import { stat } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
@@ -188,4 +188,30 @@ test('uploads become WebP under the size cap with a small preview',async()=>{
   assert.ok(thumb.size<full.size/3,`preview is ${thumb.size} bytes`);
   await http.get(thumbOf(path)).expect(200).expect('Content-Type',/image\/webp/);
   assert.equal(thumbOf('https://images.unsplash.com/photo-1?w=900'),'https://images.unsplash.com/photo-1?w=900');
+});
+test('errors carry stable codes and chats remember my rating',async()=>{
+  const [a,b,,d]=accounts;
+  // The per-IP /auth limit (20/min) is shared by the whole suite; start this test with a fresh window.
+  (app.get(OtpRateGuard) as unknown as {buckets:Map<string,unknown>}).buckets.clear();
+  const code=(r:{body:{code:string}})=>r.body.code;
+  assert.equal(code(await http.post('/auth/request').send({type:'PHONE',value:'12345'}).expect(400)),'INVALID_IDENTIFIER');
+  assert.equal(code(await http.post('/auth/request').send({type:'NOPE',value:'x'}).expect(400)),'VALIDATION_ERROR');
+  assert.equal(code(await http.get('/me').expect(401)),'UNAUTHORIZED');
+  assert.equal(code(await http.get('/no-such-route').set(as(a)).expect(404)),'NOT_FOUND');
+  const c=await http.post('/auth/request').send({type:'EMAIL',value:'codes@test.com'}).expect(201);
+  const wrong=await http.post('/auth/verify').send({challengeId:c.body.challengeId,code:c.body.devCode==='000000'?'111111':'000000'}).expect(401);
+  assert.equal(code(wrong),'OTP_INVALID');assert.match(wrong.body.message,/Incorrect or expired code/);
+  assert.equal(code(await http.post('/auth/request').send({type:'EMAIL',value:'codes@test.com'}).expect(429)),'OTP_RATE_LIMITED');
+  const fresh=await login('closetless@test.com');
+  const target=await listing(b,{title:'Code test item'});
+  const empty=await http.post('/swipes').set(as(fresh)).send({itemId:target,mode:'SWAP',direction:'RIGHT'}).expect(400);
+  assert.equal(code(empty),'CLOSET_EMPTY');assert.equal(empty.body.message,'List something in your Swap Closet first.');
+  await http.patch(`/items/${target}/status`).set(as(b)).send({status:'SOLD'}).expect(200);
+  const gone=await http.post('/swipes').set(as(d)).send({itemId:target,mode:'SHOP',direction:'RIGHT'}).expect(400);
+  assert.equal(code(gone),'LISTING_UNAVAILABLE');assert.equal(gone.body.message,'This item is unavailable in this mode.');
+  assert.equal(code(await http.post('/ratings').set(as(fresh)).send({toId:a.id,stars:5}).expect(403)),'CANNOT_RATE');
+  // a and b chatted in the sale test and a rated b 4 stars in the ratings test.
+  const chat=(await http.get('/conversations').set(as(a))).body.find((x:{buyerId:string;sellerId:string;swapItemId:string|null})=>x.swapItemId===null&&[x.buyerId,x.sellerId].includes(b.id));
+  assert.equal((await http.get(`/conversations/${chat.id}/messages`).set(as(a)).expect(200)).body.conversation.myRating,4);
+  assert.equal((await http.get(`/conversations/${chat.id}/messages`).set(as(b)).expect(200)).body.conversation.myRating,null);
 });

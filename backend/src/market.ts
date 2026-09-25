@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { Prisma } from '@prisma/client';
 import { Db } from './db';
 import { FeedDto, ListingDto, ProfileDto, SwipeDto } from './dto';
+import { coded } from './errors';
 const ownerSelect={id:true,name:true} as const;
 export const conversationInclude={item:true,swapItem:true,buyer:{select:ownerSelect},seller:{select:ownerSelect}} as const;
 export function distance(lat1:number,lon1:number,lat2:number,lon2:number) {
@@ -25,12 +26,12 @@ export class Market {
     if(d.sell&&!d.price || d.swap&&!d.swapValue) throw new BadRequestException('Add a whole-cedi price or swap value.');
     if((d.latitude==null)!==(d.longitude==null)) throw new BadRequestException('Both location coordinates are required.');
     const paths=[...new Set(d.photos)];
-    if(paths.length!==d.photos.length || await this.db.upload.count({where:{userId,path:{in:paths}}})!==paths.length) throw new BadRequestException('Upload your own photos first.');
+    if(paths.length!==d.photos.length || await this.db.upload.count({where:{userId,path:{in:paths}}})!==paths.length) throw new BadRequestException(coded('PHOTOS_NOT_OWNED','Upload your own photos first.'));
     return this.db.item.create({data:{...d,price:d.sell?d.price:null,swapValue:d.swap?d.swapValue:null,ownerId:userId}});
   }
   async item(id:string,userId:string) {
     const item=await this.db.item.findUnique({where:{id},include:{owner:{select:ownerSelect}}});
-    if(!item || ((item.hidden||item.status==='REMOVED')&&item.ownerId!==userId)) throw new NotFoundException('This item is no longer available.');
+    if(!item || ((item.hidden||item.status==='REMOVED')&&item.ownerId!==userId)) throw new NotFoundException(coded('LISTING_UNAVAILABLE','This item is no longer available.'));
     const rating=await this.db.rating.aggregate({where:{toId:item.ownerId},_avg:{stars:true},_count:true});
     return {...item,owner:{...item.owner,rating:rating._avg.stars,ratingCount:rating._count}};
   }
@@ -68,10 +69,10 @@ export class Market {
   async swipe(userId:string,d:SwipeDto) {
     return this.db.atomic(async tx=>{
       const item=await tx.item.findUnique({where:{id:d.itemId}});
-      if(!item||item.ownerId===userId||item.hidden||item.status!=='LIVE'||(d.mode==='SHOP'?!item.sell:!item.swap)) throw new BadRequestException('This item is unavailable in this mode.');
+      if(!item||item.ownerId===userId||item.hidden||item.status!=='LIVE'||(d.mode==='SHOP'?!item.sell:!item.swap)) throw new BadRequestException(coded('LISTING_UNAVAILABLE','This item is unavailable in this mode.'));
       if(d.mode==='SWAP'&&d.direction==='UP') throw new BadRequestException('Offers are available in Shop mode.');
       const closet=d.mode==='SWAP'&&d.direction==='RIGHT'?await tx.item.findMany({where:{ownerId:userId,swap:true,hidden:false,status:'LIVE'}}):[];
-      if(d.mode==='SWAP'&&d.direction==='RIGHT'&&!closet.length) throw new BadRequestException('List something in your Swap Closet first.');
+      if(d.mode==='SWAP'&&d.direction==='RIGHT'&&!closet.length) throw new BadRequestException(coded('CLOSET_EMPTY','List something in your Swap Closet first.'));
       await tx.swipe.upsert({where:{userId_itemId_mode:{userId,itemId:item.id,mode:d.mode}},create:{userId,...d},update:{}});
       if(d.mode==='SHOP'&&d.direction==='UP') return {conversation:await this.shopConversation(tx,userId,item.id)};
       if(d.mode==='SWAP'&&d.direction==='RIGHT') {
@@ -89,7 +90,7 @@ export class Market {
   }
   async shopConversation(tx:Prisma.TransactionClient,userId:string,itemId:string) {
     const item=await tx.item.findUnique({where:{id:itemId}});
-    if(!item||!item.sell||item.hidden||item.status!=='LIVE'||item.ownerId===userId) throw new BadRequestException('This item is unavailable for buying.');
+    if(!item||!item.sell||item.hidden||item.status!=='LIVE'||item.ownerId===userId) throw new BadRequestException(coded('LISTING_UNAVAILABLE','This item is unavailable for buying.'));
     const matchKey=`shop:${userId}:${itemId}`;
     return tx.conversation.upsert({where:{matchKey},update:{},create:{buyerId:userId,sellerId:item.ownerId,itemId,matchKey,messages:{create:{type:'SYSTEM',text:'Meet in public. Check the item before paying. Pay directly by MoMo or cash on pickup; Havana never collects payment.'}}},include:conversationInclude});
   }
@@ -107,7 +108,7 @@ export class Market {
   async rate(fromId:string,toId:string,stars:number) {
     if(fromId===toId) throw new BadRequestException('You cannot rate yourself.');
     const chat=await this.db.conversation.findFirst({where:{OR:[{buyerId:fromId,sellerId:toId},{buyerId:toId,sellerId:fromId}],AND:[{messages:{some:{senderId:fromId,type:{in:['TEXT','OFFER']}}}},{messages:{some:{senderId:toId,type:{in:['TEXT','OFFER']}}}}]}});
-    if(!chat) throw new ForbiddenException('You can rate someone after you have both chatted.');
+    if(!chat) throw new ForbiddenException(coded('CANNOT_RATE','You can rate someone after you have both chatted.'));
     return this.db.rating.upsert({where:{fromId_toId:{fromId,toId}},update:{stars},create:{fromId,toId,stars}});
   }
 }

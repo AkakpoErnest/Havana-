@@ -5,17 +5,18 @@ import { isEmail } from 'class-validator';
 import { Request } from 'express';
 import { Db } from './db';
 import { OtpDto, VerifyDto } from './dto';
+import { coded } from './errors';
 export type AuthedRequest = Request & { userId: string };
 export function normalize(type: 'EMAIL'|'PHONE', raw: string) {
   const value=raw.trim().toLowerCase();
   if (type==='EMAIL') {
-    if(!isEmail(value)) throw new BadRequestException('Enter a valid email address.');
+    if(!isEmail(value)) throw new BadRequestException(coded('INVALID_IDENTIFIER','Enter a valid email address.'));
     return value;
   }
   let phone=value.replace(/[\s()-]/g,'');
   if(/^0\d{9}$/.test(phone)) phone='+233'+phone.slice(1);
   if(/^233\d{9}$/.test(phone)) phone='+'+phone;
-  if(!/^\+233[235]\d{8}$/.test(phone)) throw new BadRequestException('Use a Ghana number, for example 0541234567.');
+  if(!/^\+233[235]\d{8}$/.test(phone)) throw new BadRequestException(coded('INVALID_IDENTIFIER','Use a Ghana number, for example 0541234567.'));
   return phone;
 }
 @Injectable()
@@ -26,10 +27,10 @@ export class Auth {
     const value=normalize(dto.type,dto.value);
     if(linkUserId) {
       const [identity, existing]=await Promise.all([this.db.authIdentity.findUnique({where:{value}}),this.db.authIdentity.findUnique({where:{userId_type:{userId:linkUserId,type:dto.type}}})]);
-      if(identity || existing) throw new BadRequestException('This login method is already attached to an account.');
+      if(identity || existing) throw new BadRequestException(coded('IDENTITY_TAKEN','This login method is already attached to an account.'));
     }
     const recent=await this.db.otpChallenge.count({where:{value,createdAt:{gte:new Date(Date.now()-60_000)}}});
-    if(recent>=1) throw new HttpException('Please wait a minute before requesting another code.',429);
+    if(recent>=1) throw new HttpException(coded('OTP_RATE_LIMITED','Please wait a minute before requesting another code.'),429);
     const code=randomInt(0,1000000).toString().padStart(6,'0');
     const challenge=await this.db.otpChallenge.create({data:{type:dto.type,value,hash:this.hash(value,code),linkUserId,expiresAt:new Date(Date.now()+5*60_000)}});
     if(process.env.DEV_OTP==='true') console.log(`[DEV OTP] ${value}: ${code}`);
@@ -39,7 +40,7 @@ export class Auth {
         if(!response.ok) throw new Error('Delivery failed');
       } catch {
         await this.db.otpChallenge.delete({where:{id:challenge.id}});
-        throw new ServiceUnavailableException('Could not send your code. Try again shortly.');
+        throw new ServiceUnavailableException(coded('OTP_DELIVERY_FAILED','Could not send your code. Try again shortly.'));
       }
     }
     return {challengeId:challenge.id,expiresIn:300,...(process.env.DEV_OTP==='true'?{devCode:code}:{})};
@@ -52,7 +53,7 @@ export class Auth {
       if(!valid) { await tx.otpChallenge.update({where:{id:challenge.id},data:{attempts:{increment:1}}}); return null; }
       let identity=await tx.authIdentity.findUnique({where:{value:challenge.value}});
       if(linkUserId) {
-        if(identity || await tx.authIdentity.findUnique({where:{userId_type:{userId:linkUserId,type:challenge.type}}})) throw new BadRequestException('This login method is already in use.');
+        if(identity || await tx.authIdentity.findUnique({where:{userId_type:{userId:linkUserId,type:challenge.type}}})) throw new BadRequestException(coded('IDENTITY_TAKEN','This login method is already in use.'));
         identity=await tx.authIdentity.create({data:{userId:linkUserId,type:challenge.type,value:challenge.value}});
       } else if(!identity) {
         const user=await tx.user.create({data:{identities:{create:{type:challenge.type,value:challenge.value}}},include:{identities:true}});
@@ -61,7 +62,7 @@ export class Auth {
       await tx.otpChallenge.deleteMany({where:{value:challenge.value}});
       return tx.user.findUniqueOrThrow({where:{id:identity.userId},select:{id:true,name:true}});
     });
-    if(!result) throw new UnauthorizedException('Incorrect or expired code. Request a new code after five attempts.');
+    if(!result) throw new UnauthorizedException(coded('OTP_INVALID','Incorrect or expired code. Request a new code after five attempts.'));
     return {token:this.jwt.sign({sub:result.id}),user:result};
   }
 }

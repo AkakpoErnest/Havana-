@@ -208,3 +208,32 @@ All routes except health and login require `Authorization: Bearer <token>`. Toke
 - Uploaded files live in `backend/uploads`; keep this folder and PostgreSQL backed up together. Orphan upload cleanup, moderation tooling, account recovery/removal and multi-server rate limits are future operational work. Inbox returns the latest 100 conversations.
 - `DEV_OTP=true` exposes codes intentionally for local testing. Production startup rejects this setting. To send real codes, disable it and configure an HTTPS `OTP_WEBHOOK_URL` and `OTP_WEBHOOK_TOKEN`; your provider adapter must accept authenticated JSON `{type,value,code}` and deliver the message. No paid SMS/email service is configured. OTPs expire in five minutes and permit five wrong guesses; per-IP and per-identity request limits apply.
 - Local HTTP is enabled for development APKs. Use HTTPS and disable Android cleartext traffic in the build-properties plugin before publishing. This repository is a testable v1, not a deployed public service.
+
+## Deploy (Render + Neon + Cloudflare R2)
+
+The live API runs at **https://havana-api.onrender.com**. It uses three services with free plans:
+
+| Piece | Service | Notes |
+|---|---|---|
+| API server | **Render** web service, from [`render.yaml`](render.yaml) | Free plan, Frankfurt. Redeploys on every push to `main`. It sleeps after 15 min idle (~50 s wake-up). |
+| Database | **Neon** PostgreSQL (Frankfurt) | `DATABASE_URL` = pooled string, `DIRECT_URL` = direct string (used for migrations) |
+| Photos | **Cloudflare R2** bucket `havana-photos` | Public via its `r2.dev` URL. The server stores WebP ≤300 KB plus a `_thumb.webp` preview |
+
+**Secrets** live in the git-ignored `backend/.env.production` and in Render → `havana-api` → Environment.
+They are never committed. The Render blueprint asks for `DATABASE_URL`, `DIRECT_URL`, `R2_ACCOUNT_ID`,
+`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` and `R2_PUBLIC_URL`, and generates `JWT_SECRET` itself.
+
+**To set it up from scratch:**
+1. Neon: create a project (Frankfurt), then copy the pooled and direct connection strings.
+2. Cloudflare R2: create the bucket `havana-photos`, enable its Public Development URL, and create an Account API
+   token with *Object Read & Write* on that bucket.
+3. Render: **New → Blueprint**, pick this repo, and paste the six values. Each start runs `prisma migrate deploy`.
+4. Load the demo data once from your laptop, with the production values loaded
+   (e.g. `npx dotenv-cli -e backend/.env.production -- npm --prefix backend run db:seed`). With R2 configured,
+   the seed copies the demo photos into the bucket.
+5. Keep it awake (optional): a free uptime monitor (e.g. UptimeRobot) on `https://havana-api.onrender.com/health`
+   every 5–10 min.
+
+**Before a public launch:** `DEV_OTP=true` + `ALLOW_DEV_OTP_IN_PRODUCTION=true` (set in `render.yaml`) make the
+API return login codes, so anyone who knows a phone number could sign in as that person. Connect an SMS provider through
+`OTP_WEBHOOK_URL` / `OTP_WEBHOOK_TOKEN`, then remove both flags.

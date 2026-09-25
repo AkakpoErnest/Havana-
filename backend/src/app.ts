@@ -13,6 +13,7 @@ import { Chat } from './chat';
 import { Market } from './market';
 import { PhotoStore, encodePhoto } from './photos';
 import { ConversationDto, FeedDto, ListingDto, MessagesDto, ProfileDto, OfferActionDto, OfferDto, OtpDto, RatingDto, ReportDto, StatusDto, SwapActionDto, SwipeDto, TextDto, VerifyDto } from './dto';
+import { ErrorCodes, coded } from './errors';
 @Controller()
 class HealthController { @Get('health') health() { return {ok:true,app:'Havana'}; } }
 @Controller('auth')
@@ -49,12 +50,12 @@ class ApiController {
   @Post('uploads')
   @UseInterceptors(FilesInterceptor('photos',6,{storage:memoryStorage(),limits:{fileSize:5*1024*1024},fileFilter:(_req,file,cb)=>cb(null,['image/jpeg','image/png','image/webp'].includes(file.mimetype))}))
   async upload(@Req() r:AuthedRequest,@UploadedFiles() files:Express.Multer.File[]) {
-    if(!files?.length) throw new BadRequestException('Choose up to six JPEG, PNG, or WebP photos (5 MB each).');
+    if(!files?.length) throw new BadRequestException(coded('NO_PHOTOS','Choose up to six JPEG, PNG, or WebP photos (5 MB each).'));
     const paths:string[]=[];
     for(const file of files) {
       let encoded:Awaited<ReturnType<typeof encodePhoto>>;
       try { encoded=await encodePhoto(file.buffer); }
-      catch { throw new BadRequestException('One photo could not be read. Please choose a different image.'); }
+      catch { throw new BadRequestException(coded('PHOTO_UNREADABLE','One photo could not be read. Please choose a different image.')); }
       const path=await this.photos.save(encoded.full,encoded.thumb);
       await this.db.upload.create({data:{userId:r.userId,path}}); paths.push(path);
     }
@@ -75,6 +76,7 @@ export async function createApp() {
   const missingR2=r2Vars.filter(v=>!process.env[v]);
   if(process.env.R2_ACCESS_KEY_ID&&missingR2.length) throw new Error(`Cloudflare R2 is partly configured. Missing: ${missingR2.join(', ')}.`);
   const app=await NestFactory.create<NestExpressApplication>(AppModule,{logger:process.env.NODE_ENV==='test'?false:['log','warn','error']});
+  app.useGlobalFilters(new ErrorCodes());
   app.useGlobalPipes(new ValidationPipe({transform:true,whitelist:true,forbidNonWhitelisted:true}));
   app.enableCors();
   await mkdir(resolve(process.env.UPLOAD_DIR??'uploads'),{recursive:true});

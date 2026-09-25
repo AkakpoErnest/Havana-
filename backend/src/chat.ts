@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { Db } from './db';
 import { conversationInclude } from './market';
 import { MessagesDto } from './dto';
+import { coded } from './errors';
 // Poll cursors overlap by this much so rows from transactions that committed late are not missed.
 const CURSOR_OVERLAP_MS=5000;
 @Injectable()
@@ -23,7 +24,10 @@ export class Chat {
   }
   async messages(id:string,userId:string,q:MessagesDto) {
     const cursor=new Date(Date.now()-CURSOR_OVERLAP_MS).toISOString();
-    const conversation=await this.member(this.db,id,userId);
+    const found=await this.member(this.db,id,userId);
+    // The stars I've given the other person, so the chat can show "Rated ✓" after reopening.
+    const rating=await this.db.rating.findUnique({where:{fromId_toId:{fromId:userId,toId:found.buyerId===userId?found.sellerId:found.buyerId}},select:{stars:true}});
+    const conversation={...found,myRating:rating?.stars??null};
     const parse=(value?:string)=>{
       const date=value?new Date(value):undefined;
       if(date&&isNaN(date.getTime())) throw new BadRequestException('Invalid message cursor.');
@@ -50,7 +54,7 @@ export class Chat {
   async offer(id:string,userId:string,amount:number) {
     return this.db.atomic(async tx=>{
       const c=await this.member(tx,id,userId);
-      if(c.swapItemId||!c.item.sell||c.item.status!=='LIVE'||c.item.hidden) throw new BadRequestException('Offers are only available on live sale items.');
+      if(c.swapItemId||!c.item.sell||c.item.status!=='LIVE'||c.item.hidden) throw new BadRequestException(coded('LISTING_UNAVAILABLE','Offers are only available on live sale items.'));
       await tx.message.updateMany({where:{conversationId:id,offerStatus:'PENDING'},data:{offerStatus:'COUNTERED'}});
       const message=await tx.message.create({data:{conversationId:id,senderId:userId,type:'OFFER',amount,offerStatus:'PENDING'}});
       await tx.conversation.update({where:{id},data:{updatedAt:new Date()}}); return message;
@@ -60,8 +64,8 @@ export class Chat {
     return this.db.atomic(async tx=>{
       const c=await this.member(tx,id,userId);
       const offer=await tx.message.findUnique({where:{id:messageId}});
-      if(!offer||offer.conversationId!==id||offer.type!=='OFFER'||offer.offerStatus!=='PENDING'||offer.senderId===userId) throw new BadRequestException('Only the recipient can respond to a pending offer.');
-      if(c.item.status!=='LIVE'||c.item.hidden) throw new BadRequestException('This item is no longer available.');
+      if(!offer||offer.conversationId!==id||offer.type!=='OFFER'||offer.offerStatus!=='PENDING'||offer.senderId===userId) throw new BadRequestException(coded('OFFER_NOT_PENDING','Only the recipient can respond to a pending offer.'));
+      if(c.item.status!=='LIVE'||c.item.hidden) throw new BadRequestException(coded('LISTING_UNAVAILABLE','This item is no longer available.'));
       // Lock the shared item before individual offers to keep lock ordering consistent.
       if(action==='ACCEPT') await tx.item.update({where:{id:c.itemId},data:{status:'RESERVED'}});
       await tx.message.update({where:{id:messageId},data:{offerStatus:action==='ACCEPT'?'ACCEPTED':'DECLINED'}});
@@ -78,8 +82,8 @@ export class Chat {
       const c=await this.member(tx,id,userId);
       if(!c.swapItemId||!c.swapItem) throw new BadRequestException('This is not a swap match.');
       if(c.completedAt) return c;
-      if(c.item.hidden||c.swapItem.hidden||c.item.status!=='LIVE'||c.swapItem.status!=='LIVE') throw new BadRequestException('One of these items is no longer available to swap.');
-      if(action==='DONE'&&(!c.buyerAgreed||!c.sellerAgreed)) throw new BadRequestException('Both people must tap We agreed before completing a swap.');
+      if(c.item.hidden||c.swapItem.hidden||c.item.status!=='LIVE'||c.swapItem.status!=='LIVE') throw new BadRequestException(coded('LISTING_UNAVAILABLE','One of these items is no longer available to swap.'));
+      if(action==='DONE'&&(!c.buyerAgreed||!c.sellerAgreed)) throw new BadRequestException(coded('SWAP_NOT_AGREED','Both people must tap We agreed before completing a swap.'));
       const field=action==='AGREE'?(userId===c.buyerId?'buyerAgreed':'sellerAgreed'):(userId===c.buyerId?'buyerDone':'sellerDone');
       if(c[field]) return c;
       const next=await tx.conversation.update({where:{id},data:{[field]:true}});

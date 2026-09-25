@@ -8,8 +8,13 @@ Written by Claude from the backend code in `backend/src`. Last updated 2026-09-2
 - Auth: `Authorization: Bearer <token>` (JWT, 30 days). 🔒 marks routes that need a token.
 - IDs are UUIDs. Photo paths are stored and returned relative (`/uploads/x.jpg`), and the mobile
   app prefixes `API_URL`. Seed photos are absolute Unsplash URLs.
-- Errors come back as Nest's default shape: `{ statusCode, message, error }`. `message` is a
-  friendly string, or a string[] for validation errors.
+- Errors: `{ statusCode, error, message, code }`. `message` is a friendly string to show the user
+  (string[] for validation errors). **`code` is stable. Use it for app logic, never the message text.**
+  Specific codes: `LISTING_UNAVAILABLE` (item sold/reserved/removed/hidden or wrong mode: drop the card),
+  `CLOSET_EMPTY`, `OTP_INVALID`, `OTP_RATE_LIMITED`, `OTP_DELIVERY_FAILED`, `INVALID_IDENTIFIER`,
+  `IDENTITY_TAKEN`, `OFFER_NOT_PENDING`, `SWAP_NOT_AGREED`, `CANNOT_RATE`, `PHOTOS_NOT_OWNED`, `NO_PHOTOS`,
+  `PHOTO_UNREADABLE`, `VALIDATION_ERROR`. Otherwise a default for the status: `BAD_REQUEST`, `UNAUTHORIZED`,
+  `FORBIDDEN`, `NOT_FOUND`, `PAYLOAD_TOO_LARGE`, `RATE_LIMITED`, `SERVICE_UNAVAILABLE`, `INTERNAL_ERROR`.
 
 ## Auth
 | Method | Path | Body | Returns |
@@ -68,7 +73,7 @@ It also has `buyerAgreed`, `sellerAgreed`, `buyerDone`, `sellerDone` and `comple
 |---|---|---|---|
 | GET 🔒 | `/conversations` | | up to 100 conversations with `messages:[last]`, most recent first. Each row also has `hasChatted` (any TEXT/OFFER yet) and `isNewMatch` (swap match, no TEXT/OFFER yet, not completed), which is what the "new matches" row uses |
 | POST 🔒 | `/conversations` | `{itemId}` | find or create the buyer↔seller chat (with a safety-tip system message) |
-| GET 🔒 | `/conversations/:id/messages?before=<ISO date>` | | `{conversation, messages (oldest first, max 100), hasMore, cursor}`. Initial load and older pages. |
+| GET 🔒 | `/conversations/:id/messages?before=<ISO date>` | | `{conversation, messages (oldest first, max 100), hasMore, cursor}`. Initial load and older pages. `conversation.myRating` = the stars (1–5) I've given the other person, or `null`. |
 | GET 🔒 | `/conversations/:id/messages?since=<cursor>` | | **3s poll.** `{conversation, messages, hasMore:false, cursor}`. `messages` = new messages **and** older ones whose `offerStatus` changed, oldest first. Merge by `id` (replace existing), then use the returned `cursor` for the next poll. Cursors overlap by 5s, so duplicates are expected. |
 | POST 🔒 | `/conversations/:id/messages` | `{text 1–2000}` | Message |
 | POST 🔒 | `/conversations/:id/offers` | `{amount}` | OFFER message. Older PENDING offers become COUNTERED. Only for live sale items, not swaps. |
