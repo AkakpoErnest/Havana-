@@ -20,8 +20,7 @@ export default function ChatScreen() {
   const { id, haggle } = useLocalSearchParams<{ id: string; haggle?: string }>();
   const [text, setText] = useState(''),
     [amount, setAmount] = useState(''),
-    [showOffer, setShowOffer] = useState(haggle === '1'),
-    [rating, setRating] = useState(0);
+    [showOffer, setShowOffer] = useState(haggle === '1');
   const scroll = useRef<FlatList<Message>>(null);
   const stickToBottom = useRef(true);
   const cache = useQueryClient();
@@ -41,6 +40,7 @@ export default function ChatScreen() {
     refetchInterval: active ? 3000 : false,
   });
   const c = q.data?.conversation;
+  const rating = c?.myRating ?? 0;
   const ownId = me.data?.id;
   const buyer = c?.buyerId === ownId;
   const other = buyer ? c?.seller : c?.buyer;
@@ -86,7 +86,9 @@ export default function ChatScreen() {
   const rate = useMutation({
     mutationFn: (stars: number) => api('/ratings', 'POST', { toId: other?.id, stars }),
     onSuccess: (_, stars) => {
-      setRating(stars);
+      cache.setQueryData<ChatData>(['chat', id], (old) =>
+        old ? { ...old, conversation: { ...old.conversation, myRating: stars } } : old,
+      );
       refresh();
     },
   });

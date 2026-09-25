@@ -43,6 +43,7 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public readonly status: number,
+    public readonly code?: string,
   ) {
     super(message);
   }
@@ -81,6 +82,7 @@ export async function api<T>(path: string, method = 'GET', body?: unknown): Prom
         ? data.message.join('\n')
         : (data.message ?? 'Something went wrong. Please retry.'),
       response.status,
+      typeof data.code === 'string' ? data.code : undefined,
     );
   }
   return data as T;

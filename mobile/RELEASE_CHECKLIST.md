@@ -15,6 +15,8 @@ Brand assets live in `assets/`. A new native build is required to see the icon a
 - Leave the hosted server idle, then request a login code. The waiting message should appear if needed and login should complete without a premature timeout.
 - Turn off networking, try login or refresh, and confirm a useful error appears and retry works after reconnecting.
 - Use a new account: complete name and area, restart, and confirm onboarding stays completed.
+- Publish a listing on web and Android: while uploading, fields/toggles and photo removal must stay locked. A failed publish retains the draft.
+- Type a profile name/area draft, then save location; the draft must remain. Edits typed while an earlier profile save is pending must also remain.
 - Upload a photo and check its previews in the feed/profile, then open the listing and confirm the full photo loads.
 - On two phones: send an offer, accept/counter it, swap, and exchange chat messages. Check the keyboard does not cover the composer.
 - While a login or backup code request is pending, the phone/email selector and destination field must stay locked. During verification, the code and restart button must stay locked. Restarting a failed attempt clears the old code and error.

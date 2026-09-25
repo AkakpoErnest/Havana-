@@ -2,13 +2,18 @@ import React, { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../src/api';
 import { User } from '../src/types';
+import { LoginType, useLoginMethods } from '../src/login-methods';
 import { Button, Chips, ConnectionWait, ErrorBox, Field, Page, T, Title } from '../src/ui';
 export default function Backup() {
-  const [type, setType] = useState('EMAIL'),
+  const [chosen, setType] = useState<LoginType>('EMAIL'),
     [value, setValue] = useState(''),
     [code, setCode] = useState('');
   const cache = useQueryClient();
   const me = useQuery({ queryKey: ['me'], queryFn: () => api<User>('/me') });
+  const { offered, phoneOff } = useLoginMethods(['EMAIL', 'PHONE']);
+  // Only offer types the server can deliver and the account doesn't already have.
+  const addable = offered.filter((t) => !me.data?.identities.some((i) => i.type === t));
+  const type = addable.includes(chosen) ? chosen : (addable[0] ?? chosen);
   const send = useMutation({
     mutationFn: () =>
       api<{ challengeId: string; devCode?: string }>('/auth/link/request', 'POST', {
@@ -39,14 +44,22 @@ export default function Backup() {
       ))}
       {me.data?.identities.length === 2 ? (
         <T>You’re covered — both login methods are attached.</T>
+      ) : addable.length === 0 ? (
+        <T>
+          {phoneOff
+            ? 'Phone backup is coming soon. Your email login is all set.'
+            : 'Nothing more to add right now.'}
+        </T>
       ) : !send.data ? (
         <>
-          <Chips
-            values={['EMAIL', 'PHONE']}
-            value={type}
-            onChange={setType}
-            disabled={send.isPending}
-          />
+          {addable.length > 1 && (
+            <Chips
+              values={addable}
+              value={type}
+              onChange={(next) => setType(next as LoginType)}
+              disabled={send.isPending}
+            />
+          )}
           <Field
             label="Backup login"
             value={value}

@@ -53,6 +53,7 @@ export type Conversation = {
   buyerDone: boolean;
   sellerDone: boolean;
   completedAt: string | null;
+  myRating?: number | null;
   hasChatted?: boolean;
   isNewMatch?: boolean;
   messages?: Message[];

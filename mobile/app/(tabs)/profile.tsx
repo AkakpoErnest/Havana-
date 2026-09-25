@@ -28,7 +28,8 @@ export default function Profile() {
     [name, setName] = useState(''),
     [area, setArea] = useState(''),
     [selected, setSelected] = useState<Item | null>(null),
-    [locationError, setLocationError] = useState<Error | null>(null);
+    [locationError, setLocationError] = useState<Error | null>(null),
+    [locating, setLocating] = useState(false);
   const me = useQuery({ queryKey: ['me'], queryFn: () => api<User>('/me') });
   const saved = useQuery({ queryKey: ['saved'], queryFn: () => api<Item[]>('/saved') });
   const update = useMutation({
@@ -41,14 +42,17 @@ export default function Profile() {
   });
   const profile = useMutation({
     mutationFn: (changes: Record<string, unknown>) => api<User>('/me', 'PATCH', changes),
-    onSuccess: () => {
-      setName('');
-      setArea('');
-      void cache.invalidateQueries({ queryKey: ['me'] });
+    onSuccess: (user, changes) => {
+      if (changes.name !== undefined)
+        setName((draft) => (draft.trim() === changes.name ? '' : draft));
+      if (changes.area !== undefined)
+        setArea((draft) => (draft.trim() === changes.area ? '' : draft));
+      cache.setQueryData(['me'], user);
       void cache.invalidateQueries({ queryKey: ['feed'] });
     },
   });
   async function saveLocation() {
+    setLocating(true);
     try {
       setLocationError(null);
       const permission = await Location.requestForegroundPermissionsAsync();
@@ -63,8 +67,11 @@ export default function Profile() {
       });
     } catch (error) {
       setLocationError(error instanceof Error ? error : new Error('Could not save your location.'));
+    } finally {
+      setLocating(false);
     }
   }
+  const logout = useMutation({ mutationFn: () => session.signOut() });
   const unsave = useMutation({
     mutationFn: (itemId: string) => api(`/saved/${itemId}`, 'DELETE'),
     onSuccess: () => {
@@ -137,7 +144,7 @@ export default function Profile() {
         <Button
           title="Save profile"
           outline
-          disabled={profile.isPending || (!name.trim() && !area.trim())}
+          disabled={profile.isPending || locating || (!name.trim() && !area.trim())}
           onPress={() =>
             profile.mutate({
               ...(name.trim() ? { name: name.trim() } : {}),
@@ -146,9 +153,15 @@ export default function Profile() {
           }
         />
         <Button
-          title={me.data?.latitude != null ? 'Update saved location' : 'Save nearby-finds location'}
+          title={
+            locating
+              ? 'Saving your location…'
+              : me.data?.latitude != null
+                ? 'Update saved location'
+                : 'Save nearby-finds location'
+          }
           outline
-          disabled={profile.isPending}
+          disabled={profile.isPending || locating}
           onPress={() => void saveLocation()}
         />
       </View>
@@ -156,7 +169,13 @@ export default function Profile() {
       <T style={s.label}>Hold one of your items to change its status.</T>
       <ErrorBox
         error={
-          me.error ?? saved.error ?? update.error ?? profile.error ?? unsave.error ?? locationError
+          me.error ??
+          saved.error ??
+          update.error ??
+          profile.error ??
+          unsave.error ??
+          locationError ??
+          logout.error
         }
         retry={() => {
           void me.refetch();
@@ -191,7 +210,12 @@ export default function Profile() {
       )}
       <Button title="Manage backup login →" outline onPress={() => router.push('/backup')} />
       <Safety />
-      <Button title="Log out" outline onPress={() => void session.signOut()} />
+      <Button
+        title={logout.isPending ? 'Logging out…' : 'Log out'}
+        disabled={logout.isPending}
+        outline
+        onPress={() => logout.mutate()}
+      />
     </Page>
   );
 }

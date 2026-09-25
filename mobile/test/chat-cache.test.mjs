@@ -68,3 +68,15 @@ test('the first response supplies pagination and repeated responses stay dedupli
     ['a', 'b'],
   );
 });
+
+test('saved ratings follow fresh polls and survive loading older messages', () => {
+  const previous = page([message('recent', '2026-09-25T12:00:00Z')]);
+  previous.conversation.myRating = null;
+  const fresh = page([]);
+  fresh.conversation.myRating = 4;
+  const current = mergeLatest(previous, fresh);
+  assert.equal(current.conversation.myRating, 4);
+  const older = page([message('older', '2026-09-24T12:00:00Z')]);
+  older.conversation.myRating = null;
+  assert.equal(mergeHistory(current, older).conversation.myRating, 4);
+});

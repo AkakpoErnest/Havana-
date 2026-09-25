@@ -49,23 +49,23 @@ export default function Discover() {
           : old,
       );
       return {
-        previous,
+        key,
         removed: previous?.items.find((candidate) => candidate.id === variables.id),
       };
     },
     onError: (error, _variables, context) => {
-      // A stale listing is safely dropped. Network failures put it back so it can be retried.
-      if (error instanceof ApiError && error.status >= 400 && error.status < 500) return;
+      // Drop only unavailable listings; rate limits, validation and network errors retain the card.
+      if (error instanceof ApiError && error.code === 'LISTING_UNAVAILABLE') return;
       if (context?.removed) {
-        cache.setQueryData(key, (old: typeof feed.data) =>
+        cache.setQueryData(context.key, (old: typeof feed.data) =>
           old && !old.items.some((candidate) => candidate.id === context.removed?.id)
             ? { ...old, items: [context.removed, ...old.items] }
             : old,
         );
       }
     },
-    onSettled: () => {
-      void cache.invalidateQueries({ queryKey: key });
+    onSettled: (_data, _error, _variables, context) => {
+      void cache.invalidateQueries({ queryKey: context?.key ?? key });
     },
     onSuccess: (data) => {
       void cache.invalidateQueries({ queryKey: ['saved'] });
@@ -142,6 +142,7 @@ export default function Discover() {
         <Chips
           values={['ALL', ...categories]}
           value={category}
+          disabled={swipe.isPending}
           onChange={(value) => {
             if (!swipe.isPending) setCategory(value);
           }}

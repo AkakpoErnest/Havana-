@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Pressable, Switch, View } from 'react-native';
+import { Alert, Platform, Pressable, Switch, View } from 'react-native';
 import { Image } from 'expo-image';
 import * as Picker from 'expo-image-picker';
 import * as Manipulator from 'expo-image-manipulator';
@@ -7,6 +7,7 @@ import * as Location from 'expo-location';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { api } from '../../src/api';
+import { photoForm } from '../../src/upload-form';
 import { Button, C, Chips, ErrorBox, Field, Page, T, Title, categories, s } from '../../src/ui';
 export default function ListItem() {
   const [photos, setPhotos] = useState<string[]>([]),
@@ -21,7 +22,8 @@ export default function ListItem() {
     [swapValue, setSwapValue] = useState(''),
     [location, setLocation] = useState<{ latitude: number; longitude: number }>(),
     [error, setError] = useState<Error | null>(null),
-    [picking, setPicking] = useState(false);
+    [picking, setPicking] = useState(false),
+    [locating, setLocating] = useState(false);
   const cache = useQueryClient();
   async function choose(camera: boolean) {
     setPicking(true);
@@ -60,6 +62,8 @@ export default function ListItem() {
     }
   }
   async function locate() {
+    setLocating(true);
+    setError(null);
     try {
       if (!(await Location.requestForegroundPermissionsAsync()).granted)
         throw new Error('No problem — your area is enough. Location permission was not granted.');
@@ -67,6 +71,8 @@ export default function ListItem() {
       setLocation(p.coords);
     } catch (e) {
       setError(e as Error);
+    } finally {
+      setLocating(false);
     }
   }
   const publish = useMutation({
@@ -81,14 +87,7 @@ export default function ListItem() {
       if (!sell && !swap) throw new Error('Turn on selling or swapping.');
       if ((sell && !/^[1-9]\d*$/.test(price)) || (swap && !/^[1-9]\d*$/.test(swapValue)))
         throw new Error('Use positive, whole-cedi amounts.');
-      const form = new FormData();
-      photos.forEach((uri, i) =>
-        form.append('photos', {
-          uri,
-          name: `item-${i}.jpg`,
-          type: 'image/jpeg',
-        } as unknown as Blob),
-      );
+      const form = await photoForm(photos, Platform.OS);
       const upload = await api<{ photos: string[] }>('/uploads', 'POST', form);
       return api('/items', 'POST', {
         title: title.trim(),
@@ -165,39 +164,58 @@ export default function ListItem() {
         placeholder="Vintage denim jacket"
         value={title}
         onChangeText={setTitle}
+        editable={!publish.isPending}
         maxLength={100}
       />
       <T style={s.label}>Category</T>
-      <Chips values={categories} value={category} onChange={setCategory} />
+      <Chips
+        values={categories}
+        value={category}
+        onChange={setCategory}
+        disabled={publish.isPending}
+      />
       <T style={s.label}>Condition</T>
       <Chips
         values={['NEW', 'LIKE_NEW', 'GOOD', 'FAIR']}
         value={condition}
         onChange={setCondition}
+        disabled={publish.isPending}
       />
       <View style={s.box}>
         <View style={s.split}>
           <T>For sale</T>
-          <Switch value={sell} onValueChange={setSell} trackColor={{ true: C.mango }} />
+          <Switch
+            disabled={publish.isPending}
+            value={sell}
+            onValueChange={setSell}
+            trackColor={{ true: C.mango }}
+          />
         </View>
         {sell && (
           <Field
             label="Asking price · GH₵"
             value={price}
             onChangeText={setPrice}
+            editable={!publish.isPending}
             keyboardType="number-pad"
             placeholder="150"
           />
         )}
         <View style={s.split}>
           <T>Open to swaps</T>
-          <Switch value={swap} onValueChange={setSwap} trackColor={{ true: C.pink }} />
+          <Switch
+            disabled={publish.isPending}
+            value={swap}
+            onValueChange={setSwap}
+            trackColor={{ true: C.pink }}
+          />
         </View>
         {swap && (
           <Field
             label="Estimated swap value · GH₵"
             value={swapValue}
             onChangeText={setSwapValue}
+            editable={!publish.isPending}
             keyboardType="number-pad"
             placeholder="150"
           />
@@ -208,6 +226,7 @@ export default function ListItem() {
         multiline
         value={description}
         onChangeText={setDescription}
+        editable={!publish.isPending}
         maxLength={2000}
       />
       <Field
@@ -215,9 +234,17 @@ export default function ListItem() {
         placeholder="Osu, Madina, East Legon…"
         value={area}
         onChangeText={setArea}
+        editable={!publish.isPending}
       />
       <Button
-        title={location ? '✓ Location attached' : '⌖ Add location (optional)'}
+        title={
+          locating
+            ? 'Finding your location…'
+            : location
+              ? '✓ Location attached'
+              : '⌖ Add location (optional)'
+        }
+        disabled={locating || publish.isPending}
         outline
         onPress={() => void locate()}
       />
@@ -225,7 +252,7 @@ export default function ListItem() {
       <Button
         title={publish.isPending ? 'Uploading & publishing…' : 'Put it on the market →'}
         color={C.mango}
-        disabled={publish.isPending || picking}
+        disabled={publish.isPending || picking || locating}
         onPress={() => {
           setError(null);
           publish.mutate();

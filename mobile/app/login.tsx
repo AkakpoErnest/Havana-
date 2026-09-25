@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
 import { api } from '../src/api';
 import { useSession } from '../src/session';
+import { LoginType, useLoginMethods } from '../src/login-methods';
 import {
   Button,
   C,
@@ -16,9 +17,12 @@ import {
   Title,
 } from '../src/ui';
 export default function Login() {
-  const [type, setType] = useState('PHONE'),
+  const [chosen, setType] = useState<LoginType>('PHONE'),
     [value, setValue] = useState(''),
     [code, setCode] = useState('');
+  const { offered, phoneOff } = useLoginMethods();
+  // Fall back to an offered type (e.g. EMAIL while phone login waits for SMS).
+  const type = offered.includes(chosen) ? chosen : (offered[0] ?? chosen);
   const session = useSession();
   const send = useMutation({
     mutationFn: () =>
@@ -59,12 +63,19 @@ export default function Login() {
       </View>
       {!send.data ? (
         <>
-          <Chips
-            values={['PHONE', 'EMAIL']}
-            value={type}
-            onChange={setType}
-            disabled={send.isPending}
-          />
+          {offered.length > 1 && (
+            <Chips
+              values={offered}
+              value={type}
+              onChange={(next) => setType(next as LoginType)}
+              disabled={send.isPending}
+            />
+          )}
+          {phoneOff && (
+            <T style={{ color: C.muted, fontSize: 13 }}>
+              Phone login is coming soon. Sign in with your email for now.
+            </T>
+          )}
           <Field
             label={type === 'PHONE' ? 'Your Ghana phone number' : 'Your email'}
             value={value}
