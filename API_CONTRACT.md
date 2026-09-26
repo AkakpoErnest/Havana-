@@ -6,6 +6,8 @@ Written by Claude from the backend code in `backend/src`. Last updated 2026-09-2
 - Base URL: `EXPO_PUBLIC_API_URL`, e.g. `http://192.168.1.20:3000`. There is **no** `/api` prefix.
 - JSON everywhere except `POST /uploads` (multipart). Money is whole Ghana cedis (integers).
 - Auth: `Authorization: Bearer <token>` (JWT, 30 days). 🔒 marks routes that need a token.
+- **Location privacy:** items you don't own never include `latitude/longitude` (they're `null`), and `distanceKm` is rounded to 0.5 km. You see your own items' coordinates.
+- Public pages: `GET /privacy` (privacy policy) and `GET /account-deletion`.
 - IDs are UUIDs. Photo paths are stored and returned relative (`/uploads/x.jpg`), and the mobile
   app prefixes `API_URL`. Seed photos are absolute Unsplash URLs.
 - Errors: `{ statusCode, error, message, code }`. `message` is a friendly string to show the user

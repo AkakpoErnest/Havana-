@@ -219,6 +219,8 @@ The live API runs at **https://havana-api.onrender.com**. It uses three services
 | Database | **Neon** PostgreSQL (Frankfurt) | `DATABASE_URL` = pooled string, `DIRECT_URL` = direct string (used for migrations) |
 | Photos | **Cloudflare R2** bucket `havana-photos` | Public via its `r2.dev` URL. The server stores WebP ≤300 KB plus a `_thumb.webp` preview |
 
+**Store listing links:** privacy policy `https://havana-api.onrender.com/privacy`, account deletion `https://havana-api.onrender.com/account-deletion` (set `SUPPORT_EMAIL` on Render so both show a contact). Have the privacy policy reviewed before launch.
+
 **Moderators:** set `ADMIN_EMAILS` (comma-separated emails) under Render → `havana-api` → Environment. Those accounts can review
 reported items via `/admin/*` (see API_CONTRACT.md → Moderation).
 

@@ -16,6 +16,8 @@ import { PhotoStore, encodePhoto } from './photos';
 import { Push, isExpoPushToken } from './push';
 import { AdminGuard, Moderation } from './admin';
 import { Accounts } from './account';
+import { LocationPrivacy } from './privacy';
+import { LegalController } from './legal';
 import { ConversationDto, FeedDto, ListingDto, MessagesDto, ProfileDto, DeleteAccountDto, PushTokenDto, OfferActionDto, OfferDto, OtpDto, RatingDto, ReportDto, StatusDto, SwapActionDto, SwipeDto, TextDto, VerifyDto } from './dto';
 import { ErrorCodes, coded } from './errors';
 @Controller()
@@ -103,7 +105,7 @@ class ApiController {
     return {photos:paths};
   }
 }
-@Module({imports:[JwtModule.registerAsync({useFactory:()=>({secret:process.env.JWT_SECRET,signOptions:{expiresIn:'30d'}})})],controllers:[HealthController,PublicPushController,AuthController,ApiController,AdminController],providers:[Db,Auth,Guard,OtpRateGuard,Market,Chat,PhotoStore,UserLimits,Push,AdminGuard,Moderation,Accounts]})
+@Module({imports:[JwtModule.registerAsync({useFactory:()=>({secret:process.env.JWT_SECRET,signOptions:{expiresIn:'30d'}})})],controllers:[HealthController,LegalController,PublicPushController,AuthController,ApiController,AdminController],providers:[Db,Auth,Guard,OtpRateGuard,Market,Chat,PhotoStore,UserLimits,Push,AdminGuard,Moderation,Accounts]})
 class AppModule {}
 export async function createApp() {
   if(!process.env.JWT_SECRET||process.env.JWT_SECRET.length<32) throw new Error('JWT_SECRET must contain at least 32 characters.');
@@ -121,6 +123,7 @@ export async function createApp() {
   if(process.env.R2_ACCESS_KEY_ID&&missingR2.length) throw new Error(`Cloudflare R2 is partly configured. Missing: ${missingR2.join(', ')}.`);
   const app=await NestFactory.create<NestExpressApplication>(AppModule,{logger:process.env.NODE_ENV==='test'?false:['log','warn','error']});
   app.useGlobalFilters(new ErrorCodes());
+  app.useGlobalInterceptors(new LocationPrivacy());
   app.useGlobalPipes(new ValidationPipe({transform:true,whitelist:true,forbidNonWhitelisted:true}));
   app.enableCors();
   await mkdir(resolve(process.env.UPLOAD_DIR??'uploads'),{recursive:true});

@@ -28,6 +28,16 @@ Shared review ledger for Codex and Claude. Requested by the user on 2026-09-25.
 - Production verification (Claude, 2026-09-25, commit `4cbdad7` live): a dev-OTP session for a throwaway `sec001-probe-…@havana.test` account got `me.isAdmin:false` and `GET /admin/reports` → 403 `ADMIN_NEEDS_VERIFIED_LOGIN`. The probe account was deleted afterwards. `ADMIN_EMAILS` is not needed for this check: trust is enforced before the list.
 - Was remaining: after Render deploys the fix, confirm on production (with a throwaway test email, not a real user) that `/admin/reports` returns `ADMIN_NEEDS_VERIFIED_LOGIN` for a dev-OTP session. Only then may the user set `ADMIN_EMAILS`, and admin powers will still require an emailed code (Brevo) to be live.
 
+### SEC-003 — Exact seller coordinates exposed to every user
+
+- Severity: High (physical safety: listing location is usually the seller's home).
+- Reviewer: Claude (found while drafting the privacy policy). Owner: Claude (backend).
+- Status: **Fixed in code, awaiting production verification** (Claude, 2026-09-26).
+- Evidence: a live `GET /feed` item includes `latitude: 5.635, longitude: -0.157` (seed seller) and `owner` fields. Items are returned with raw Prisma fields in the feed, item, saved, conversation includes, match and admin reports. `distanceKm` is unrounded (the app shows 0.1 km), which allows trilateration from a few viewer positions. The mobile app never reads item coordinates.
+- Correction: a global interceptor removes `latitude/longitude` from item-like objects not owned by the requester and rounds `distanceKm` to 0.5 km (minimum 0.5). Owners keep their own.
+- Verification required: tests for feed/item/conversation/saved payloads as non-owner vs owner, plus a production payload check.
+- Fix: `backend/src/privacy.ts` (`LocationPrivacy` global interceptor, `scrubLocations`, `roundDistance`). Test 15 covers: feed item as non-owner → `latitude/longitude: null`, `distanceKm` a multiple of 0.5. Item page as non-owner → null, as owner → exact. The conversation `item` from POST /conversations and GET /conversations (buyer) → null, the seller's chat view → exact. Suite 15/15.
+
 ### SEC-002 — Push registration is remembered only in process memory
 
 - Severity: High; possible notification privacy exposure after logout/account changes.
@@ -65,6 +75,8 @@ Shared review ledger for Codex and Claude. Requested by the user on 2026-09-25.
 | FIX-005 | Auth screens relied on post-render redirects; Stack.Protected now guards login, onboarding, and account routes. | Codex; reviewed by Claude | Combined checks/exports passed; emulator login screens rendered. Full login/back/deep-link test was interrupted, not passed. |
 
 ## Review log
+
+- 2026-09-26 — Claude: found and fixed SEC-003 (seller coordinates) while writing the privacy policy; production check pending the deploy.
 
 - 2026-09-25 — Claude: verified SEC-001 on production (see finding). Awaiting Codex co-sign.
 

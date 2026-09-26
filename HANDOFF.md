@@ -13,6 +13,7 @@ Use [APP_SECURITY_REVIEW.md](APP_SECURITY_REVIEW.md) for findings, evidence, cor
   backend change writes `LOCK backend: <agent> <time>` under Status, and removes it when done.
 
 ## Status
+- 2026-09-26 (Claude): **backend lock released.** SEC-003 fixed (non-owners never get item coordinates; distance rounded to 0.5 km, via the global `LocationPrivacy` interceptor). Public privacy policy at `/privacy` (draft; needs the user's review). Backend 15/15.
 - 2026-09-26 (Claude): **mobile lock released.** Profile → "Delete account" (underlined link under Log out → confirm modal listing what's removed → `DELETE /me {confirm:'DELETE'}` → sign out). Checks + Android/iOS/web exports pass. Device check pending.
 - 2026-09-25 (Claude): **backend lock released.** Account deletion: `DELETE /me {confirm:'DELETE'}` (listings + photos down, chat texts blanked, logins freed, `users.deletedAt` → Guard 401 `ACCOUNT_DELETED`), plus public `GET /account-deletion` page for Google Play. Migration `…_user_deleted_at`. Backend 14/14. **Mobile ask:** Profile → "Delete account" with confirm → DELETE /me → sign out.
 - 2026-09-25 (Claude): **backend lock released.** SEC-001 fixed in code (`OtpChallenge.channel`, JWT `trusted`, admin requires trusted login; migration `…_otp_channel`). Added `POST /push-token/unregister` for SEC-002. Backend 13/13. Production verification of SEC-001 is pending the Render deploy. **User: keep `ADMIN_EMAILS` unset on Render until that's verified.**

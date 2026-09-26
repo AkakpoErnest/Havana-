@@ -402,4 +402,27 @@ test('deleting an account removes personal data, ends sessions and keeps the oth
   assert.notEqual(again.id,leaver.id);
   const page=await http.get('/account-deletion').expect(200).expect('Content-Type',/text\/html/);
   assert.match(page.text,/Delete your account/);
+  const privacy=await http.get('/privacy').expect(200).expect('Content-Type',/text\/html/);
+  assert.match(privacy.text,/Privacy policy/);assert.match(privacy.text,/never see your exact location/);
+});
+test('other people never receive a seller\'s exact coordinates, and distances are coarse',async()=>{
+  const [a,b]=accounts;
+  const item=await listing(b,{title:'Privacy test fan',swap:false,latitude:5.5612345,longitude:-0.1823456});
+  const feedItem=((await http.get('/feed?mode=SHOP&latitude=5.60&longitude=-0.19').set(as(a))).body.items as {id:string;latitude:number|null;longitude:number|null;distanceKm:number}[]).find(i=>i.id===item)!;
+  assert.equal(feedItem.latitude,null);assert.equal(feedItem.longitude,null);
+  assert.equal(feedItem.distanceKm*2,Math.round(feedItem.distanceKm*2),'distance is a multiple of 0.5 km');
+  const asViewer=(await http.get(`/items/${item}`).set(as(a)).expect(200)).body;
+  assert.equal(asViewer.latitude,null);
+  const asOwner=(await http.get(`/items/${item}`).set(as(b)).expect(200)).body;
+  assert.equal(asOwner.latitude,5.5612345);assert.equal(asOwner.longitude,-0.1823456);
+  // Nested items (chat headers) are scrubbed for the buyer but not for the seller.
+  const chat=(await http.post('/conversations').set(as(a)).send({itemId:item}).expect(201)).body;
+  assert.equal(chat.item.latitude,null);
+  const sellerView=(await http.get(`/conversations/${chat.id}/messages`).set(as(b)).expect(200)).body;
+  assert.equal(sellerView.conversation.item.latitude,5.5612345);
+  const buyerInbox=((await http.get('/conversations').set(as(a))).body as {id:string;item:{latitude:number|null}}[]).find(c=>c.id===chat.id)!;
+  assert.equal(buyerInbox.item.latitude,null);
+  // My own profile keeps my saved location.
+  const me=(await http.get('/me').set(as(b)).expect(200)).body;
+  assert.ok('latitude' in me);
 });
