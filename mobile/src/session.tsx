@@ -14,10 +14,15 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const cache = useQueryClient();
   useEffect(() => {
     loadToken()
-      .then((t) => setSignedIn(!!t))
+      .then((t) => {
+        setSignedIn(!!t);
+        // Signed out but a push token is still stored (offline logout/expiry): retry the cleanup (SEC-002).
+        if (!t) void unregisterPush();
+      })
       .catch(() => setSignedIn(false))
       .finally(() => setReady(true));
     onExpired(() => {
+      void unregisterPush();
       void saveToken(null);
       setSignedIn(false);
       cache.clear();

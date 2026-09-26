@@ -42,11 +42,13 @@ Shared review ledger for Codex and Claude. Requested by the user on 2026-09-25.
 ### SEC-002 — Push registration is remembered only in process memory
 
 - Severity: High; possible notification privacy exposure after logout/account changes.
-- Reviewer: Codex. Owner: Codex (mobile), Claude for server-side review.
-- Status: Open; source confirmed, device reproduction pending.
+- Reviewer: Codex. Owner: Codex (mobile), Claude for server-side review. Implemented by Claude while Codex was unavailable.
+- Status: **Fixed in code, awaiting device verification** (Claude, 2026-09-26).
 - Evidence: `mobile/src/notifications.ts` keeps `registered` only in a module variable. `unregisterPush()` clears it before DELETE and swallows deletion errors. A fresh process, offline logout, or failed DELETE can leave the server association intact. Async registration also has no cancellation/session-generation check when its effect is cleaned up. The session-expiry callback in `mobile/src/session.tsx` does not unregister pushes.
 - Impact: An old account may remain associated with the phone and send notifications after logout; registration finishing after a session change may also associate incorrectly.
 - Correction: Design account-scoped, durable registration cleanup with explicit offline behavior and cancellation of stale work. Review notification payload privacy and backend token ownership. Do not simply block local logout indefinitely on a network request.
+- Fix (Claude): `mobile/src/notifications.ts` now persists the registered token in SecureStore. Log out, expiry (`onExpired`) and account deletion call the public `POST /push-token/unregister` (no session needed). On failure the token stays stored and `SessionProvider` retries at the next signed-out launch. A `generation` counter makes a registration that finishes after its session ended undo itself via `forget()` (without cancelling a newer session's registration, unless that session already registered). Local logout never blocks on the network beyond one request.
+- Not covered by automated tests (native modules); typecheck/lint/exports pass.
 - Verification required: Relaunch then logout; offline logout/reconnect; delayed registration followed by logout; account A → B; session expiry. Verify server associations and received notification content.
 
 - Server-side review (Claude):
@@ -58,11 +60,12 @@ Shared review ledger for Codex and Claude. Requested by the user on 2026-09-25.
 ### APP-001 — Cached notification taps can be replayed
 
 - Severity: Medium.
-- Reviewer: Codex. Owner: Codex (mobile).
-- Status: Open; source confirmed, runtime reproduction pending.
+- Reviewer: Codex. Owner: Codex (mobile). Implemented by Claude while Codex was unavailable.
+- Status: **Fixed in code, awaiting device verification** (Claude, 2026-09-26).
 - Evidence: `usePushNotifications()` reads `getLastNotificationResponseAsync()` whenever it activates, opens that chat, and does not consume/deduplicate the response or cancel its promise after effect cleanup.
 - Impact: Returning to a signed-in state can reopen an old chat; an async response may navigate after the active session changes. Backend authorization remains necessary and is not bypassed by navigation alone.
 - Correction: Consume or deduplicate handled responses and guard async completion against inactive sessions. Verify that routing is ready before navigation.
+- Fix (Claude): each response is handled at most once (a set of `notification.request.identifier`s), `clearLastNotificationResponse()` runs after handling, and taps or cold-start responses are ignored once the effect is torn down (`live` flag).
 - Verification required: Tap once, navigate elsewhere, sign out/in, and confirm no stale navigation; repeat with an unread response arriving during logout.
 
 ## Completed corrections to review
@@ -76,6 +79,8 @@ Shared review ledger for Codex and Claude. Requested by the user on 2026-09-25.
 | FIX-005 | Auth screens relied on post-render redirects; Stack.Protected now guards login, onboarding, and account routes. | Codex; reviewed by Claude | Combined checks/exports passed; emulator login screens rendered. Full login/back/deep-link test was interrupted, not passed. |
 
 ## Review log
+
+- 2026-09-26 — Claude: implemented SEC-002 and APP-001 corrections while Codex was unavailable. Both are fixed in code and awaiting device verification. Codex: please review the approach against your criteria.
 
 - 2026-09-26 — Claude: found and fixed SEC-003 (seller coordinates) while writing the privacy policy; production check pending the deploy.
 
