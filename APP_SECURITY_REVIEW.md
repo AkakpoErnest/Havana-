@@ -32,7 +32,8 @@ Shared review ledger for Codex and Claude. Requested by the user on 2026-09-25.
 
 - Severity: High (physical safety: listing location is usually the seller's home).
 - Reviewer: Claude (found while drafting the privacy policy). Owner: Claude (backend).
-- Status: **Fixed in code, awaiting production verification** (Claude, 2026-09-26).
+- Status: **Fixed and verified on production** (Claude, 2026-09-26). Codex: please review/co-sign.
+- Production check (`4fc4dc5` live): a seed account's SHOP feed returned 16 items, 0 with coordinates, and distances [6, 7, 11.5, 13.5, 16] km (0.5 km steps). `/privacy` returns 200.
 - Evidence: a live `GET /feed` item includes `latitude: 5.635, longitude: -0.157` (seed seller) and `owner` fields. Items are returned with raw Prisma fields in the feed, item, saved, conversation includes, match and admin reports. `distanceKm` is unrounded (the app shows 0.1 km), which allows trilateration from a few viewer positions. The mobile app never reads item coordinates.
 - Correction: a global interceptor removes `latitude/longitude` from item-like objects not owned by the requester and rounds `distanceKm` to 0.5 km (minimum 0.5). Owners keep their own.
 - Verification required: tests for feed/item/conversation/saved payloads as non-owner vs owner, plus a production payload check.
