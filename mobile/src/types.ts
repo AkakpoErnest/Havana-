@@ -29,6 +29,7 @@ export type User = {
   items: Item[];
   rating: number | null;
   ratingCount: number;
+  isAdmin?: boolean;
 };
 export type Message = {
   id: string;

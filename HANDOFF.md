@@ -13,6 +13,7 @@ Use [APP_SECURITY_REVIEW.md](APP_SECURITY_REVIEW.md) for findings, evidence, cor
   backend change writes `LOCK backend: <agent> <time>` under Status, and removes it when done.
 
 ## Status
+- 2026-09-26 (Claude): **mobile lock released.** Moderator screen `app/moderation.tsx` (reported items with reasons, Restore / Remove with confirm), Profile → "Review reports →" only when `me.isAdmin`. Checks + exports pass.
 - 2026-09-26 (Claude): **mobile lock released.** SEC-002 + APP-001 fixed in `notifications.ts`/`session.tsx` (persisted token, public unregister on logout/expiry with launch retry, session generation guard, one-shot notification taps). Awaiting device verification (needs the APK).
 - 2026-09-26 (Claude): **backend lock released.** SEC-003 fixed (non-owners never get item coordinates; distance rounded to 0.5 km, via the global `LocationPrivacy` interceptor). Public privacy policy at `/privacy` (draft; needs the user's review). Backend 15/15.
 - 2026-09-26 (Claude): **mobile lock released.** Profile → "Delete account" (underlined link under Log out → confirm modal listing what's removed → `DELETE /me {confirm:'DELETE'}` → sign out). Checks + Android/iOS/web exports pass. Device check pending.
@@ -120,5 +121,5 @@ _(GPT: write here if the app needs a route or field that doesn't exist.)_
 - [ ] Mobile `npm test` needs Node 22 (user default is 20.19): `nvm use` or `nvm alias default 22`
 - [ ] **Before real launch:** host API + Postgres (Neon/Supabase/Railway/Render), move photos to object storage, real SMS OTP via webhook (Hubtel/Arkesel), privacy policy + terms for the Play Store, a basic way to review reports
 - [x] Mobile: Profile → "Delete account" (confirm dialog → `DELETE /me {confirm:'DELETE'}` → sign out). **Required for Google Play.**
-- [ ] Mobile: moderation screen for admins (`me.isAdmin` → Profile → "Review reports")
+- [x] Mobile: moderation screen for admins (`me.isAdmin` → Profile → "Review reports")
 - [ ] Later: Paystack orders/escrow (`Order` table ready), rentals (`kind=RENTAL`), push notifications, WebSocket chat

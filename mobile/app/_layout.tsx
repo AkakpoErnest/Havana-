@@ -64,6 +64,7 @@ function Routes() {
           options={{ headerShown: false, presentation: 'fullScreenModal' }}
         />
         <Stack.Screen name="backup" options={{ title: 'Backup login' }} />
+        <Stack.Screen name="moderation" options={{ title: 'Review reports' }} />
       </Stack.Protected>
     </Stack>
   );

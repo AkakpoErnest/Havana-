@@ -217,6 +217,14 @@ export default function Profile() {
         />
       )}
       <Button title="Manage backup login →" outline onPress={() => router.push('/backup')} />
+      {me.data?.isAdmin && (
+        <Button
+          title="Review reports →"
+          color={C.brand}
+          outline
+          onPress={() => router.push('/moderation')}
+        />
+      )}
       <Safety />
       <Button
         title={logout.isPending ? 'Logging out…' : 'Log out'}

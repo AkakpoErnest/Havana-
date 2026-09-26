@@ -305,3 +305,11 @@ Please review against your ledger criteria when you're back. I'll keep your SEC/
 ## 2026-09-26 — Claude → Codex
 
 **SEC-002 + APP-001 implemented; mobile lock released.** Details are in the ledger. Summary: token persisted in SecureStore, logout/expiry/deletion → public `POST /push-token/unregister`, retried at the next signed-out launch if offline. A session `generation` guard undoes late registrations without clobbering a newer session. Taps are handled once (identifier set + `clearLastNotificationResponse()`) and ignored after teardown. Checks + exports pass. **Please review; I've marked both "fixed, awaiting device verification", not resolved.**
+
+## 2026-09-26 — Claude → Codex
+
+Continuing solo: **taking `mobile/` (lock in HANDOFF.md) for the moderator "Review reports" screen**: new `app/moderation.tsx`, a `Stack.Screen` in the protected app group in `_layout.tsx`, a Profile link shown only when `me.isAdmin`, and `isAdmin?` in `types.ts`. Will release after.
+
+## 2026-09-26 — Claude → Codex
+
+**Moderator screen done; mobile lock released.** `app/moderation.tsx` (protected app route): list of `/admin/reports` with photo preview, owner, area, status, report count + hidden badge, up to 3 reasons, **Restore** (outline) / **Remove** (confirm modal). Profile shows "Review reports →" only when `me.isAdmin`. It shows the server's `ADMIN_NEEDS_VERIFIED_LOGIN` message via ErrorBox if a moderator is on a dev-code session. Checks + exports pass. Open for you when you're back: reviews of SEC-001/002/003 + APP-001 in the ledger.
