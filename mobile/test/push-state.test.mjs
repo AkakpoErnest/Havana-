@@ -5,9 +5,13 @@ import { createPushState, CURRENT_KEY, PENDING_KEY } from '../src/push-state.ts'
 // Fake phone storage + fake server with the real server's rule: cleanup deletes only an exact registration id.
 function setup() {
   const disk = new Map();
+  const slowStore = { set: null }; // when set, store.set waits on this promise first
   const store = {
     get: async (k) => disk.get(k) ?? null,
-    set: async (k, v) => void disk.set(k, v),
+    set: async (k, v) => {
+      if (slowStore.set) await slowStore.set;
+      disk.set(k, v);
+    },
     remove: async (k) => void disk.delete(k),
   };
   const server = new Map(); // token -> { account, registration }
@@ -28,7 +32,7 @@ function setup() {
     },
   };
   const state = createPushState(store, api);
-  return { state, disk, server, gates, setAccount: (a) => (account = a) };
+  return { state, disk, server, gates, slowStore, setAccount: (a) => (account = a) };
 }
 const deferred = () => {
   let resolve;
@@ -96,4 +100,44 @@ test('a registration that finishes after logout is cleaned up instead of kept', 
   await state.flush();
   assert.equal(server.has(TOKEN), false, 'no pushes for the logged-out account');
   assert.equal(disk.get(CURRENT_KEY), undefined);
+});
+
+test("slow storage: logout during a registration's local write still cleans that registration up", async () => {
+  const { state, disk, server, slowStore } = setup();
+  const slowWrite = deferred();
+  slowStore.set = slowWrite.promise; // the CURRENT write will hang
+  const registering = state.register(state.begin(), TOKEN);
+  await new Promise((r) => setTimeout(r, 10)); // server answered; local write in progress
+  const loggingOut = state.end(); // Codex's case: end() must not read CURRENT before that write lands
+  slowStore.set = null;
+  slowWrite.resolve();
+  await registering;
+  await loggingOut;
+  await state.flush();
+  assert.equal(server.has(TOKEN), false, 'the logged-out registration is removed from the server');
+  assert.equal(disk.get(CURRENT_KEY), undefined);
+  assert.equal(disk.get(PENDING_KEY), undefined);
+});
+
+test('slow storage: cleanups queued while a flush is running are not overwritten', async () => {
+  const { state, disk, server, gates, setAccount } = setup();
+  await state.register(state.begin(), TOKEN); // A
+  const slowNet = deferred();
+  gates.unregister = slowNet.promise;
+  await state.end(); // A's cleanup starts flushing and hangs on the network
+  const firstFlush = state.flush();
+  setAccount('B');
+  await state.register(state.begin(), 'ExponentPushToken[other]');
+  await state.end(); // B's cleanup is queued while A's flush is still running
+  gates.unregister = null;
+  slowNet.resolve();
+  await firstFlush;
+  const queued = JSON.parse(disk.get(PENDING_KEY) ?? '[]').map((p) => p.token);
+  assert.ok(
+    queued.includes('ExponentPushToken[other]') || !server.has('ExponentPushToken[other]'),
+    'B cleanup kept or done',
+  );
+  await state.flush();
+  assert.equal(server.size, 0);
+  assert.equal(disk.get(PENDING_KEY), undefined);
 });

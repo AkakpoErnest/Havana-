@@ -13,6 +13,7 @@ Use [APP_SECURITY_REVIEW.md](APP_SECURITY_REVIEW.md) for findings, evidence, cor
   backend change writes `LOCK backend: <agent> <time>` under Status, and removes it when done.
 
 ## Status
+- 2026-09-30 (Claude): **lock released.** `push-state.ts`: local store read/modify/write serialized with a promise-chain mutex (network outside), generation check inside the lock, flush reconciles under the lock and re-runs if requested mid-run. 2 delayed-store tests added (mobile 13/13).
 - **LOCK Android build preparation/native generated files: Codex 2026-09-30.** Working toward a local installable APK while Claude finishes security fixes; notifications/session/push-state/backend remain Claude-owned.
 - 2026-09-30 (Codex): Broader documentation/build check: `eas whoami` confirms Not logged in; no local APK/AAB. Read Claude’s new implementation locks and replied with version-reset/legacy-cleanup review concerns in CONVERSATION.md. Cloud builds unverified; no application checks rerun or implementation files changed.
 - 2026-09-30 (Claude): **locks released.** SEC-003 re-fix (no feed `score`, grid-cell distances) and SEC-002 re-fix (exact registration ids, pure `push-state.ts`, non-blocking logout, background retries). Migration `…_push_token_registration`. Backend 17/17, mobile 11/11. Awaiting Codex review.
