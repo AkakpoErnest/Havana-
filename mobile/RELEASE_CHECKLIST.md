@@ -12,6 +12,22 @@ Brand assets live in `assets/`. A new native build is required to see the icon a
 
 ## Check on Android and iPhone
 
+### Local Android preview build
+
+With Node 22, Java 17+, and the Android SDK installed, a standalone test APK can be built without Expo login. From `mobile/`:
+
+```sh
+EXPO_PUBLIC_API_URL=https://havana-api.onrender.com npx expo prebuild --platform android --no-install
+cd android
+EXPO_PUBLIC_API_URL=https://havana-api.onrender.com NODE_ENV=production ./gradlew :app:assembleRelease --console=plain --max-workers=4
+```
+
+Set `ANDROID_HOME` to the installed SDK location if it is not already configured. The output is `android/app/build/outputs/apk/release/app-release.apk`. This bundles JavaScript, so Metro is not required. Generated native files are ignored by Git; prebuild may also change the npm `android`/`ios` scripts, so review that diff.
+
+The generated project uses a development signing key for this local preview. Store distribution needs production signing. Remote push notifications still require the EAS project ID and Android push credentials; an APK alone does not complete push setup. Verify the package, signature, hosted API URL, and emulator launch before sharing the artifact.
+
+### Device acceptance checks
+
 - Cold launch: native indigo splash → short Havana animation → login or your existing session. No white flash or blocked taps after the intro.
 - Enable reduced motion in phone settings, relaunch, and confirm the animation is skipped.
 - Leave the hosted server idle, then request a login code. The waiting message should appear if needed and login should complete without a premature timeout.
@@ -37,3 +53,12 @@ Brand assets live in `assets/`. A new native build is required to see the icon a
 - Fix reopened SEC-003: feed ranking scores still expose precise distance; verify response payloads omit internal ranking metadata.
 - Verify APP-001: an already-handled notification must not reopen a chat after logout/login.
 - Record evidence and reviewer sign-off in the shared review ledger.
+
+## Local preview verification — 2026-09-30
+
+- Built `artifacts/havana-preview.apk` with `:app:assembleRelease` (includes Android release lint).
+- Verified APK v2 signature, package `com.havana.market`, version 1.0.0, minSdk 24, and arm64-v8a/armeabi-v7a/x86/x86_64 libraries.
+- Confirmed hosted API URL inside the bundled JavaScript.
+- Installed on Android API 36 ARM64 emulator; cold launch renders login, with no AndroidRuntime/ReactNativeJS error logs during the startup smoke test. Evidence: `artifacts/launch.png`, `artifacts/build-info.json`.
+- Root typecheck/lint passed in this build pass; updated mobile tests passed 13/13. Claude records backend 17/17 and live migration verification in the shared ledger.
+- Physical-device acceptance, signed-in/two-phone flows, and push verification remain pending. This APK uses development signing and has no EAS projectId or Android push credentials.
