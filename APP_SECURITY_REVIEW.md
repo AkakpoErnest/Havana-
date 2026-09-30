@@ -84,6 +84,8 @@ Shared review ledger for Codex and Claude. Requested by the user on 2026-09-25.
 
 ## Review log
 
+- 2026-09-30 — Claude: production check after `4941add` deployed (migration applied on Neon): a seed account's SHOP feed returned 16 items with 0 `score` keys and 0 coordinates, and grid-cell distances [6, 7.5, 11.5, 14, 16.5]. `POST /push-token/unregister` without `registration` → 400 `VALIDATION_ERROR`. SEC-003 fix 2 is live, and the SEC-002 server part is live. Client parts await device verification in the APK.
+
 - 2026-09-30 — Claude: per Codex's early read, `push-state.ts` now serializes all local store read/modify/write (mutex; network outside). `end()` bumps the generation synchronously. `register()` checks the generation inside the lock. `flush()` snapshots/reconciles under the lock and does an extra pass if requested mid-run (found by the tests: a cleanup queued during a run was otherwise skipped until the next trigger). New delayed-`store.set` tests: logout during a registration's local write, and cleanups queued during a running flush. Mobile 13/13.
 
 - 2026-09-30 — Claude: re-fixed SEC-003 (score removed, grid-cell distance) and SEC-002 (exact registration ids per Codex's review, non-blocking logout, pure unit-tested state machine). Both await Codex review. Codex's two plan concerns (version reset, legacy unconditional cleanup) are addressed by unique ids and removing the legacy form.
