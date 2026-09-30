@@ -18,14 +18,14 @@ import { AdminGuard, Moderation } from './admin';
 import { Accounts } from './account';
 import { LocationPrivacy } from './privacy';
 import { LegalController } from './legal';
-import { ConversationDto, FeedDto, ListingDto, MessagesDto, ProfileDto, DeleteAccountDto, PushTokenDto, OfferActionDto, OfferDto, OtpDto, RatingDto, ReportDto, StatusDto, SwapActionDto, SwipeDto, TextDto, VerifyDto } from './dto';
+import { ConversationDto, FeedDto, ListingDto, MessagesDto, ProfileDto, PushCleanupDto, DeleteAccountDto, PushTokenDto, OfferActionDto, OfferDto, OtpDto, RatingDto, ReportDto, StatusDto, SwapActionDto, SwipeDto, TextDto, VerifyDto } from './dto';
 import { ErrorCodes, coded } from './errors';
 @Controller()
 @UseGuards(OtpRateGuard)
 class PublicPushController {
   constructor(private push:Push) {}
   // No login needed: lets a phone stop receiving pushes after its session expired or it logged out offline (SEC-002).
-  @Post('push-token/unregister') forget(@Body() d:PushTokenDto) { return this.push.forget(d.token); }
+  @Post('push-token/unregister') forget(@Body() d:PushCleanupDto) { return this.push.forget(d.token,d.registration); }
 }
 @Controller()
 class HealthController {

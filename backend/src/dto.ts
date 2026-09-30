@@ -57,4 +57,8 @@ export class MessagesDto {
   @IsOptional() @IsString() @MaxLength(100) since?: string;
 }
 export class PushTokenDto { @IsString() @Length(10,200) token!: string; }
+export class PushCleanupDto {
+  @IsString() @Length(10,200) token!: string;
+  @IsUUID() registration!: string;
+}
 export class DeleteAccountDto { @IsIn(['DELETE']) confirm!: 'DELETE'; }

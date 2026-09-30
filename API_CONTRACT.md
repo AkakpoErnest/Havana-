@@ -63,7 +63,7 @@ condition `NEW LIKE_NEW GOOD FAIR`, status `LIVE RESERVED SOLD SWAPPED REMOVED`,
 ## Discover
 | Method | Path | Returns |
 |---|---|---|
-| GET 🔒 | `/feed?mode=SHOP\|SWAP&category=&latitude=&longitude=` | `{items: Item+distanceKm+score (max 30), needsCloset}` |
+| GET 🔒 | `/feed?mode=SHOP\|SWAP&category=&latitude=&longitude=` | `{items: Item+distanceKm (max 30), needsCloset}` |
 
 The feed excludes my items and anything I've swiped on in that mode. SHOP shows only sellable items,
 SWAP only swappable ones. It ranks by distance (location order: `latitude/longitude` query → saved profile location from `PATCH /me` → central Accra),
@@ -112,9 +112,9 @@ uploads 20/h & 60/day · new chats 30/h & 200/day · reports 10/h & 30/day · ra
 ## Push notifications (Expo)
 | Method | Path | Body | Returns |
 |---|---|---|---|
-| POST 🔒 | `/me/push-token` | `{token: "ExponentPushToken[…]"}` | `{registered:true}`. Call after login and whenever the token changes. A token moves to whoever signed in last on that phone. |
+| POST 🔒 | `/me/push-token` | `{token: "ExponentPushToken[…]"}` | `{registered:true, registration}` (a fresh id each time; keep it for cleanup). Call after login and whenever the token changes. A token moves to whoever signed in last on that phone. |
 | DELETE 🔒 | `/me/push-token` | `{token}` | `{registered:false}`. Call on log out. |
-| POST | `/push-token/unregister` | `{token}` | `{registered:false}`. **No login needed**: use after session expiry or a logout that couldn't reach the server (delete-only). |
+| POST | `/push-token/unregister` | `{token, registration}` | `{registered:false}`. **No login needed.** Deletes only that exact registration, so a stale cleanup never removes a newer one. `registration` is required. |
 
 The server sends these to the *other* person (title / body), always with `data: {conversationId, kind}`. Tapping should open `chat/[conversationId]`:
 - `message`: title = sender's name, body = the message text

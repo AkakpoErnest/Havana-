@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { router } from 'expo-router';
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
@@ -7,6 +7,7 @@ import * as Notifications from 'expo-notifications';
 import * as SecureStore from 'expo-secure-store';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from './api';
+import { createPushState } from './push-state';
 
 // Show pushes as banners even while the app is open (the server only notifies the *other* person).
 if (Platform.OS !== 'web') {
@@ -20,25 +21,36 @@ if (Platform.OS !== 'web') {
   });
 }
 
-const TOKEN_KEY = 'havana.pushToken';
-// Bumped whenever the signed-in session changes; registrations from an older session undo themselves (SEC-002).
-let generation = 0;
-let registeredGeneration = -1;
+// Registration bookkeeping lives in push-state.ts (unit-tested for the SEC-002 races).
+const push = createPushState(
+  {
+    get: (k) => SecureStore.getItemAsync(k).catch(() => null),
+    set: (k, v) => SecureStore.setItemAsync(k, v),
+    remove: (k) => SecureStore.deleteItemAsync(k),
+  },
+  {
+    register: async (token) =>
+      (await api<{ registration: string }>('/me/push-token', 'POST', { token })).registration,
+    unregister: async (r) => {
+      await api('/push-token/unregister', 'POST', r);
+    },
+  },
+);
 // Notification taps already acted on, so a cached response can't reopen a chat later (APP-001).
 const handled = new Set<string>();
+
+if (Platform.OS !== 'web') {
+  // Retry queued cleanups whenever the app comes back to the foreground (e.g. after reconnecting).
+  AppState.addEventListener('change', (state) => {
+    if (state === 'active') void push.flush().catch(() => undefined);
+  });
+}
 
 const projectId = () =>
   (Constants.expoConfig?.extra?.eas as { projectId?: string } | undefined)?.projectId ??
   Constants.easConfig?.projectId;
 
-const storedToken = () =>
-  Platform.OS === 'web'
-    ? Promise.resolve(null)
-    : SecureStore.getItemAsync(TOKEN_KEY).catch(() => null);
-const rememberToken = (token: string | null) =>
-  token ? SecureStore.setItemAsync(TOKEN_KEY, token) : SecureStore.deleteItemAsync(TOKEN_KEY);
-
-/** Registers this phone's Expo push token for the current session. Silently skips where pushes can't work
+/** Registers this phone's Expo push token for session `gen`. Silently skips where pushes can't work
  *  (web, simulators, Expo Go on Android, no EAS projectId yet, permission denied). */
 async function register(gen: number) {
   if (Platform.OS === 'web' || !Device.isDevice || !projectId()) return;
@@ -51,34 +63,19 @@ async function register(gen: number) {
   }
   let { status } = await Notifications.getPermissionsAsync();
   if (status !== 'granted') status = (await Notifications.requestPermissionsAsync()).status;
-  const token =
-    status === 'granted'
-      ? (await Notifications.getExpoPushTokenAsync({ projectId: projectId() })).data
-      : null;
-  if (!token || gen !== generation) return;
-  await rememberToken(token);
-  await api('/me/push-token', 'POST', { token });
-  if (gen === generation) registeredGeneration = gen;
-  // The session ended while we were registering: undo (without cancelling a newer session's registration),
-  // unless that newer session already claimed the token.
-  else if (registeredGeneration < gen) await forget(token);
+  if (status !== 'granted') return;
+  const token = (await Notifications.getExpoPushTokenAsync({ projectId: projectId() })).data;
+  await push.register(gen, token);
 }
 
-async function forget(token: string) {
-  try {
-    await api('/push-token/unregister', 'POST', { token });
-    await rememberToken(null);
-  } catch {
-    // Offline: kept for the retry at next launch.
-  }
-}
-
-/** Stops pushes to this phone. Works without a session (expired or offline logout): the token itself is the proof.
- *  If the server can't be reached, the token stays stored and the next launch retries (see SessionProvider). */
+/** Logout, session expiry, account deletion: local-only and quick; the server cleanup runs in the background. */
 export async function unregisterPush() {
-  generation++;
-  const token = await storedToken();
-  if (token) await forget(token);
+  if (Platform.OS !== 'web') await push.end().catch(() => undefined);
+}
+
+/** Retry cleanups left over from an offline logout (called on signed-out launch). */
+export function flushPendingPush() {
+  if (Platform.OS !== 'web') void push.flush().catch(() => undefined);
 }
 
 function openChat(response: Notifications.NotificationResponse) {
@@ -97,11 +94,11 @@ export function usePushNotifications(active: boolean) {
   const cache = useQueryClient();
   useEffect(() => {
     if (!active || Platform.OS === 'web') return;
-    const gen = ++generation;
+    const gen = push.begin();
     let live = true;
     register(gen).catch((e) => console.warn('Push registration skipped:', e?.message ?? e));
     const tokenChange = Notifications.addPushTokenListener(() => {
-      if (live) register(generation).catch(() => undefined);
+      if (live) register(gen).catch(() => undefined);
     });
     const received = Notifications.addNotificationReceivedListener((n) => {
       const id = (n.request.content.data as { conversationId?: string } | undefined)

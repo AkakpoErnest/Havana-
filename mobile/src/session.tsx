@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { loadToken, onExpired, saveToken } from './api';
-import { unregisterPush } from './notifications';
+import { flushPendingPush, unregisterPush } from './notifications';
 const Context = createContext({
   ready: false,
   signedIn: false,
@@ -17,7 +17,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       .then((t) => {
         setSignedIn(!!t);
         // Signed out but a push token is still stored (offline logout/expiry): retry the cleanup (SEC-002).
-        if (!t) void unregisterPush();
+        if (!t) flushPendingPush();
       })
       .catch(() => setSignedIn(false))
       .finally(() => setReady(true));

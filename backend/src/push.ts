@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { Db } from './db';
 
 export const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
@@ -12,8 +13,9 @@ export class Push {
 
   async register(userId: string, token: string) {
     // A token belongs to one installed app; if another account signs in on that phone, it moves to them.
-    await this.db.pushToken.upsert({ where: { token }, update: { userId }, create: { userId, token } });
-    return { registered: true };
+    const registration = randomUUID();
+    await this.db.pushToken.upsert({ where: { token }, update: { userId, registration }, create: { userId, token, registration } });
+    return { registered: true, registration };
   }
 
   async unregister(userId: string, token: string) {
@@ -22,8 +24,9 @@ export class Push {
   }
 
   /** Logged-out cleanup (session expired, offline logout): holding the token proves it's this phone, and it can only delete. */
-  async forget(token: string) {
-    await this.db.pushToken.deleteMany({ where: { token } });
+  async forget(token: string, registration: string) {
+    // Exact match only: a newer registration of the same phone (new id) survives a delayed old cleanup.
+    await this.db.pushToken.deleteMany({ where: { token, registration } });
     return { registered: false };
   }
 

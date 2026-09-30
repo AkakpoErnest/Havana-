@@ -9,6 +9,8 @@ import { createApp } from '../src/app';
 import { OtpRateGuard, normalize } from '../src/auth';
 import { FULL_MAX_BYTES, thumbOf } from '../src/photos';
 import { EXPO_PUSH_URL } from '../src/push';
+import { distance, gridCell } from '../src/market';
+import { roundDistance } from '../src/privacy';
 import { stat } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 import { resolve } from 'node:path';
@@ -363,9 +365,10 @@ test('a phone can drop its push token without a session (expired or offline logo
   const [a]=accounts;
   await http.post('/me/push-token').set(as(a)).send({token:'ExponentPushToken[expired-session-phone]'}).expect(201);
   assert.equal(await db.pushToken.count({where:{token:'ExponentPushToken[expired-session-phone]'}}),1);
-  await http.post('/push-token/unregister').send({token:'ExponentPushToken[expired-session-phone]'}).expect(201);
+  const reg=(await http.post('/me/push-token').set(as(a)).send({token:'ExponentPushToken[expired-session-phone]'}).expect(201)).body.registration;
+  await http.post('/push-token/unregister').send({token:'ExponentPushToken[expired-session-phone]',registration:reg}).expect(201);
   assert.equal(await db.pushToken.count({where:{token:'ExponentPushToken[expired-session-phone]'}}),0);
-  await http.post('/push-token/unregister').send({token:'ExponentPushToken[unknown]'}).expect(201);
+  await http.post('/push-token/unregister').send({token:'ExponentPushToken[unknown]',registration:'00000000-0000-4000-8000-000000000000'}).expect(201);
 });
 test('deleting an account removes personal data, ends sessions and keeps the other side of chats readable',async()=>{
   (app.get(OtpRateGuard) as unknown as {buckets:Map<string,unknown>}).buckets.clear();
@@ -425,4 +428,40 @@ test('other people never receive a seller\'s exact coordinates, and distances ar
   // My own profile keeps my saved location.
   const me=(await http.get('/me').set(as(b)).expect(200)).body;
   assert.ok('latitude' in me);
+});
+test('feed responses carry no indirect distance signal (SEC-003 reopened by Codex)',async()=>{
+  const [a,b]=accounts;
+  const item=await listing(b,{title:'Grid cell lamp',swap:false,latitude:5.5612345,longitude:-0.1823456});
+  const origin={lat:5.6037,lng:-0.187};
+  const fed=((await http.get(`/feed?mode=SHOP&latitude=${origin.lat}&longitude=${origin.lng}`).set(as(a))).body.items as Record<string,unknown>[]).find(i=>i.id===item)!;
+  assert.equal('score' in fed,false,'internal ranking score must not be returned');
+  assert.equal(fed.latitude,null);assert.equal(fed.longitude,null);
+  // Distance is computed from the ~1.1 km grid cell, then rounded to 0.5 km.
+  assert.equal(fed.distanceKm,roundDistance(distance(origin.lat,origin.lng,gridCell(5.5612345),gridCell(-0.1823456))));
+  // Allow-list: the only numbers on someone else's item are prices and the coarse distance.
+  const numeric=Object.entries(fed).filter(([,v])=>typeof v==='number').map(([k])=>k).sort();
+  assert.deepEqual(numeric.filter(k=>!['price','swapValue','distanceKm'].includes(k)),[]);
+  // Two queries a few hundred metres apart can't distinguish points inside the same cell.
+  const near=((await http.get('/feed?mode=SHOP&latitude=5.5612&longitude=-0.1823').set(as(a))).body.items as {id:string;distanceKm:number}[]).find(i=>i.id===item)!;
+  assert.equal(near.distanceKm,0.5);
+});
+test('an old push cleanup cannot remove a newer registration of the same phone (SEC-002 reopened by Codex)',async()=>{
+  const [a,b]=accounts;
+  const token='ExponentPushToken[shared-phone]';
+  const first=(await http.post('/me/push-token').set(as(a)).send({token}).expect(201)).body.registration as string;
+  // Account a logs out and queues a cleanup for its registration; before it lands, b registers on the same phone.
+  const second=(await http.post('/me/push-token').set(as(b)).send({token}).expect(201)).body.registration as string;
+  assert.notEqual(first,second);
+  await http.post('/push-token/unregister').send({token,registration:first}).expect(201);
+  assert.equal((await db.pushToken.findUniqueOrThrow({where:{token}})).userId,b.id,'newer registration survives');
+  // Codex's case: delete → re-register → delayed old cleanup. Ids are never reused, so the new row survives.
+  await http.post('/push-token/unregister').send({token,registration:second}).expect(201);
+  assert.equal(await db.pushToken.count({where:{token}}),0);
+  const third=(await http.post('/me/push-token').set(as(a)).send({token}).expect(201)).body.registration as string;
+  for(const stale of [first,second]) await http.post('/push-token/unregister').send({token,registration:stale}).expect(201);
+  assert.equal((await db.pushToken.findUniqueOrThrow({where:{token}})).registration,third);
+  // A cleanup must name a registration; the old unconditional form is gone.
+  assert.equal((await http.post('/push-token/unregister').send({token}).expect(400)).body.code,'VALIDATION_ERROR');
+  await http.post('/push-token/unregister').send({token,registration:third}).expect(201);
+  assert.equal(await db.pushToken.count({where:{token}}),0);
 });

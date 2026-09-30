@@ -5,8 +5,11 @@ import { FeedDto, ListingDto, ProfileDto, SwipeDto } from './dto';
 import { coded } from './errors';
 import { Push } from './push';
 import { isAdminIdentity } from './admin';
+import { roundDistance } from './privacy';
 const ownerSelect={id:true,name:true} as const;
 export const conversationInclude={item:true,swapItem:true,buyer:{select:ownerSelect},seller:{select:ownerSelect}} as const;
+/** Snap a coordinate to a 0.01° (~1.1 km) grid cell. */
+export const gridCell=(v:number)=>Math.round(v*100)/100;
 export function distance(lat1:number,lon1:number,lat2:number,lon2:number) {
   const r=Math.PI/180; const a=Math.sin((lat2-lat1)*r/2)**2+Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin((lon2-lon1)*r/2)**2;
   return 6371*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
@@ -43,12 +46,15 @@ export class Market {
     // Request location, then saved profile location, then central Accra.
     const [lat,lon]=q.latitude!=null&&q.longitude!=null?[q.latitude,q.longitude]:user.latitude!=null&&user.longitude!=null?[user.latitude,user.longitude]:[5.6037,-0.187];
     const ranked=items.map(item=>{
-      const km=item.latitude!=null&&item.longitude!=null?distance(lat,lon,item.latitude,item.longitude):null;
+      // SEC-003: distance comes from the item's ~1.1 km grid cell, never its exact spot, so even many
+      // queries from chosen origins can only narrow a seller down to the cell.
+      const km=item.latitude!=null&&item.longitude!=null?distance(lat,lon,gridCell(item.latitude),gridCell(item.longitude)):null;
       const days=(Date.now()-item.createdAt.getTime())/86400000;
       const gap=q.mode==='SWAP'&&closet.length?Math.min(...closet.map(c=>Math.abs((item.swapValue??0)-(c.swapValue??0))/Math.max(c.swapValue??1,1))):0;
-      return {...item,distanceKm:km,score:(km??30)+Math.min(days,60)*0.35+gap*12};
+      return {item:{...item,distanceKm:km==null?null:roundDistance(km)},score:(km??30)+Math.min(days,60)*0.35+gap*12};
     }).sort((a,b)=>a.score-b.score).slice(0,30);
-    return {items:ranked,needsCloset:q.mode==='SWAP'&&!closet.length};
+    // The ranking score stays server-side: it encodes distance (SEC-003).
+    return {items:ranked.map(r=>r.item),needsCloset:q.mode==='SWAP'&&!closet.length};
   }
   async status(userId:string,id:string,status:'LIVE'|'RESERVED'|'SOLD'|'SWAPPED'|'REMOVED') {
     return this.db.atomic(async tx=>{

@@ -234,6 +234,9 @@ model PushToken {
   userId String
   user User @relation(fields:[userId],references:[id],onDelete:Cascade)
   token String @unique
+  // A fresh id on every registration (never reused, even after delete + re-create); cleanups must name the exact id they saw,
+  // so an old cleanup can't remove a newer registration (SEC-002).
+  registration String @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([userId])

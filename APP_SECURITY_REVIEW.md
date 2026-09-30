@@ -32,7 +32,8 @@ Shared review ledger for Codex and Claude. Requested by the user on 2026-09-25.
 
 - Severity: High (physical safety: listing location is usually the seller's home).
 - Reviewer: Claude (found while drafting the privacy policy). Owner: Claude (backend).
-- Status: **Reopened by Codex, 2026-09-26: precise distance remains exposed through feed score.** Prior production checks verified coordinate removal and rounding only.
+- Status: **Reopened by Codex, 2026-09-26; fixed again in code 2026-09-30 (Claude), awaiting Codex review + production check.** Prior production checks verified coordinate removal and rounding only.
+- Fix 2 (Claude, 2026-09-30): the feed no longer returns `score` (ranking stays server-side). Distance **and ranking** are computed from the item's location snapped to a 0.01° (~1.1 km) grid cell (`gridCell`), then rounded to 0.5 km, so repeated queries from chosen origins can at best recover the cell. Test 16 asserts: no `score` key; distance equals `roundDistance(distance(origin, gridCell(item)))`; an allow-list shows the only numbers on a non-owned item are `price`, `swapValue`, `distanceKm`; queries a few hundred metres apart inside the cell both give 0.5 km. Backend 17/17.
 - Production check (`4fc4dc5` live): a seed account's SHOP feed returned 16 items, 0 with coordinates, and distances [6, 7, 11.5, 13.5, 16] km (0.5 km steps). `/privacy` returns 200.
 - Evidence: a live `GET /feed` item includes `latitude: 5.635, longitude: -0.157` (seed seller) and `owner` fields. Items are returned with raw Prisma fields in the feed, item, saved, conversation includes, match and admin reports. `distanceKm` is unrounded (the app shows 0.1 km), which allows trilateration from a few viewer positions. The mobile app never reads item coordinates.
 - Correction: a global interceptor removes `latitude/longitude` from item-like objects not owned by the requester and rounds `distanceKm` to 0.5 km (minimum 0.5). Owners keep their own.
@@ -43,7 +44,10 @@ Shared review ledger for Codex and Claude. Requested by the user on 2026-09-25.
 
 - Severity: High; possible notification privacy exposure after logout/account changes.
 - Reviewer: Codex. Owner: Codex (mobile), Claude for server-side review. Implemented by Claude while Codex was unavailable.
-- Status: **Reopened by Codex, 2026-09-26: cleanup race reproduced; logout still waits for network.**
+- Status: **Reopened by Codex, 2026-09-26; fixed again in code 2026-09-30 (Claude), awaiting Codex review + device verification.**
+- Fix 2 (Claude, 2026-09-30), following Codex's review of the plan:
+  - Server: every `POST /me/push-token` stores a fresh random `registration` id (never reused, even after delete + re-create) and returns it. `POST /push-token/unregister` now **requires** `{token, registration}` and deletes only an exact match. The legacy unconditional form was removed (400), which is safe because no app build has shipped. Migration `…_push_token_registration` backfills ids before making the column required (verified on a non-empty table). Test 17 covers A→B on one phone with a delayed A cleanup, and Codex's delete → re-register → delayed old cleanups (both old ids), plus the missing-id rejection.
+  - Client: `mobile/src/push-state.ts` (no native imports) keeps `current` (active session) and a `pending` cleanup queue in separate storage keys. Cleanup never touches `current`. `end()` (logout/expiry/deletion) is local-only, and `flush()` runs in the background, retried on signed-out launch, on AppState → active, and after each registration. A registration finishing after its session ended is queued for cleanup. `mobile/test/push-state.test.mjs` reproduces Codex's race (old cleanup in flight while B registers → B survives on server and in storage), logout on a never-answering network (returns immediately), retry after failure, and late registration after logout. Mobile 11/11.
 - Evidence: `mobile/src/notifications.ts` keeps `registered` only in a module variable. `unregisterPush()` clears it before DELETE and swallows deletion errors. A fresh process, offline logout, or failed DELETE can leave the server association intact. Async registration also has no cancellation/session-generation check when its effect is cleaned up. The session-expiry callback in `mobile/src/session.tsx` does not unregister pushes.
 - Impact: An old account may remain associated with the phone and send notifications after logout; registration finishing after a session change may also associate incorrectly.
 - Correction: Design account-scoped, durable registration cleanup with explicit offline behavior and cancellation of stale work. Review notification payload privacy and backend token ownership. Do not simply block local logout indefinitely on a network request.
@@ -79,6 +83,8 @@ Shared review ledger for Codex and Claude. Requested by the user on 2026-09-25.
 | FIX-005 | Auth screens relied on post-render redirects; Stack.Protected now guards login, onboarding, and account routes. | Codex; reviewed by Claude | Combined checks/exports passed; emulator login screens rendered. Full login/back/deep-link test was interrupted, not passed. |
 
 ## Review log
+
+- 2026-09-30 — Claude: re-fixed SEC-003 (score removed, grid-cell distance) and SEC-002 (exact registration ids per Codex's review, non-blocking logout, pure unit-tested state machine). Both await Codex review. Codex's two plan concerns (version reset, legacy unconditional cleanup) are addressed by unique ids and removing the legacy form.
 
 - 2026-09-26 — Claude: implemented SEC-002 and APP-001 corrections while Codex was unavailable. Both are fixed in code and awaiting device verification. Codex: please review the approach against your criteria.
 
