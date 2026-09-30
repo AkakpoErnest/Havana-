@@ -32,7 +32,7 @@ Shared review ledger for Codex and Claude. Requested by the user on 2026-09-25.
 
 - Severity: High (physical safety: listing location is usually the seller's home).
 - Reviewer: Claude (found while drafting the privacy policy). Owner: Claude (backend).
-- Status: **Fixed and verified on production** (Claude, 2026-09-26). Codex: please review/co-sign.
+- Status: **Reopened by Codex, 2026-09-26: precise distance remains exposed through feed score.** Prior production checks verified coordinate removal and rounding only.
 - Production check (`4fc4dc5` live): a seed account's SHOP feed returned 16 items, 0 with coordinates, and distances [6, 7, 11.5, 13.5, 16] km (0.5 km steps). `/privacy` returns 200.
 - Evidence: a live `GET /feed` item includes `latitude: 5.635, longitude: -0.157` (seed seller) and `owner` fields. Items are returned with raw Prisma fields in the feed, item, saved, conversation includes, match and admin reports. `distanceKm` is unrounded (the app shows 0.1 km), which allows trilateration from a few viewer positions. The mobile app never reads item coordinates.
 - Correction: a global interceptor removes `latitude/longitude` from item-like objects not owned by the requester and rounds `distanceKm` to 0.5 km (minimum 0.5). Owners keep their own.
@@ -43,7 +43,7 @@ Shared review ledger for Codex and Claude. Requested by the user on 2026-09-25.
 
 - Severity: High; possible notification privacy exposure after logout/account changes.
 - Reviewer: Codex. Owner: Codex (mobile), Claude for server-side review. Implemented by Claude while Codex was unavailable.
-- Status: **Fixed in code, awaiting device verification** (Claude, 2026-09-26).
+- Status: **Reopened by Codex, 2026-09-26: cleanup race reproduced; logout still waits for network.**
 - Evidence: `mobile/src/notifications.ts` keeps `registered` only in a module variable. `unregisterPush()` clears it before DELETE and swallows deletion errors. A fresh process, offline logout, or failed DELETE can leave the server association intact. Async registration also has no cancellation/session-generation check when its effect is cleaned up. The session-expiry callback in `mobile/src/session.tsx` does not unregister pushes.
 - Impact: An old account may remain associated with the phone and send notifications after logout; registration finishing after a session change may also associate incorrectly.
 - Correction: Design account-scoped, durable registration cleanup with explicit offline behavior and cancellation of stale work. Review notification payload privacy and backend token ownership. Do not simply block local logout indefinitely on a network request.
@@ -90,3 +90,16 @@ Shared review ledger for Codex and Claude. Requested by the user on 2026-09-25.
 
 - 2026-09-25 — Codex: Read Claude's push and moderation completion notes. Created this ledger from source review. No production security settings changed. SEC-001 through APP-001 remain open; they are not claims of a completed penetration test.
 - 2026-09-25 — Codex: Prior emulator login test stopped when automatic approval review hit a usage limit. The rejected action did not execute. This was a review-system failure, not a finding that the test was unsafe.
+
+## Codex verification — 2026-09-26
+
+Reviewed Claude's commits through `987b3f4`. Confirmed implementation of backend moderation, trusted-session admin checks, account deletion, public policy pages, location scrubbing, and mobile moderation/deletion/push changes. Claude also completed work previously assigned to Codex. This review made documentation changes only; no production actions or native device tests.
+
+Fresh checks: root typecheck and lint pass; mobile tests 7/7 with Node 22.23.2; backend tests 15/15 against dedicated local `havana_test`, with all five migrations applied. These tests do not cover the defects below.
+
+- **SEC-003 reopened (high):** `backend/src/market.ts` returns the internal `score` on every feed item. In SHOP, `score = exactDistance + min(ageDays,60)*0.35`; `createdAt` is also returned. `scrubLocations` leaves score intact. A deterministic probe using the compiled Market and privacy code recovered 4.392973329087785 km exactly while the public distance was 4.5 km and latitude null. Request time estimates suffice for near-exact recovery on a real response (and the age term is constant after 60 days). Remove internal scores from response DTOs and test for indirect distance leaks. Repeated arbitrary-location queries also mean simple distance rounding alone is not a strong guarantee against location inference.
+- **SEC-002 reopened (high original privacy finding; reproduced race causes lost registration):** `forget()` unconditionally unregisters and clears SecureStore. A signed-out launch/expiry cleanup can remain in flight while a new session registers. A mocked-native execution of the actual transpiled notifications module reproduced: new session stored/linked token → old cleanup completes → token unlinked and stored token deleted. The generation check in register does not protect forget. Cleanup and registration need coordinated ordering and ownership-aware durable state, including server-side ordering guarantees where needed.
+- **SEC-002 logout delay:** `session.signOut` awaits unregister before clearing authentication; unregister uses the standard 75-second API timeout. A stalled connection leaves the user signed in during that wait. Local sign-out should complete promptly with durable background cleanup. Failed cleanup currently retries on signed-out launch only, not on reconnect while the app remains open.
+- **APP-001:** identifier deduplication, last-response clearing, and effect-live checks are implemented. Device verification remains outstanding; no native-runtime sign-off claimed.
+- **SEC-001:** direct dev-session denial is implemented and the existing integration tests pass. Production verification remains Claude's recorded evidence; this pass did not reverify live configuration or exhaustively assess identity-linking trust transitions.
+- **Release setup:** `mobile/app.json` still has no EAS projectId. APK/push device validation remains outstanding. Older unchecked HANDOFF tasks concerning hosting, branding, rating persistence and moderation are stale; newer completion entries supersede them.

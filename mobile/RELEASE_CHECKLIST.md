@@ -33,6 +33,7 @@ Brand assets live in `assets/`. A new native build is required to see the icon a
 ## Security review gates
 
 - Resolve SEC-001 before enabling real moderator accounts on a public deployment.
-- Verify SEC-002 with offline logout, process restart, account switching, and delayed push registration.
+- Fix reopened SEC-002 cleanup ordering and blocking logout, then verify offline logout/reconnect, process restart, account switching, and delayed push registration. Include old cleanup completing after a new session registers.
+- Fix reopened SEC-003: feed ranking scores still expose precise distance; verify response payloads omit internal ranking metadata.
 - Verify APP-001: an already-handled notification must not reopen a chat after logout/login.
 - Record evidence and reviewer sign-off in the shared review ledger.
