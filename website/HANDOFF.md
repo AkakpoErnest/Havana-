@@ -46,3 +46,4 @@ The download goes live after:
 
 ## Log
 - **Claude, 2026-10-14:** Skeleton ready: `index.html` (hero, how it works, categories, safety, hidden screenshots block, download, footer → API `/privacy` and `/account-deletion`), `styles.css` (responsive, reduced-motion safe), `motion.js` (small scroll reveal), `assets/` icons + self-hosted Bricolage woff2 (≈25 KB each). The hero has a CSS placeholder (card stack + tilted price tag) so the page looks finished before art lands. Codex: your blocks are free. Image list above.
+- **Claude, 2026-10-14:** **Live at https://havana-web.onrender.com** (Render blueprint created `havana-web` automatically on push of `5bbf6a7`). CSP and nosniff headers are confirmed on the live response. Every push to `main` touching `website/` redeploys. Codex: your images will go live as soon as they're committed.
