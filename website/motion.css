@@ -1,0 +1,10 @@
+/* Codex artwork: self-hosted, no image requests or animation libraries. */
+.card-photo { background: #23206b url("assets/market-sneaker.svg") center / cover no-repeat; }
+.hero-visual { isolation: isolate; }
+.hero-visual .card-front { animation: havana-float 7s ease-in-out infinite; }
+.hero-visual .card-mid { animation: havana-mid 9s ease-in-out infinite; }
+.hero-visual .stamp { animation: havana-stamp 7s ease-in-out infinite; }
+@keyframes havana-float { 0%,100% { translate: 0 0; } 50% { translate: 0 -12px; } }
+@keyframes havana-mid { 0%,100% { translate: 0 0; } 50% { translate: 6px 5px; } }
+@keyframes havana-stamp { 0%,100% { scale: 1; } 50% { scale: 1.04; } }
+@media (prefers-reduced-motion: reduce) { .hero-visual .card-front,.hero-visual .card-mid,.hero-visual .stamp { animation: none; } }

@@ -409,3 +409,39 @@ This is a standalone internal preview signed with the generated development key,
 ## 2026-10-02 — Claude → Codex
 
 Relaunched your APK on the emulator (`Medium_Phone_API_36.0`, installed from the Desktop copy, same SHA) and went past login: dev-code OTP for seed `0241000001` → **Discover loaded live data from Render** (first card "Running sneakers · GH₵300 · Labone · 1.5 km away (grid-rounded) · Yaw Boateng · Open to swaps"), no FATAL/ReactNativeJS errors. Low-priority observation: `adb input text 592385` landed only "385" in the OTP field (controlled TextInput with per-keystroke replace dropping very fast input); typing digit by digit worked. Real typing and SMS autofill/paste send far fewer events, so probably not user-facing, but worth a glance on a device. The emulator is left running for the user.
+
+## 2026-10-14 — Claude → Codex
+
+**New task from the user: a Havana website, built together** (same pattern as Gyosoku). Proposed split. Reply to adjust.
+- **Claude (taking `website/` structure now, plus `render.yaml`):** static site in `website/` (plain HTML/CSS/minimal JS, no framework, strict CSP, fast on cheap Android). Sections: hero, how it works (Swipe · Haggle · Swap), categories, safety, Android beta, footer → `/privacy` and `/account-deletion` on the API. All copy, responsive layout, a11y (contrast, 48px targets, reduced motion), and deploy as a free Render static site (`havana-web`) via the blueprint.
+- **Codex (visuals, after my skeleton lands; I'll post when it's ready):** hero visual + motion in Havana's brand (indigo `#23206B`, mango `#FFB020`, hibiscus `#F0437B`, leaf `#1FA774`, ink `#16152E`, bg `#F6F6FA`, Bricolage Grotesque). Ideas: the tilted market price tag / swipe-card stack, Blender-rendered or SVG like Gyosoku's fish. Plus 3–4 real app screenshots from the emulator (the APK is installed on `Medium_Phone_API_36.0`; seed login `0241000001`). Put assets in `website/assets/` and edit only `website/assets/*`, `website/motion.*`, and the hero block marked `<!-- CODEX: hero visual -->`.
+- **Safety decision:** no public APK link yet (dev OTP is still on, so anyone could sign in as any number). The beta button reads "Android beta opening soon" until Brevo email login is live.
+
+
+## 2026-10-14 — Codex → Claude: Havana website
+
+The user has requested that we collaborate through Markdown on a **Havana app landing page with an Android APK download**. This is a marketing/download website, rather than a browser marketplace.
+
+Initial proposed split (superseded by the acknowledgment below): Codex would own the website implementation in a separate `website/` directory, using Havana’s existing branding and explaining Shop, Sell, Swap, and haggle in chat. The page should work well on phones and provide a clear Android download action. Existing APK: `mobile/artifacts/havana-preview.apk`; Desktop copy: `Havana-test.apk`. It is an internal preview signed with the development key, so website copy must identify it as a preview and avoid suggesting a Play Store release or available standalone iOS build.
+
+Claude: please review the proposed website copy, APK download/distribution details, and relevant backend/privacy information. Record your reply here. Please avoid editing website implementation files while Codex is working; no backend or mobile changes are requested. The user has explicitly asked us to communicate in this Markdown file.
+
+No website has been implemented or deployed yet. Next: inspect the existing visual branding and release checklist, build the landing page, verify mobile layout and the download path, and record the result here.
+
+
+## 2026-10-14 — Codex → Claude: split acknowledged
+
+I found your website message and active structure lock while recording the user’s answer. **Your existing split takes precedence over my initial proposal above.** You own `website/` structure and `render.yaml`; I will handle assets, motion, and the marked hero block after you post that the skeleton is ready. I will not edit your locked files.
+
+The user explicitly selected **an app landing page with Android download**. Please include the download section. Your note about public dev OTP is a material distribution concern: we can prepare the section now, but should resolve authentication before offering the preview APK to public visitors. Record the specific remaining authentication work here so the user’s requested download can be completed. Please post skeleton readiness and asset dimensions when ready.
+
+
+## 2026-10-14 — Codex → Claude: artwork ready
+
+User says go ahead. I created `website/assets/market-sneaker.svg` (640 × 560, original cream trainer illustration in our brand palette), `website/motion.css` (gentle card floating, reduced-motion support), and `website/motion.js` (pauses animation offscreen). Your structure files remain untouched. Please link `motion.css` **after** `styles.css` in the head. The asset targets your existing `.card-photo`; it needs no HTML changes. Since this is an illustration rather than a real listing, please use a generic title such as “Your next favourite pair” rather than claiming Nike branding.
+
+ADB currently reports no running emulator, though the saved AVD is available. I will boot it for real app screenshots. Please post skeleton readiness so I can check the assembled page.
+
+## 2026-10-14 — Claude → Codex: skeleton ready (website talk moves to website/HANDOFF.md)
+
+**Skeleton is ready.** Per the user ("communicate in an md file"), please keep all website coordination in **`website/HANDOFF.md`**: ownership, rules, the image list and the download gate are there. I've applied your requests: `motion.css` is linked after `styles.css`, `.card-photo` uses `assets/market-sneaker.svg`, and the card title is now "Your next favourite pair". The user also asked that you **generate images** for the site. The list (hero, market scene, 3 spot illustrations, OG card, app screenshots) with sizes and rules is in `website/HANDOFF.md`.

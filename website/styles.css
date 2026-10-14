@@ -1,0 +1,102 @@
+/* Havana website. Brand tokens match the app (mobile/src/ui.tsx). */
+@font-face { font-family: 'Bricolage'; src: url('assets/fonts/bricolage-500Medium.woff2') format('woff2'); font-weight: 500; font-display: swap; }
+@font-face { font-family: 'Bricolage'; src: url('assets/fonts/bricolage-700Bold.woff2') format('woff2'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Bricolage'; src: url('assets/fonts/bricolage-800ExtraBold.woff2') format('woff2'); font-weight: 800; font-display: swap; }
+
+:root {
+  --brand: #23206B; --mango: #FFB020; --pink: #F0437B; --leaf: #1FA774;
+  --ink: #16152E; --muted: #6B6A86; --bg: #F6F6FA; --line: #E5E4EE; --white: #fff;
+  --radius: 22px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 500 17px/1.6 'Bricolage', system-ui, sans-serif; }
+img { max-width: 100%; display: block; }
+a { color: var(--brand); }
+h1, h2, h3 { line-height: 1.05; letter-spacing: -0.03em; margin: 0 0 .5em; font-weight: 800; }
+h1 { font-size: clamp(2.6rem, 8vw, 5rem); }
+h2 { font-size: clamp(1.9rem, 5vw, 3rem); color: var(--brand); }
+h3 { font-size: 1.35rem; }
+
+.skip { position: absolute; left: -999px; top: 8px; background: var(--ink); color: #fff; padding: 10px 14px; border-radius: 10px; z-index: 10; }
+.skip:focus { left: 8px; }
+:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; border-radius: 8px; }
+
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px clamp(16px, 5vw, 56px); position: sticky; top: 0; background: rgba(246, 246, 250, .92); backdrop-filter: blur(8px); z-index: 5; }
+.top nav { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.top nav a { text-decoration: none; padding: 10px 12px; border-radius: 12px; min-height: 44px; display: inline-flex; align-items: center; }
+.top nav a:hover { background: var(--line); }
+.nav-cta { background: var(--brand); color: #fff !important; font-weight: 700; }
+.nav-cta:hover { background: var(--ink) !important; }
+@media (max-width: 560px) { .top nav a:not(.nav-cta) { display: none; } }
+
+.wordmark { font-weight: 800; font-size: 1.9rem; letter-spacing: -0.06em; color: var(--brand); text-decoration: none; }
+.wordmark span { color: var(--pink); }
+.wordmark.small { font-size: 1.5rem; }
+
+.hero { display: grid; grid-template-columns: 1.1fr 1fr; gap: clamp(24px, 5vw, 64px); align-items: center; padding: clamp(28px, 6vw, 80px) clamp(16px, 5vw, 56px) clamp(40px, 7vw, 96px); max-width: 1200px; margin: 0 auto; }
+@media (max-width: 860px) { .hero { grid-template-columns: 1fr; } }
+.eyebrow { color: var(--leaf); text-transform: uppercase; letter-spacing: .22em; font-size: .78rem; font-weight: 700; margin: 0 0 14px; }
+.lede { font-size: 1.15rem; color: var(--muted); max-width: 34ch; }
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin: 24px 0 12px; }
+.fineprint { font-size: .85rem; color: var(--muted); }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; min-height: 52px; padding: 0 22px; border-radius: 16px; font-weight: 700; text-decoration: none; border: 2px solid transparent; transition: transform .15s ease; }
+.btn:hover { transform: translateY(-2px); }
+.btn-mango { background: var(--mango); color: var(--ink); }
+.btn-ghost { border-color: var(--brand); color: var(--brand); }
+.btn.is-disabled { opacity: .55; cursor: not-allowed; transform: none; }
+
+/* Placeholder hero: a stack of swipe cards with the tilted market price tag. Codex may replace it. */
+.hero-visual { position: relative; height: clamp(360px, 46vw, 520px); }
+.card { position: absolute; inset: 6% 12%; border-radius: 30px; background: var(--white); box-shadow: 0 18px 40px rgba(35, 32, 107, .14); }
+.card-back { transform: rotate(-9deg) translateX(-6%); background: #E8E7F0; }
+.card-mid { transform: rotate(6deg) translateX(5%); background: #FFE7B8; }
+.card-front { overflow: hidden; display: flex; flex-direction: column; transform: rotate(-2deg); }
+.card-photo { flex: 1; background: #FFF4DE url('assets/market-sneaker.svg') center / 88% auto no-repeat; } /* Codex's illustration */
+.card-body { padding: 16px 20px 20px; display: grid; gap: 2px; }
+.card-body b { font-size: 1.25rem; }
+.card-body span { color: var(--muted); font-size: .9rem; }
+.tag { position: absolute; top: 22px; right: 18px; padding: 12px 14px; border-radius: 6px; transform: rotate(8deg); box-shadow: 0 6px 14px rgba(0, 0, 0, .15); }
+.tag small { display: block; font-size: .65rem; letter-spacing: .12em; text-transform: uppercase; }
+.tag b { font-size: 1.6rem; line-height: 1; }
+.tag-price { background: var(--mango); color: var(--ink); }
+.stamp { position: absolute; top: 34%; left: 18px; border: 4px solid var(--leaf); color: var(--leaf); background: #fff; padding: 6px 12px; border-radius: 10px; font-weight: 800; font-size: 1.5rem; transform: rotate(-12deg); text-transform: uppercase; }
+
+.section { padding: clamp(48px, 7vw, 96px) clamp(16px, 5vw, 56px); max-width: 1200px; margin: 0 auto; }
+.section-tint { max-width: none; background: var(--brand); color: #fff; }
+.section-tint h2 { color: #fff; }
+.section-tint > * { max-width: 1088px; margin-left: auto; margin-right: auto; }
+.section-note { color: #D9D8F0; max-width: 60ch; }
+
+.ways { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+@media (max-width: 860px) { .ways { grid-template-columns: 1fr; } }
+.way { background: var(--white); border-radius: var(--radius); padding: 26px; border: 1px solid var(--line); }
+.way p { color: var(--muted); margin: 0; }
+.way-icon { display: inline-grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; font-size: 1.5rem; margin-bottom: 14px; color: #fff; }
+.way-shop .way-icon { background: var(--leaf); }
+.way-haggle .way-icon { background: var(--mango); color: var(--ink); }
+.way-swap .way-icon { background: var(--pink); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 10px; padding: 0; list-style: none; margin: 0 auto 20px; }
+.chips li { padding: 10px 18px; border-radius: 999px; background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .25); }
+
+.safety { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+@media (max-width: 720px) { .safety { grid-template-columns: 1fr; } }
+.safety li { background: #E7F5EE; border-radius: 18px; padding: 18px 20px; color: #14523A; }
+.safety b { color: #0E3F2C; }
+
+.download { text-align: center; }
+.download-box { display: grid; justify-items: center; gap: 6px; margin-top: 18px; }
+
+.foot { display: grid; justify-items: center; gap: 4px; padding: 40px 16px 56px; border-top: 1px solid var(--line); text-align: center; }
+.foot nav { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+.foot nav a { min-height: 44px; display: inline-flex; align-items: center; }
+
+.reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s ease, transform .6s ease; }
+.reveal.is-in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .btn, .reveal { transition: none; }
+  .reveal { opacity: 1; transform: none; }
+}

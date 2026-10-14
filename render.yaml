@@ -38,3 +38,25 @@ services:
         value: havana-photos
       - key: R2_PUBLIC_URL      # https://pub-xxxx.r2.dev
         sync: false
+
+  # Havana website (landing page). Free static site; no server, never sleeps.
+  - type: web
+    name: havana-web
+    runtime: static
+    rootDir: website
+    buildCommand: echo "static site, nothing to build"
+    staticPublishPath: .
+    autoDeploy: true
+    headers:
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; img-src 'self' data:; style-src 'self'; font-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'"
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=604800
