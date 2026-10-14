@@ -117,3 +117,9 @@ section[id] { scroll-margin-top: 90px; }
 .faq summary { cursor: pointer; min-height: 64px; padding: 20px 4px; color: var(--brand); font-weight: 700; }
 .faq details p { margin: 0 0 24px; max-width: 70ch; color: var(--muted); }
 @media (max-width: 860px) { .story { grid-template-columns: 1fr; } .swap-detail { border-radius: 0; } }
+
+.reasons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.why-intro { max-width: 65ch; margin-bottom: 30px; }
+.why-local { background: #fff2d7; padding: 22px 26px; border-radius: 18px; margin: 24px 0 0; }
+@media (max-width: 860px) { .reasons { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .reasons { grid-template-columns: 1fr; } }
