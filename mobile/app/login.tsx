@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Keyboard, View } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
 import { api } from '../src/api';
 import { useSession } from '../src/session';
@@ -20,6 +20,15 @@ export default function Login() {
   const [chosen, setType] = useState<LoginType>('PHONE'),
     [value, setValue] = useState(''),
     [code, setCode] = useState('');
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  useEffect(() => {
+    const shown = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
+    const hidden = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
+    return () => {
+      shown.remove();
+      hidden.remove();
+    };
+  }, []);
   const { offered, phoneOff } = useLoginMethods();
   // Fall back to an offered type (e.g. EMAIL while phone login waits for SMS).
   const type = offered.includes(chosen) ? chosen : (offered[0] ?? chosen);
@@ -41,8 +50,8 @@ export default function Login() {
     },
   });
   return (
-    <Page>
-      <View style={{ paddingVertical: 35, gap: 14 }}>
+    <Page avoidKeyboard>
+      <View style={{ paddingVertical: keyboardVisible ? 8 : 35, gap: 14 }}>
         <T
           style={{
             color: C.brand,
@@ -53,13 +62,17 @@ export default function Login() {
         >
           havana<T style={{ color: C.pink, fontSize: 54 }}>.</T>
         </T>
-        <T style={{ color: C.leaf, fontSize: 12, letterSpacing: 3 }}>
-          ACCRA’S SECOND-HAND SWEET SPOT
-        </T>
-        <Title>Good things.{'\n'}New stories.</Title>
-        <T style={{ color: C.muted, lineHeight: 24 }}>
-          Buy it. Haggle a little. Swap for something you love.
-        </T>
+        {!keyboardVisible && (
+          <>
+            <T style={{ color: C.leaf, fontSize: 12, letterSpacing: 3 }}>
+              ACCRA’S SECOND-HAND SWEET SPOT
+            </T>
+            <Title>Good things.{'\n'}New stories.</Title>
+            <T style={{ color: C.muted, lineHeight: 24 }}>
+              Buy it. Haggle a little. Swap for something you love.
+            </T>
+          </>
+        )}
       </View>
       {!send.data ? (
         <>
@@ -83,6 +96,12 @@ export default function Login() {
             editable={!send.isPending}
             keyboardType={type === 'PHONE' ? 'phone-pad' : 'email-address'}
             autoCapitalize="none"
+            returnKeyType="send"
+            onSubmitEditing={() => {
+              if (value.trim() && !send.isPending) send.mutate();
+            }}
+            autoCorrect={false}
+            autoComplete={type === 'PHONE' ? 'tel' : 'email'}
             placeholder={type === 'PHONE' ? '0541234567' : 'you@example.com'}
           />
           <Button
@@ -105,6 +124,10 @@ export default function Login() {
             editable={!verify.isPending}
             keyboardType="number-pad"
             maxLength={6}
+            returnKeyType="go"
+            onSubmitEditing={() => {
+              if (code.length === 6 && !verify.isPending) verify.mutate();
+            }}
             autoComplete="one-time-code"
           />
           <Button

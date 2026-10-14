@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -59,22 +61,36 @@ export function Page({
   children,
   scroll = true,
   compact = false,
+  avoidKeyboard = false,
 }: {
   children: React.ReactNode;
   scroll?: boolean;
   compact?: boolean;
+  avoidKeyboard?: boolean;
 }) {
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: C.bg }}>
-      {scroll ? (
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.page}>
-          {children}
-        </ScrollView>
-      ) : (
-        <View style={[s.page, { flex: 1 }, compact && { gap: 8, padding: 16, paddingBottom: 12 }]}>
-          {children}
-        </View>
-      )}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        enabled={avoidKeyboard}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        {scroll ? (
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            automaticallyAdjustKeyboardInsets={!avoidKeyboard}
+            contentContainerStyle={s.page}
+          >
+            {children}
+          </ScrollView>
+        ) : (
+          <View
+            style={[s.page, { flex: 1 }, compact && { gap: 8, padding: 16, paddingBottom: 12 }]}
+          >
+            {children}
+          </View>
+        )}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
