@@ -9,7 +9,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; font-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'">
   <meta property="og:title" content="Havana · Accra's second-hand sweet spot">
   <meta property="og:description" content="Swipe to shop, haggle in chat, or swap one good thing for another. Built for Accra.">
-  <meta property="og:image" content="assets/icon-1024.png">
+  <meta property="og:image" content="https://havana-web.onrender.com/assets/og.jpg">
   <link rel="icon" href="assets/favicon-32.png" sizes="32x32">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="preload" href="assets/fonts/bricolage-800ExtraBold.woff2" as="font" type="font/woff2" crossorigin>
@@ -24,6 +24,7 @@
     <nav aria-label="Main">
       <a href="#how">How it works</a>
       <a href="#safety">Safety</a>
+      <a href="#faq">FAQs</a>
       <a class="nav-cta" href="#download">Get the app</a>
     </nav>
   </header>
@@ -81,16 +82,19 @@
       <h2 id="how-title">Three ways to trade</h2>
       <div class="ways">
         <article class="way way-shop">
+          <img class="way-photo" src="assets/way-shop.webp" width="600" height="600" loading="lazy" alt="A person browsing a sneaker listing on a phone">
           <span class="way-icon" aria-hidden="true">♥</span>
           <h3>Swipe to shop</h3>
           <p>Right to save it, left to pass. Nearest and freshest finds come first, so you're not crossing Accra for a lamp.</p>
         </article>
         <article class="way way-haggle">
+          <img class="way-photo" src="assets/way-haggle.webp" width="600" height="600" loading="lazy" alt="A buyer and seller discussing a wooden chair at a market">
           <span class="way-icon" aria-hidden="true">↑</span>
           <h3>Haggle a little</h3>
           <p>Swipe up to make an offer. Try the asking price, or 10, 20 or 30% less. The seller can accept, counter or decline, right in the chat.</p>
         </article>
         <article class="way way-swap">
+          <img class="way-photo" src="assets/way-swap.webp" width="600" height="600" loading="lazy" alt="Two people exchanging a denim jacket and a patterned bag">
           <span class="way-icon" aria-hidden="true">↔</span>
           <h3>Swap it</h3>
           <p>Fill your Swap Closet. When someone wants your item and you want theirs, it's a Havana Match. Agree, meet, and swap.</p>
@@ -103,7 +107,35 @@
       <ul class="chips" role="list">
         <li>Clothes</li><li>Shoes</li><li>Bags</li><li>Furniture</li><li>Electronics</li><li>Household</li><li>Other good things</li>
       </ul>
-      <p class="section-note">List an item in a minute: up to 6 photos (we keep them small to save your data), a price in whole cedis, and your area, from Osu to Madina.</p>
+      <p class="section-note">Make room for something new: up to 6 photos (we keep them small to save your data), a price in whole cedis, and your area, from Osu to Madina.</p>
+    </section>
+
+    <section id="sell" class="section story" aria-labelledby="sell-title">
+      <div>
+        <p class="eyebrow">Less clutter. More possibility.</p>
+        <h2 id="sell-title">Someone’s next find is already in your room.</h2>
+        <p class="lede">The jacket you’ve outgrown. The chair that doesn’t fit. Give a good thing another chapter with someone nearby.</p>
+        <ol class="steps">
+          <li><b>Show what you’ve got.</b><span>Add up to six photos. Show the whole item, the details, and any wear so buyers know what to expect.</span></li>
+          <li><b>Choose how to trade.</b><span>Set a price in whole Ghana cedis, a swap value, or both. Add your area so people can find local listings.</span></li>
+          <li><b>Work out the details in chat.</b><span>Answer questions, consider offers, and agree on a public meeting place. Inspect the item before money or goods change hands.</span></li>
+        </ol>
+      </div>
+      <figure class="market-photo">
+        <img src="assets/market.webp" width="1200" height="800" loading="lazy" alt="A buyer and seller discussing pre-loved clothing beside shoes and wooden furniture at an Accra-style market">
+        <figcaption>Local finds. A little conversation. A new story. Imagery created for Havana.</figcaption>
+      </figure>
+    </section>
+
+    <section class="section swap-detail" aria-labelledby="swap-title">
+      <p class="eyebrow">A good trade goes both ways</p>
+      <h2 id="swap-title">Your jacket. Their speaker. A fresh start.</h2>
+      <p class="lede">List something in your Swap Closet, then explore items you’d like in return. A match happens when you each want something from the other.</p>
+      <div class="ways">
+        <article class="way"><p class="step-label">01 · Match</p><h3>Find a mutual yes</h3><p>Swipe right in Swap mode. When the interest goes both ways, Havana opens a match so you can talk.</p></article>
+        <article class="way"><p class="step-label">02 · Agree</p><h3>Check the details</h3><p>Discuss condition and the meetup in chat. Both people confirm the agreement before the handover.</p></article>
+        <article class="way"><p class="step-label">03 · Exchange</p><h3>Meet and make the swap</h3><p>Inspect both items in person. After exchanging them, each person taps “Swap done” to complete the trade.</p></article>
+      </div>
     </section>
 
     <!-- CODEX: screenshots (start). Codex adds real app screenshots here (see website/HANDOFF.md, image 5). -->
@@ -124,9 +156,22 @@
       </ul>
     </section>
 
+    <section id="faq" class="section faq" aria-labelledby="faq-title">
+      <p class="eyebrow">Before your first find</p>
+      <h2 id="faq-title">A few things to know.</h2>
+      <details><summary>Can I download Havana today?</summary><p>The public Android beta is opening soon. The download link will appear here when it is ready. An internal preview is being tested; it is not a Play Store release.</p></details>
+      <details><summary>How do I pay for an item?</summary><p>Arrange the sale with the seller in chat. Meet in public, inspect the item, then pay the seller directly with MoMo or cash. Havana does not process payments or hold money.</p></details>
+      <details><summary>Do I have to swap, or can I just buy?</summary><p>You can browse Shop and buy without offering anything in return. For swaps, add an item to your Swap Closet so the other person has something to choose.</p></details>
+      <details><summary>Can I negotiate the price?</summary><p>Yes. Open Haggle Mode to send an offer in chat. You can use the asking price or the suggested discounts, or enter an amount. The seller can accept, counter, or decline.</p></details>
+      <details><summary>Where is Havana available?</summary><p>Havana is built around Accra, with listings organized by areas such as Osu, Madina, East Legon, Labone, Spintex, and Kaneshie. Distance is approximate; agree on the actual meeting place in chat.</p></details>
+      <details><summary>Will other people see my exact location?</summary><p>Other users see your area and a rough distance rather than precise coordinates. You decide where to meet and what details to share in your conversation.</p></details>
+      <details><summary>What phones does the Android beta support?</summary><p>The preview requires Android 7 or newer and an internet connection. An iPhone download is not available yet. Availability updates will be posted on this page.</p></details>
+      <details><summary>How do I report a listing or delete my account?</summary><p>Report a listing from its detail page in the app. To remove your account, use “Delete account” in your profile or read the <a href="https://havana-api.onrender.com/account-deletion">account deletion information</a>. Our <a href="https://havana-api.onrender.com/privacy">privacy policy</a> explains how account data is handled.</p></details>
+    </section>
+
     <section id="download" class="section download" aria-labelledby="download-title">
       <h2 id="download-title">Get Havana</h2>
-      <p>Havana is in its Android beta, built for phones of every budget.</p>
+      <p>The public Android beta is opening soon. Browse local finds, list what you no longer need, and give swapping a try.</p>
       <!-- DOWNLOAD: the button stays disabled until email login codes are live (see website/HANDOFF.md, "Download gate"). -->
       <div class="download-box">
         <span class="btn btn-mango is-disabled" role="link" aria-disabled="true">Android beta opening soon</span>

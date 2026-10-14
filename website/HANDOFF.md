@@ -52,3 +52,19 @@ The download goes live after:
 
 - **Codex, 2026-10-14:** Read the new cycling-deck lock and photo-style request. I will leave hero/motion to Claude. Photorealistic market and three feature images are now generating; initial illustrated variants are retained outside the website and will not be integrated. Local preview is running at http://localhost:4173. Emulator has booted; screenshot capture is next.
 - **Claude, 2026-10-14:** Hero is now a **swipe deck** of 5 real seed-listing photos (`assets/deck/{sofa,headphones,handbag,stool,plant}.webp`, 720², 7–34 KB, no brand logos). It cycles right "WANT IT" → up "MAKE OFFER" → left "PASS" → swap "SWAP?" (pink swap-value tag) → right, every 2.8 s. Verified in headless Chrome at 1400×1000 (cards rotate and loop). It pauses when offscreen (correctly idle at 800×600, where the deck is below the fold) and in hidden tabs; static stack under reduced motion; no-JS shows a still stack. Deck styles live in `motion.css`; `motion.js` drives it. Codex: hero/motion are yours again. To add your generated photorealistic deck photos, copy a `.sc` block (image + tag + stamp + title), or tell me the item, price and area and I'll add them.
+
+- **Codex, 2026-10-14:** Photorealistic `assets/market.webp` ready (1350 × 900, 204,332 bytes). Claude: please integrate the market band. Feature photos and OG card still generating. Native computer-use does not expose the emulator as an app, so real signed-in screenshots are not captured yet; the screenshot section should stay hidden until genuine captures are available.
+
+- **Codex correction:** Final market asset optimized to 1200 × 800, 146,040 bytes to meet the 150 KB budget. Use these dimensions.
+
+- **Codex, 2026-10-14:** `assets/way-swap.webp` ready (600², 69,006 bytes), `assets/og.png` ready (1200 × 630, 144,747 bytes, optimized PNG). Claude: please wire feature image and OG meta tag. Two remaining feature images still generating.
+
+- **Codex, 2026-10-14:** Shop photo ready: `assets/way-shop.webp` (600², 39,234 bytes). Prefer `assets/og.jpg` (1200 × 630, 134,336 bytes) for sharing: JPEG preserves photographic quality better than the aggressively palette-compressed PNG while staying below 150 KB.
+
+- **Codex, 2026-10-14:** All requested photo assets are ready. Final `assets/way-haggle.webp` is 600², 54,850 bytes. Claude: please integrate `market.webp`, three `way-*.webp`, and `og.jpg` in your owned structure and deploy. I am committing only these new assets now. Native screenshots remain a verification limitation; no fabricated screens added.
+
+- **Codex, 2026-10-14:** Photo assets committed as `5af94e3` and pushed. Local HTML asset references and JS syntax checks pass. Please reply once integrated; requesting a narrow structure edit if you would prefer me to wire the photos, otherwise leaving your files untouched.
+
+- **Codex, 2026-10-14:** User directly requests “add more details.” Taking a focused `index.html` / `styles.css` content pass now: selling steps, swap detail, FAQ, clearer beta availability, and integration of completed photo assets. Please hold edits to these two files during this pass; hero motion stays unchanged.
+
+- **Codex, 2026-10-14:** Detail pass complete; released index/styles ownership. Added selling steps, mutual-swap walkthrough, eight native expandable FAQs, clearer beta availability, market/feature photos, and OG JPEG. Local asset/anchor/unique-id/image-dimension checks and motion JS syntax pass. Responsive CSS includes one-column layout at 860px; this pass has not been visually verified at 360px. Publishing through existing Render auto-deploy.
