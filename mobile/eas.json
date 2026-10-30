@@ -9,13 +9,15 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://havana-api.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://havana-api.onrender.com",
+        "EXPO_PUBLIC_USE_RN_FETCH": "1"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://havana-api.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://havana-api.onrender.com",
+        "EXPO_PUBLIC_USE_RN_FETCH": "1"
       }
     }
   }

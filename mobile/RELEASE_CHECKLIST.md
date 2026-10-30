@@ -17,9 +17,9 @@ Brand assets live in `assets/`. A new native build is required to see the icon a
 With Node 22, Java 17+, and the Android SDK installed, a standalone test APK can be built without Expo login. From `mobile/`:
 
 ```sh
-EXPO_PUBLIC_API_URL=https://havana-api.onrender.com npx expo prebuild --platform android --no-install
+EXPO_PUBLIC_API_URL=https://havana-api.onrender.com EXPO_PUBLIC_USE_RN_FETCH=1 npx expo prebuild --platform android --no-install
 cd android
-EXPO_PUBLIC_API_URL=https://havana-api.onrender.com NODE_ENV=production ./gradlew :app:assembleRelease --console=plain --max-workers=4
+EXPO_PUBLIC_API_URL=https://havana-api.onrender.com EXPO_PUBLIC_USE_RN_FETCH=1 NODE_ENV=production ./gradlew :app:assembleRelease --console=plain --max-workers=4
 ```
 
 Set `ANDROID_HOME` to the installed SDK location if it is not already configured. The output is `android/app/build/outputs/apk/release/app-release.apk`. This bundles JavaScript, so Metro is not required. Generated native files are ignored by Git; prebuild may also change the npm `android`/`ios` scripts, so review that diff.
