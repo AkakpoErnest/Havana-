@@ -39,3 +39,35 @@
   document.addEventListener('visibilitychange', run);
   run();
 })();
+
+// Background: scatter trade icons across the width; each rises at its own speed. Negative delays
+// mean the page opens with icons already mid-flight instead of all starting at the bottom.
+(() => {
+  const layer = document.querySelector('.bg-float');
+  if (!layer || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const icons = ['shoe', 'bag', 'chair', 'phone', 'headphones', 'shirt', 'heart', 'swap', 'cedi'];
+  const colours = ['var(--brand)', 'var(--pink)', 'var(--mango)', 'var(--leaf)'];
+  const count = innerWidth < 600 ? 10 : 18;
+  const ns = 'http://www.w3.org/2000/svg';
+  for (let i = 0; i < count; i++) {
+    const item = document.createElement('span');
+    item.className = 'fl';
+    const size = 26 + Math.random() * 30;
+    const duration = 15 + Math.random() * 12;
+    Object.assign(item.style, {
+      left: `${((i + Math.random()) / count) * 100}%`,
+      width: `${size}px`,
+      height: `${size}px`,
+      color: colours[i % colours.length],
+      animationDuration: `${duration}s`,
+      animationDelay: `${-Math.random() * duration}s`,
+    });
+    const svg = document.createElementNS(ns, 'svg');
+    svg.style.animationDelay = `${-Math.random() * 5}s`;
+    const use = document.createElementNS(ns, 'use');
+    use.setAttribute('href', `#i-${icons[i % icons.length]}`);
+    svg.append(use);
+    item.append(svg);
+    layer.append(item);
+  }
+})();

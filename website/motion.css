@@ -24,14 +24,16 @@
 .stamp-offer { top: 44% !important; left: 50% !important; translate: -50% 0; transform: none; border: 0; background: var(--mango); color: var(--ink); }
 @media (prefers-reduced-motion: reduce) { .deck .sc { transition: none; } }
 
-/* Page background: soft brand-colour blobs that drift slowly behind everything. CSS only; still under reduced motion. */
-.bg-anim { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
-.bg-anim span { position: absolute; width: 46vmax; height: 46vmax; border-radius: 50%; filter: blur(70px); opacity: .32; will-change: transform; }
-.bg-anim span:nth-child(1) { background: var(--mango); top: -14vmax; left: -10vmax; animation: bg-drift-a 26s ease-in-out infinite alternate; }
-.bg-anim span:nth-child(2) { background: var(--pink); top: 30%; right: -16vmax; opacity: .22; animation: bg-drift-b 32s ease-in-out infinite alternate; }
-.bg-anim span:nth-child(3) { background: #8f8be0; bottom: -18vmax; left: 18%; opacity: .26; animation: bg-drift-c 29s ease-in-out infinite alternate; }
-.bg-anim span:nth-child(4) { background: var(--leaf); width: 30vmax; height: 30vmax; top: 8%; left: 48%; opacity: .14; animation: bg-drift-b 36s ease-in-out infinite alternate-reverse; }
-@keyframes bg-drift-a { to { transform: translate(28vw, 22vh) scale(1.15); } }
-@keyframes bg-drift-b { to { transform: translate(-30vw, -18vh) scale(.9); } }
-@keyframes bg-drift-c { to { transform: translate(22vw, -26vh) scale(1.1); } }
-@media (prefers-reduced-motion: reduce) { .bg-anim span { animation: none; } }
+/* Page background: icons of things people trade float up behind the page, swaying a little.
+   motion.js creates the items (position, size, colour, speed); none are created under reduced motion. */
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.bg-float { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.bg-float .fl { position: absolute; top: 100%; opacity: 0; animation: fl-rise linear infinite; will-change: transform, opacity; }
+.bg-float svg { display: block; width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; animation: fl-sway 5s ease-in-out infinite alternate; }
+@keyframes fl-rise {
+  0% { transform: translateY(0); opacity: 0; }
+  12%, 85% { opacity: .4; }
+  100% { transform: translateY(calc(-100vh - 140px)); opacity: 0; }
+}
+@keyframes fl-sway { from { transform: translateX(-16px) rotate(-14deg); } to { transform: translateX(16px) rotate(14deg); } }
+@media (prefers-reduced-motion: reduce) { .bg-float { display: none; } }
