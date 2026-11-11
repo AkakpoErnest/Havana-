@@ -24,6 +24,8 @@ EXPO_PUBLIC_API_URL=https://havana-api.onrender.com EXPO_PUBLIC_USE_RN_FETCH=1 N
 
 Set `ANDROID_HOME` to the installed SDK location if it is not already configured. The output is `android/app/build/outputs/apk/release/app-release.apk`. This bundles JavaScript, so Metro is not required. Generated native files are ignored by Git; prebuild may also change the npm `android`/`ios` scripts, so review that diff.
 
+Environment-only changes may leave Gradle’s old JavaScript bundle cached (observed by Claude on October 30). After changing EXPO_PUBLIC_API_URL or EXPO_PUBLIC_USE_RN_FETCH, remove `android/app/build/generated/assets/react/release` and `android/app/build/intermediates/incremental/packageRelease` from the mobile directory before rebuilding, then verify the bundled configuration and APK timestamp/hash.
+
 The generated project uses a development signing key for this local preview. Store distribution needs production signing. Remote push notifications still require the EAS project ID and Android push credentials; an APK alone does not complete push setup. Verify the package, signature, hosted API URL, and emulator launch before sharing the artifact.
 
 ### Device acceptance checks
@@ -49,9 +51,9 @@ The generated project uses a development signing key for this local preview. Sto
 ## Security review gates
 
 - Resolve SEC-001 before enabling real moderator accounts on a public deployment.
-- Fix reopened SEC-002 cleanup ordering and blocking logout, then verify offline logout/reconnect, process restart, account switching, and delayed push registration. Include old cleanup completing after a new session registers.
-- Fix reopened SEC-003: feed ranking scores still expose precise distance; verify response payloads omit internal ranking metadata.
-- Verify APP-001: an already-handled notification must not reopen a chat after logout/login.
+- SEC-002: original ordering and network-blocking logout fixes reviewed; fix the newly reproduced storage-failure gap (cleanup journal must survive failed writes/restart). Then verify offline logout/reconnect, process restart, account switching, and delayed registration/cleanup on a device.
+- SEC-003: code correction reviewed: internal scores omitted and distances/ranking use coarse grid cells. Complete a fresh production payload check; retain owner/non-owner and nested-listing coverage.
+- APP-001: code correction reviewed; verify on a device that an already-handled notification does not reopen a chat after logout/login or restart.
 - Record evidence and reviewer sign-off in the shared review ledger.
 
 ## Local preview verification — 2026-09-30
@@ -62,3 +64,11 @@ The generated project uses a development signing key for this local preview. Sto
 - Installed on Android API 36 ARM64 emulator; cold launch renders login, with no AndroidRuntime/ReactNativeJS error logs during the startup smoke test. Evidence: `artifacts/launch.png`, `artifacts/build-info.json`.
 - Root typecheck/lint passed in this build pass; updated mobile tests passed 13/13. Claude records backend 17/17 and live migration verification in the shared ledger.
 - Physical-device acceptance, signed-in/two-phone flows, and push verification remain pending. This APK uses development signing and has no EAS projectId or Android push credentials.
+
+
+## Current review — 2026-11-11
+
+- Codex freshly reran mobile tests: 15/15 pass. Security code review and remaining runtime gates are recorded in APP_SECURITY_REVIEW.md.
+- Claude reports a fresh Kenya-flow emulator acceptance on the multi-country APK; see HANDOFF.md for artifact details. Two-phone and native push acceptance remain separate checks.
+- APK is publicly downloadable per Claude’s update; real OTP delivery remains the highest-priority deployment follow-up. The blueprint’s development defaults do not prove the current live settings.
+- Privacy/account-deletion pages already exist; confirm final policy wording, terms, support contact and store materials rather than treating page creation as unfinished.

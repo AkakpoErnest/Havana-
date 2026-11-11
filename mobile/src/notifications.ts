@@ -73,9 +73,9 @@ export async function unregisterPush() {
   if (Platform.OS !== 'web') await push.end().catch(() => undefined);
 }
 
-/** Retry cleanups left over from an offline logout (called on signed-out launch). */
+/** Signed-out launch: queue a registration an interrupted logout left behind, then retry cleanups (SEC-002). */
 export function flushPendingPush() {
-  if (Platform.OS !== 'web') void push.flush().catch(() => undefined);
+  if (Platform.OS !== 'web') void push.recover().catch(() => undefined);
 }
 
 function openChat(response: Notifications.NotificationResponse) {

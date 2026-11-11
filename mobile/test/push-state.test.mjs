@@ -141,3 +141,101 @@ test('slow storage: cleanups queued while a flush is running are not overwritten
   assert.equal(server.size, 0);
   assert.equal(disk.get(PENDING_KEY), undefined);
 });
+
+// Codex 2026-11-11: logout used to remove `current` before saving the cleanup, so a failed `pending`
+// write lost both and the server kept sending the old account's pushes.
+test('storage failure during logout: the registration is kept and recovered on the next signed-out launch', async () => {
+  const { state, disk, server, store } = setupWithStore();
+  await state.register(state.begin(), TOKEN);
+  store.failPendingWrites = true;
+  await assert.rejects(state.end()); // the app swallows this; logout still completes locally
+  store.failPendingWrites = false;
+  assert.ok(
+    disk.get(CURRENT_KEY),
+    'registration kept in current when the cleanup could not be saved',
+  );
+  assert.ok(server.has(TOKEN));
+  const relaunched = createPushState(store, api(server)); // app restarts, signed out
+  await relaunched.recover();
+  assert.equal(server.has(TOKEN), false, 'server no longer sends pushes to the old account');
+  assert.equal(disk.get(CURRENT_KEY), undefined);
+  assert.equal(disk.get(PENDING_KEY), undefined);
+});
+
+test('storage failure during logout, then sign-in again without a restart: the old registration is still cleaned up', async () => {
+  const { state, disk, server, store, setAccount } = setupWithStore();
+  await state.register(state.begin(), 'ExponentPushToken[old]');
+  store.failPendingWrites = true;
+  await assert.rejects(state.end());
+  store.failPendingWrites = false;
+  setAccount('B');
+  await state.register(state.begin(), TOKEN);
+  await state.flush();
+  assert.equal(
+    server.has('ExponentPushToken[old]'),
+    false,
+    'leftover queued before being replaced',
+  );
+  assert.equal(server.get(TOKEN)?.account, 'B');
+  assert.equal(JSON.parse(disk.get(CURRENT_KEY)).registration, server.get(TOKEN).registration);
+});
+
+test('interrupted logout after saving the cleanup (current not removed) recovers without duplicates', async () => {
+  const { state, disk, server, store } = setupWithStore();
+  await state.register(state.begin(), TOKEN);
+  store.failCurrentRemoves = true;
+  await assert.rejects(state.end());
+  store.failCurrentRemoves = false;
+  assert.equal(JSON.parse(disk.get(PENDING_KEY)).length, 1);
+  const relaunched = createPushState(store, api(server));
+  await relaunched.recover();
+  assert.equal(server.has(TOKEN), false);
+  assert.equal(disk.get(CURRENT_KEY), undefined);
+  assert.equal(disk.get(PENDING_KEY), undefined);
+});
+
+test('recover never touches a signed-in session', async () => {
+  const { state, disk, server } = setupWithStore();
+  await state.register(state.begin(), TOKEN);
+  await state.recover();
+  assert.ok(server.has(TOKEN));
+  assert.equal(JSON.parse(disk.get(CURRENT_KEY)).registration, server.get(TOKEN).registration);
+});
+
+// Storage that can fail specific writes, and an API factory so a "relaunched" state shares the same server.
+function api(server, account = () => 'A') {
+  let ids = server.size + 100;
+  return {
+    async register(token) {
+      const registration = `reg-${++ids}`;
+      server.set(token, { account: account(), registration });
+      return registration;
+    },
+    async unregister({ token, registration }) {
+      if (server.get(token)?.registration === registration) server.delete(token);
+    },
+  };
+}
+function setupWithStore() {
+  const disk = new Map();
+  const store = {
+    failPendingWrites: false,
+    failCurrentRemoves: false,
+    get: async (k) => disk.get(k) ?? null,
+    async set(k, v) {
+      if (this.failPendingWrites && k === PENDING_KEY) throw new Error('disk full');
+      disk.set(k, v);
+    },
+    async remove(k) {
+      if (this.failCurrentRemoves && k === CURRENT_KEY) throw new Error('disk error');
+      disk.delete(k);
+    },
+  };
+  const server = new Map();
+  let account = 'A';
+  const state = createPushState(
+    store,
+    api(server, () => account),
+  );
+  return { state, disk, server, store, setAccount: (a) => (account = a) };
+}
