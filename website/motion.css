@@ -23,3 +23,15 @@
 .stamp-pass { left: auto !important; right: 18px; border-color: var(--muted); color: var(--muted); transform: rotate(12deg); }
 .stamp-offer { top: 44% !important; left: 50% !important; translate: -50% 0; transform: none; border: 0; background: var(--mango); color: var(--ink); }
 @media (prefers-reduced-motion: reduce) { .deck .sc { transition: none; } }
+
+/* Page background: soft brand-colour blobs that drift slowly behind everything. CSS only; still under reduced motion. */
+.bg-anim { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.bg-anim span { position: absolute; width: 46vmax; height: 46vmax; border-radius: 50%; filter: blur(70px); opacity: .32; will-change: transform; }
+.bg-anim span:nth-child(1) { background: var(--mango); top: -14vmax; left: -10vmax; animation: bg-drift-a 26s ease-in-out infinite alternate; }
+.bg-anim span:nth-child(2) { background: var(--pink); top: 30%; right: -16vmax; opacity: .22; animation: bg-drift-b 32s ease-in-out infinite alternate; }
+.bg-anim span:nth-child(3) { background: #8f8be0; bottom: -18vmax; left: 18%; opacity: .26; animation: bg-drift-c 29s ease-in-out infinite alternate; }
+.bg-anim span:nth-child(4) { background: var(--leaf); width: 30vmax; height: 30vmax; top: 8%; left: 48%; opacity: .14; animation: bg-drift-b 36s ease-in-out infinite alternate-reverse; }
+@keyframes bg-drift-a { to { transform: translate(28vw, 22vh) scale(1.15); } }
+@keyframes bg-drift-b { to { transform: translate(-30vw, -18vh) scale(.9); } }
+@keyframes bg-drift-c { to { transform: translate(22vw, -26vh) scale(1.1); } }
+@media (prefers-reduced-motion: reduce) { .bg-anim span { animation: none; } }
