@@ -16,6 +16,7 @@ import { ChatData, mergeHistory, mergeLatest } from '../../src/chat-cache';
 import { useScreenActive } from '../../src/useScreenActive';
 import { Message, User } from '../../src/types';
 import { Button, C, ErrorBox, Field, Loading, Page, T, money, s } from '../../src/ui';
+import { countryOf } from '../../src/countries';
 export default function ChatScreen() {
   const { id, haggle } = useLocalSearchParams<{ id: string; haggle?: string }>();
   const [text, setText] = useState(''),
@@ -65,7 +66,7 @@ export default function ChatScreen() {
   });
   const offer = useMutation({
     mutationFn: () => {
-      if (!/^[1-9]\d*$/.test(amount)) throw new Error('Enter a positive whole-cedi amount.');
+      if (!/^[1-9]\d*$/.test(amount)) throw new Error('Enter a positive whole-number amount.');
       return api(`/conversations/${id}/offers`, 'POST', { amount: Number(amount) });
     },
     onSuccess: () => {
@@ -125,7 +126,7 @@ export default function ChatScreen() {
           <View style={{ flex: 1 }}>
             <T style={{ fontFamily: 'BricolageGrotesque_700Bold' }}>{other?.name}</T>
             <T numberOfLines={1} style={{ fontSize: 12, color: C.muted }}>
-              {c.item.title} · {c.swapItem ? 'Swap match' : money(c.item.price)}
+              {c.item.title} · {c.swapItem ? 'Swap match' : money(c.item.price, c.item.currency)}
             </T>
           </View>
           {c.swapItem && (
@@ -176,7 +177,7 @@ export default function ChatScreen() {
           </View>
         )}
         <T style={{ color: C.leaf, fontSize: 11 }}>
-          Meet in public · Check before paying · MoMo or cash directly
+          Meet in public · Check before paying · Mobile money or cash directly
         </T>
         <ErrorBox
           error={
@@ -255,7 +256,7 @@ export default function ChatScreen() {
                       {m.offerStatus?.toLowerCase()}
                     </T>
                     <T style={{ fontSize: 29, fontFamily: 'BricolageGrotesque_700Bold' }}>
-                      {money(m.amount)}
+                      {money(m.amount, c.item.currency)}
                     </T>
                     {m.offerStatus === 'PENDING' && m.senderId !== ownId && (
                       <>
@@ -349,7 +350,7 @@ export default function ChatScreen() {
                       ))}
                     </View>
                     <Field
-                      label="Your offer · GH₵"
+                      label={`Your offer · ${countryOf(c.item.country).symbol}`}
                       value={amount}
                       onChangeText={setAmount}
                       keyboardType="number-pad"

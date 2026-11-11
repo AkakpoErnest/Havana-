@@ -52,7 +52,7 @@ export default function Moderation() {
               <T style={{ fontFamily: 'BricolageGrotesque_700Bold' }}>{item.title}</T>
               <T style={{ color: C.muted, fontSize: 12 }}>
                 {item.owner.name} · {item.area} · {label(item.status)}
-                {item.sell ? ` · ${money(item.price)}` : ''}
+                {item.sell ? ` · ${money(item.price, item.currency)}` : ''}
               </T>
               <T style={{ color: item.hidden ? C.pink : C.mango, fontSize: 12 }}>
                 {item.reportCount} report{item.reportCount === 1 ? '' : 's'}

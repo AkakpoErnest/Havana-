@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useScreenActive } from '../../src/useScreenActive';
 import { api, thumbUrl } from '../../src/api';
 import { Conversation, User } from '../../src/types';
-import { C, Empty, ErrorBox, Loading, Page, T, Title, s } from '../../src/ui';
+import { C, Empty, ErrorBox, Loading, Page, T, Title, money, s } from '../../src/ui';
 export default function Inbox() {
   const active = useScreenActive();
   const me = useQuery({ queryKey: ['me'], queryFn: () => api<User>('/me') });
@@ -79,7 +79,7 @@ export default function Inbox() {
             </T>
             <T numberOfLines={1} style={{ color: C.muted, fontSize: 12 }}>
               {c.messages?.[0]?.type === 'OFFER'
-                ? `Offer · GH₵${c.messages[0].amount}`
+                ? `Offer · ${money(c.messages[0].amount, c.item.currency)}`
                 : (c.messages?.[0]?.text ?? 'Say hello!')}
             </T>
           </View>

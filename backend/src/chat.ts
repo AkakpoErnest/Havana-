@@ -5,6 +5,7 @@ import { conversationInclude } from './market';
 import { MessagesDto } from './dto';
 import { coded } from './errors';
 import { Push } from './push';
+import { money } from './countries';
 // Poll cursors overlap by this much so rows from transactions that committed late are not missed.
 const CURSOR_OVERLAP_MS=5000;
 @Injectable()
@@ -65,7 +66,7 @@ export class Chat {
       const message=await tx.message.create({data:{conversationId:id,senderId:userId,type:'OFFER',amount,offerStatus:'PENDING'}});
       await tx.conversation.update({where:{id},data:{updatedAt:new Date()}}); return {message,c};
     });
-    this.push.notify(this.other(c,userId),{title:`New offer on ${c.item.title}`,body:`${this.nameOf(c,userId)} offered GH₵${amount}. Accept, counter or decline.`,data:{conversationId:id,kind:'offer'}});
+    this.push.notify(this.other(c,userId),{title:`New offer on ${c.item.title}`,body:`${this.nameOf(c,userId)} offered ${money(amount,c.item.currency)}. Accept, counter or decline.`,data:{conversationId:id,kind:'offer'}});
     return message;
   }
   async respond(id:string,messageId:string,userId:string,action:'ACCEPT'|'DECLINE') {
@@ -79,15 +80,15 @@ export class Chat {
       await tx.message.update({where:{id:messageId},data:{offerStatus:action==='ACCEPT'?'ACCEPTED':'DECLINED'}});
       if(action==='ACCEPT') {
         await tx.message.updateMany({where:{conversation:{itemId:c.itemId},offerStatus:'PENDING'},data:{offerStatus:'DECLINED'}});
-        await tx.message.create({data:{conversationId:id,type:'SYSTEM',text:`Offer accepted: GH₵${offer.amount}. Item reserved. Meet in public and check before paying.`}});
+        await tx.message.create({data:{conversationId:id,type:'SYSTEM',text:`Offer accepted: ${money(offer.amount!,c.item.currency)}. Item reserved. Meet in public and check before paying.`}});
       }
       await tx.conversation.update({where:{id},data:{updatedAt:new Date()}});
       return {c,offer};
     });
     const who=this.nameOf(c,userId);
     this.push.notify(offer.senderId!,action==='ACCEPT'
-      ?{title:'Offer accepted 🎉',body:`${who} accepted GH₵${offer.amount} for ${c.item.title}. Arrange pickup and pay directly.`,data:{conversationId:id,kind:'offer_accepted'}}
-      :{title:'Offer declined',body:`${who} declined GH₵${offer.amount} for ${c.item.title}. You can make another offer.`,data:{conversationId:id,kind:'offer_declined'}});
+      ?{title:'Offer accepted 🎉',body:`${who} accepted ${money(offer.amount!,c.item.currency)} for ${c.item.title}. Arrange pickup and pay directly.`,data:{conversationId:id,kind:'offer_accepted'}}
+      :{title:'Offer declined',body:`${who} declined ${money(offer.amount!,c.item.currency)} for ${c.item.title}. You can make another offer.`,data:{conversationId:id,kind:'offer_declined'}});
     return {ok:true};
   }
   async swap(id:string,userId:string,action:'AGREE'|'DONE') {

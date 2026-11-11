@@ -6,6 +6,7 @@ import { coded } from './errors';
 import { Push } from './push';
 import { isAdminIdentity } from './admin';
 import { roundDistance } from './privacy';
+import { COUNTRIES, DEFAULT_COUNTRY, isCountry } from './countries';
 const ownerSelect={id:true,name:true} as const;
 export const conversationInclude={item:true,swapItem:true,buyer:{select:ownerSelect},seller:{select:ownerSelect}} as const;
 /** Snap a coordinate to a 0.01° (~1.1 km) grid cell. */
@@ -28,11 +29,13 @@ export class Market {
   }
   async create(userId:string,d:ListingDto) {
     if(!d.sell&&!d.swap) throw new BadRequestException('Choose selling, swapping, or both.');
-    if(d.sell&&!d.price || d.swap&&!d.swapValue) throw new BadRequestException('Add a whole-cedi price or swap value.');
+    if(d.sell&&!d.price || d.swap&&!d.swapValue) throw new BadRequestException('Add a whole-number price or swap value.');
     if((d.latitude==null)!==(d.longitude==null)) throw new BadRequestException('Both location coordinates are required.');
     const paths=[...new Set(d.photos)];
     if(paths.length!==d.photos.length || await this.db.upload.count({where:{userId,path:{in:paths}}})!==paths.length) throw new BadRequestException(coded('PHOTOS_NOT_OWNED','Upload your own photos first.'));
-    return this.db.item.create({data:{...d,price:d.sell?d.price:null,swapValue:d.swap?d.swapValue:null,ownerId:userId}});
+    const {country}=await this.db.user.findUniqueOrThrow({where:{id:userId},select:{country:true}});
+    const home=isCountry(country)?country:DEFAULT_COUNTRY;
+    return this.db.item.create({data:{...d,price:d.sell?d.price:null,swapValue:d.swap?d.swapValue:null,ownerId:userId,country:home,currency:COUNTRIES[home].currency}});
   }
   async item(id:string,userId:string) {
     const item=await this.db.item.findUnique({where:{id},include:{owner:{select:ownerSelect}}});
@@ -41,10 +44,11 @@ export class Market {
     return {...item,owner:{...item.owner,rating:rating._avg.stars,ratingCount:rating._count}};
   }
   async feed(userId:string,q:FeedDto) {
-    const [closet,user]=await Promise.all([this.db.item.findMany({where:{ownerId:userId,swap:true,status:'LIVE',hidden:false},select:{swapValue:true}}),this.db.user.findUniqueOrThrow({where:{id:userId},select:{latitude:true,longitude:true}})]);
-    const items=await this.db.item.findMany({where:{ownerId:{not:userId},status:'LIVE',hidden:false,kind:'ITEM',...(q.mode==='SWAP'?{swap:true}:{sell:true}),category:q.category,swipes:{none:{userId,mode:q.mode}}},include:{owner:{select:ownerSelect}},orderBy:{createdAt:'desc'},take:500});
-    // Request location, then saved profile location, then central Accra.
-    const [lat,lon]=q.latitude!=null&&q.longitude!=null?[q.latitude,q.longitude]:user.latitude!=null&&user.longitude!=null?[user.latitude,user.longitude]:[5.6037,-0.187];
+    const [closet,user]=await Promise.all([this.db.item.findMany({where:{ownerId:userId,swap:true,status:'LIVE',hidden:false},select:{swapValue:true}}),this.db.user.findUniqueOrThrow({where:{id:userId},select:{latitude:true,longitude:true,country:true}})]);
+    const home=isCountry(user.country)?user.country:DEFAULT_COUNTRY;
+    const items=await this.db.item.findMany({where:{ownerId:{not:userId},country:home,status:'LIVE',hidden:false,kind:'ITEM',...(q.mode==='SWAP'?{swap:true}:{sell:true}),category:q.category,swipes:{none:{userId,mode:q.mode}}},include:{owner:{select:ownerSelect}},orderBy:{createdAt:'desc'},take:500});
+    // Request location, then saved profile location, then the centre of their country's first city.
+    const [lat,lon]=q.latitude!=null&&q.longitude!=null?[q.latitude,q.longitude]:user.latitude!=null&&user.longitude!=null?[user.latitude,user.longitude]:[...COUNTRIES[home].center];
     const ranked=items.map(item=>{
       // SEC-003: distance comes from the item's ~1.1 km grid cell, never its exact spot, so even many
       // queries from chosen origins can only narrow a seller down to the cell.

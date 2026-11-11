@@ -5,6 +5,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, photoUrl } from '../../src/api';
 import { Conversation, Item, User } from '../../src/types';
+import { countryOf } from '../../src/countries';
 import {
   Button,
   C,
@@ -79,10 +80,16 @@ export default function ItemDetail() {
       </View>
       <Title>{item.title}</Title>
       <View style={s.split}>
-        {item.sell && <T style={{ fontSize: 27, color: C.brand }}>{money(item.price)}</T>}
-        {item.swap && <T style={{ color: C.pink }}>↔ Swap value {money(item.swapValue)}</T>}
+        {item.sell && (
+          <T style={{ fontSize: 27, color: C.brand }}>{money(item.price, item.currency)}</T>
+        )}
+        {item.swap && (
+          <T style={{ color: C.pink }}>↔ Swap value {money(item.swapValue, item.currency)}</T>
+        )}
       </View>
-      <T style={{ color: C.muted }}>⌖ {item.area}, Accra</T>
+      <T style={{ color: C.muted }}>
+        ⌖ {item.area}, {countryOf(item.country).name}
+      </T>
       <T style={{ lineHeight: 24 }}>{item.description}</T>
       <View style={s.box}>
         <T>{item.owner.name}</T>

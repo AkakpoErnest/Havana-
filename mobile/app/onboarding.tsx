@@ -4,11 +4,13 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../src/api';
 import { User } from '../src/types';
 import { Button, ErrorBox, Field, Page, T, Title } from '../src/ui';
+import { countryOf } from '../src/countries';
 
 export default function Onboarding() {
   const cache = useQueryClient();
   const [name, setName] = useState('');
   const [area, setArea] = useState(() => cache.getQueryData<User>(['me'])?.area ?? '');
+  const home = countryOf(cache.getQueryData<User>(['me'])?.country);
   const save = useMutation({
     mutationFn: () => api<User>('/me', 'PATCH', { name: name.trim(), area: area.trim() }),
     onSuccess: (user) => {
@@ -39,12 +41,12 @@ export default function Onboarding() {
           editable={!save.isPending}
         />
         <Field
-          label="Your area in Accra"
+          label={`Your area in ${home.name}`}
           value={area}
           onChangeText={setArea}
           maxLength={80}
           autoCapitalize="words"
-          placeholder="e.g. Osu"
+          placeholder={`e.g. ${home.areas.split(',')[0]}`}
           editable={!save.isPending}
         />
         <Button

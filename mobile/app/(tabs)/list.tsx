@@ -4,10 +4,12 @@ import { Image } from 'expo-image';
 import * as Picker from 'expo-image-picker';
 import * as Manipulator from 'expo-image-manipulator';
 import * as Location from 'expo-location';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { api } from '../../src/api';
 import { photoForm } from '../../src/upload-form';
+import { User } from '../../src/types';
+import { countryOf } from '../../src/countries';
 import { Button, C, Chips, ErrorBox, Field, Page, T, Title, categories, s } from '../../src/ui';
 export default function ListItem() {
   const [photos, setPhotos] = useState<string[]>([]),
@@ -25,6 +27,8 @@ export default function ListItem() {
     [picking, setPicking] = useState(false),
     [locating, setLocating] = useState(false);
   const cache = useQueryClient();
+  const me = useQuery({ queryKey: ['me'], queryFn: () => api<User>('/me') });
+  const home = countryOf(me.data?.country);
   async function choose(camera: boolean) {
     setPicking(true);
     setError(null);
@@ -86,7 +90,7 @@ export default function ListItem() {
         throw new Error('Add a photo, title, description and area.');
       if (!sell && !swap) throw new Error('Turn on selling or swapping.');
       if ((sell && !/^[1-9]\d*$/.test(price)) || (swap && !/^[1-9]\d*$/.test(swapValue)))
-        throw new Error('Use positive, whole-cedi amounts.');
+        throw new Error('Use positive, whole-number amounts.');
       const form = await photoForm(photos, Platform.OS);
       const upload = await api<{ photos: string[] }>('/uploads', 'POST', form);
       return api('/items', 'POST', {
@@ -193,7 +197,7 @@ export default function ListItem() {
         </View>
         {sell && (
           <Field
-            label="Asking price · GH₵"
+            label={`Asking price · ${home.symbol}`}
             value={price}
             onChangeText={setPrice}
             editable={!publish.isPending}
@@ -212,7 +216,7 @@ export default function ListItem() {
         </View>
         {swap && (
           <Field
-            label="Estimated swap value · GH₵"
+            label={`Estimated swap value · ${home.symbol}`}
             value={swapValue}
             onChangeText={setSwapValue}
             editable={!publish.isPending}
@@ -230,8 +234,8 @@ export default function ListItem() {
         maxLength={2000}
       />
       <Field
-        label="Area in Accra"
-        placeholder="Osu, Madina, East Legon…"
+        label={`Area in ${home.name}`}
+        placeholder={home.areas}
         value={area}
         onChangeText={setArea}
         editable={!publish.isPending}

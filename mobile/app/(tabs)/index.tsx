@@ -5,7 +5,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import { ApiError, api, photoUrl } from '../../src/api';
 import { Image } from 'expo-image';
-import { Conversation, Item, Mode } from '../../src/types';
+import { Conversation, Item, Mode, User } from '../../src/types';
+import { countryOf } from '../../src/countries';
 import { Button, C, Chips, Empty, ErrorBox, Loading, Page, T, categories, s } from '../../src/ui';
 import { useScreenActive } from '../../src/useScreenActive';
 import { SwipeCard } from '../../src/SwipeCard';
@@ -17,6 +18,8 @@ export default function Discover() {
   const [location, setLocation] = useState<{ latitude: number; longitude: number }>();
   const [locationError, setLocationError] = useState('');
   const cache = useQueryClient();
+  const me = useQuery({ queryKey: ['me'], queryFn: () => api<User>('/me') });
+  const home = countryOf(me.data?.country);
   const key = ['feed', mode, category, location];
   const feed = useQuery({
     queryKey: key,
@@ -79,14 +82,14 @@ export default function Discover() {
     try {
       const permission = await Location.requestForegroundPermissionsAsync();
       if (!permission.granted) {
-        setLocationError('Location is off. Showing finds around central Accra.');
+        setLocationError(`Location is off. Showing finds around central ${home.city}.`);
         return;
       }
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       setLocation(pos.coords);
       setLocationError('');
     } catch {
-      setLocationError('Could not find your location. Showing central Accra.');
+      setLocationError(`Could not find your location. Showing central ${home.city}.`);
     }
   }
   return (
@@ -104,7 +107,7 @@ export default function Discover() {
         </T>
         <Pressable onPress={() => void locate()}>
           <T style={{ fontSize: 12, color: C.brand }}>
-            ⌖ {location ? 'Near you' : 'Accra, Ghana'} ▾
+            ⌖ {location ? 'Near you' : `${home.city}, ${home.name}`} ▾
           </T>
         </Pressable>
       </View>

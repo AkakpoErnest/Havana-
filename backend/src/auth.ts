@@ -6,6 +6,7 @@ import { Request } from 'express';
 import { Db } from './db';
 import { OtpDto, VerifyDto } from './dto';
 import { coded } from './errors';
+import { COUNTRIES, COUNTRY_CODES, CountryCode, DEFAULT_COUNTRY, countryOfPhone } from './countries';
 /** `trusted`: this session's login code went through a real channel (email/SMS), not dev mode. Required for admin powers. */
 export type AuthedRequest = Request & { userId: string; trusted: boolean };
 type OtpChannel='brevo'|'webhook'|'dev';
@@ -29,16 +30,18 @@ async function sendEmailCode(to:string,code:string) {
     body:JSON.stringify({sender:{name:'Havana',email:process.env.OTP_EMAIL_FROM},to:[{email:to}],subject:`${code} is your Havana code`,textContent:text,htmlContent:html}),signal:AbortSignal.timeout(10000)});
   if(!response.ok) throw new Error(`Brevo responded ${response.status}: ${(await response.text()).slice(0,200)}`);
 }
-export function normalize(type: 'EMAIL'|'PHONE', raw: string) {
+export function normalize(type: 'EMAIL'|'PHONE', raw: string, country: CountryCode=DEFAULT_COUNTRY) {
   const value=raw.trim().toLowerCase();
   if (type==='EMAIL') {
     if(!isEmail(value)) throw new BadRequestException(coded('INVALID_IDENTIFIER','Enter a valid email address.'));
     return value;
   }
-  let phone=value.replace(/[\s()-]/g,'');
-  if(/^0\d{9}$/.test(phone)) phone='+233'+phone.slice(1);
-  if(/^233\d{9}$/.test(phone)) phone='+'+phone;
-  if(!/^\+233[235]\d{8}$/.test(phone)) throw new BadRequestException(coded('INVALID_IDENTIFIER','Use a Ghana number, for example 0541234567.'));
+  // Local numbers ("0712…") use the chosen country; international ones ("+254…", "254…", "00254…") pick their own.
+  let phone=value.replace(/[\s()-]/g,'').replace(/^00/,'+');
+  if(/^0\d+$/.test(phone)) phone=`+${COUNTRIES[country].dial}${phone.slice(1)}`;
+  else if(/^\d+$/.test(phone)) phone='+'+phone;
+  const match=COUNTRY_CODES.find(c=>phone.startsWith(`+${COUNTRIES[c].dial}`)&&COUNTRIES[c].national.test(phone.slice(COUNTRIES[c].dial.length+1)));
+  if(!match) throw new BadRequestException(coded('INVALID_IDENTIFIER',`Use a ${COUNTRIES[country].name} number, for example ${COUNTRIES[country].example}.`));
   return phone;
 }
 @Injectable()
@@ -46,7 +49,7 @@ export class Auth {
   constructor(private db: Db, private jwt: JwtService) {}
   private hash(value:string,code:string) { return createHmac('sha256',process.env.JWT_SECRET!).update(value+':'+code).digest('hex'); }
   async request(dto:OtpDto, linkUserId?:string) {
-    const value=normalize(dto.type,dto.value);
+    const value=normalize(dto.type,dto.value,dto.country);
     if(linkUserId) {
       const [identity, existing]=await Promise.all([this.db.authIdentity.findUnique({where:{value}}),this.db.authIdentity.findUnique({where:{userId_type:{userId:linkUserId,type:dto.type}}})]);
       if(identity || existing) throw new BadRequestException(coded('IDENTITY_TAKEN','This login method is already attached to an account.'));
@@ -56,7 +59,7 @@ export class Auth {
     const channel=otpChannel(dto.type);
     if(!channel) throw new ServiceUnavailableException(coded(dto.type==='PHONE'?'PHONE_LOGIN_UNAVAILABLE':'EMAIL_LOGIN_UNAVAILABLE',dto.type==='PHONE'?'Phone login is coming soon. Please use your email for now.':'Email login is not available right now. Please try again later.'));
     const code=randomInt(0,1000000).toString().padStart(6,'0');
-    const challenge=await this.db.otpChallenge.create({data:{type:dto.type,value,hash:this.hash(value,code),linkUserId,channel,expiresAt:new Date(Date.now()+5*60_000)}});
+    const challenge=await this.db.otpChallenge.create({data:{type:dto.type,value,hash:this.hash(value,code),linkUserId,channel,country:dto.country??DEFAULT_COUNTRY,expiresAt:new Date(Date.now()+5*60_000)}});
     if(channel==='dev') console.log(`[DEV OTP] ${value}: ${code}`);
     else {
       try {
@@ -85,7 +88,7 @@ export class Auth {
         if(identity || await tx.authIdentity.findUnique({where:{userId_type:{userId:linkUserId,type:challenge.type}}})) throw new BadRequestException(coded('IDENTITY_TAKEN','This login method is already in use.'));
         identity=await tx.authIdentity.create({data:{userId:linkUserId,type:challenge.type,value:challenge.value}});
       } else if(!identity) {
-        const user=await tx.user.create({data:{identities:{create:{type:challenge.type,value:challenge.value}}},include:{identities:true}});
+        const user=await tx.user.create({data:{country:countryOfPhone(challenge.value)??challenge.country,identities:{create:{type:challenge.type,value:challenge.value}}},include:{identities:true}});
         identity=user.identities[0];
       }
       await tx.otpChallenge.deleteMany({where:{value:challenge.value}});

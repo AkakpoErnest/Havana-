@@ -21,6 +21,7 @@ import {
   Title,
   s,
 } from '../../src/ui';
+import { COUNTRY_CODES, COUNTRY_LABELS, countryOf } from '../../src/countries';
 export default function Profile() {
   const session = useSession(),
     cache = useQueryClient();
@@ -135,6 +136,18 @@ export default function Profile() {
         ★ {me.data?.rating?.toFixed(1) ?? 'New here'} · {me.data?.ratingCount ?? 0} ratings
       </T>
       <View style={s.box}>
+        <T style={{ color: C.muted, fontSize: 13 }}>
+          Your country sets your currency and which listings you see.
+        </T>
+        <Chips
+          values={COUNTRY_CODES}
+          labels={COUNTRY_LABELS}
+          value={me.data?.country ?? 'GH'}
+          disabled={profile.isPending || !me.data}
+          onChange={(country) => {
+            if (country !== me.data?.country) profile.mutate({ country });
+          }}
+        />
         <Field
           label="What should people call you?"
           placeholder={me.data?.name}
@@ -143,8 +156,8 @@ export default function Profile() {
           maxLength={60}
         />
         <Field
-          label="Your area in Accra"
-          placeholder={me.data?.area ?? 'Osu, Madina, East Legon…'}
+          label="Your area"
+          placeholder={me.data?.area ?? countryOf(me.data?.country).areas}
           value={area}
           onChangeText={setArea}
           maxLength={80}
@@ -212,7 +225,7 @@ export default function Profile() {
           body={
             tab === 'SAVED'
               ? 'Swipe right in Shop and your favourites will be here.'
-              : 'List something you no longer use. Someone in Accra is looking for it.'
+              : 'List something you no longer use. Someone nearby is looking for it.'
           }
         />
       )}

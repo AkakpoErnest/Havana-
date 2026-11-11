@@ -123,7 +123,7 @@ export function SwipeCard({
                 color: mode === 'SHOP' ? C.ink : 'white',
               }}
             >
-              {money(mode === 'SHOP' ? item.price : item.swapValue)}
+              {money(mode === 'SHOP' ? item.price : item.swapValue, item.currency)}
             </T>
           </View>
           <Animated.View

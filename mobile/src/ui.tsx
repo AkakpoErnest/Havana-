@@ -17,6 +17,7 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Item } from './types';
 import { thumbUrl } from './api';
+import { money } from './countries';
 export const C = {
   brand: '#23206B',
   mango: '#FFB020',
@@ -42,8 +43,7 @@ export const label = (s: string) =>
     .toLowerCase()
     .replace(/_/g, ' ')
     .replace(/^./, (c) => c.toUpperCase());
-export const money = (n: number | null | undefined) =>
-  `GH₵${(n ?? 0).toLocaleString('en-GH', { maximumFractionDigits: 0 })}`;
+export { money };
 export function T({ children, style, ...props }: React.ComponentProps<typeof Text>) {
   return (
     <Text
@@ -151,11 +151,13 @@ export function Chips({
   value,
   onChange,
   disabled = false,
+  labels,
 }: {
   values: readonly string[];
   value: string;
   onChange: (v: string) => void;
   disabled?: boolean;
+  labels?: Record<string, string>;
 }) {
   return (
     <ScrollView
@@ -172,7 +174,9 @@ export function Chips({
           onPress={() => onChange(v)}
           style={[s.chip, value === v && { backgroundColor: C.brand, borderColor: C.brand }]}
         >
-          <T style={{ color: value === v ? 'white' : C.muted, fontSize: 13 }}>{label(v)}</T>
+          <T style={{ color: value === v ? 'white' : C.muted, fontSize: 13 }}>
+            {labels?.[v] ?? label(v)}
+          </T>
         </Pressable>
       ))}
     </ScrollView>
@@ -222,8 +226,8 @@ export function Safety() {
   return (
     <View style={[s.box, { backgroundColor: '#E7F5EE' }]}>
       <T style={{ color: '#14734F', fontSize: 13, lineHeight: 19 }}>
-        Good deals. Safe meetups. Meet in public and check the item before paying. MoMo or cash on
-        pickup, directly to the seller. No payments in Havana.
+        Good deals. Safe meetups. Meet in public and check the item before paying. Mobile money or
+        cash on pickup, directly to the seller. No payments in Havana.
       </T>
     </View>
   );
@@ -247,7 +251,9 @@ export function ItemRow({ item, onLongPress }: { item: Item; onLongPress?: () =>
           {item.hidden ? ' · Hidden after reports' : ''}
         </T>
         <T style={{ color: C.brand }}>
-          {item.sell ? money(item.price) : `Swap · ${money(item.swapValue)}`}
+          {item.sell
+            ? money(item.price, item.currency)
+            : `Swap · ${money(item.swapValue, item.currency)}`}
         </T>
       </View>
     </Pressable>

@@ -58,6 +58,8 @@ enum OfferStatus {
 model User {
   id String @id @default(uuid())
   name String @default("Havana neighbour")
+  // ISO country code (GH, NG, KE): sets the currency of their listings and which listings they see.
+  country String @default("GH")
   area String?
   latitude Float?
   longitude Float?
@@ -96,6 +98,8 @@ model OtpChallenge {
   linkUserId String?
   // How the code reached the user (dev | brevo | webhook); only real channels prove ownership.
   channel String @default("dev")
+  // Country chosen on the login screen; used for a new account when the login is an email.
+  country String @default("GH")
   attempts Int @default(0)
   expiresAt DateTime
   createdAt DateTime @default(now())
@@ -121,6 +125,9 @@ model Item {
   swap Boolean
   price Int?
   swapValue Int?
+  // Copied from the owner when listed: prices are whole units of this currency (GHS, NGN, KES).
+  country String @default("GH")
+  currency String @default("GHS")
   photos String[]
   area String
   latitude Float?
@@ -135,6 +142,7 @@ model Item {
   swapConversations Conversation[] @relation("swapItem")
   orders Order[]
   @@index([status,hidden,createdAt])
+  @@index([country,status])
   @@index([ownerId])
 }
 model Swipe {

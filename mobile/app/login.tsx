@@ -5,6 +5,13 @@ import { api } from '../src/api';
 import { useSession } from '../src/session';
 import { LoginType, useLoginMethods } from '../src/login-methods';
 import {
+  COUNTRIES,
+  COUNTRY_CODES,
+  COUNTRY_LABELS,
+  CountryCode,
+  guessCountry,
+} from '../src/countries';
+import {
   Button,
   C,
   Chips,
@@ -19,7 +26,8 @@ import {
 export default function Login() {
   const [chosen, setType] = useState<LoginType>('PHONE'),
     [value, setValue] = useState(''),
-    [code, setCode] = useState('');
+    [code, setCode] = useState(''),
+    [country, setCountry] = useState<CountryCode>(guessCountry);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   useEffect(() => {
     const shown = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
@@ -38,6 +46,7 @@ export default function Login() {
       api<{ challengeId: string; devCode?: string }>('/auth/request', 'POST', {
         type,
         value: value.trim(),
+        country,
       }),
   });
   const verify = useMutation({
@@ -65,7 +74,7 @@ export default function Login() {
         {!keyboardVisible && (
           <>
             <T style={{ color: C.leaf, fontSize: 12, letterSpacing: 3 }}>
-              ACCRA’S SECOND-HAND SWEET SPOT
+              AFRICA’S SECOND-HAND SWEET SPOT
             </T>
             <Title>Good things.{'\n'}New stories.</Title>
             <T style={{ color: C.muted, lineHeight: 24 }}>
@@ -84,13 +93,20 @@ export default function Login() {
               disabled={send.isPending}
             />
           )}
+          <Chips
+            values={COUNTRY_CODES}
+            labels={COUNTRY_LABELS}
+            value={country}
+            onChange={(next) => setCountry(next as CountryCode)}
+            disabled={send.isPending}
+          />
           {phoneOff && (
             <T style={{ color: C.muted, fontSize: 13 }}>
               Phone login is coming soon. Sign in with your email for now.
             </T>
           )}
           <Field
-            label={type === 'PHONE' ? 'Your Ghana phone number' : 'Your email'}
+            label={type === 'PHONE' ? `Your ${COUNTRIES[country].name} phone number` : 'Your email'}
             value={value}
             onChangeText={setValue}
             editable={!send.isPending}
@@ -102,7 +118,7 @@ export default function Login() {
             }}
             autoCorrect={false}
             autoComplete={type === 'PHONE' ? 'tel' : 'email'}
-            placeholder={type === 'PHONE' ? '0541234567' : 'you@example.com'}
+            placeholder={type === 'PHONE' ? COUNTRIES[country].example : 'you@example.com'}
           />
           <Button
             title={send.isPending ? 'Sending…' : 'Send my code →'}

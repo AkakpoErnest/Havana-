@@ -1,9 +1,12 @@
 import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsEnum, IsIn, IsInt, IsNumber, IsOptional, IsString, IsUUID, Length, Matches, Max, MaxLength, Min } from 'class-validator';
 import { Category, Condition, Direction, IdentityType, ItemStatus, Mode } from '@prisma/client';
 import { Type } from 'class-transformer';
+import { COUNTRY_CODES, CountryCode } from './countries';
 export class OtpDto {
   @IsEnum(IdentityType) type!: IdentityType;
   @IsString() @Length(5,254) value!: string;
+  /** Country for local phone numbers ("0712…") and for new accounts made with email. Defaults to Ghana. */
+  @IsOptional() @IsIn(COUNTRY_CODES) country?: CountryCode;
 }
 export class VerifyDto {
   @IsUUID() challengeId!: string;
@@ -11,6 +14,7 @@ export class VerifyDto {
 }
 export class ProfileDto {
   @IsOptional() @IsString() @Length(2,60) name?: string;
+  @IsOptional() @IsIn(COUNTRY_CODES) country?: CountryCode;
   @IsOptional() @IsString() @Length(2,80) area?: string;
   @IsOptional() @IsNumber() @Min(-90) @Max(90) latitude?: number;
   @IsOptional() @IsNumber() @Min(-180) @Max(180) longitude?: number;

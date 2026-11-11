@@ -13,6 +13,8 @@ export type Item = {
   price: number | null;
   swapValue: number | null;
   photos: string[];
+  country?: string;
+  currency?: string;
   area: string;
   status: string;
   hidden: boolean;
@@ -22,6 +24,7 @@ export type Item = {
 export type User = {
   id: string;
   name: string;
+  country?: string;
   area: string | null;
   latitude: number | null;
   longitude: number | null;
