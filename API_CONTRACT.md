@@ -4,7 +4,7 @@ Written by Claude from the backend code in `backend/src`. Last updated 2026-09-2
 **The code is the source of truth.** If you change a route, update this file in the same step.
 
 - Base URL: `EXPO_PUBLIC_API_URL`, e.g. `http://192.168.1.20:3000`. There is **no** `/api` prefix.
-- JSON everywhere except `POST /uploads` (multipart). Money is whole Ghana cedis (integers).
+- JSON everywhere except `POST /uploads` (multipart). Money is whole units (integers) of the listing's `currency`: `GHS` (Ghana), `NGN` (Nigeria) or `KES` (Kenya).
 - Auth: `Authorization: Bearer <token>` (JWT, 30 days). 🔒 marks routes that need a token.
 - **Location privacy:** items you don't own never include `latitude/longitude` (they're `null`), and `distanceKm` is rounded to 0.5 km. You see your own items' coordinates.
 - Public pages: `GET /privacy` (privacy policy) and `GET /account-deletion`.
@@ -23,7 +23,7 @@ Written by Claude from the backend code in `backend/src`. Last updated 2026-09-2
 |---|---|---|---|
 | GET | `/health` | | `{ok:true, app:'Havana'}` |
 | GET | `/auth/methods` | | `{email:boolean, phone:boolean}`: which login types this server can deliver codes for. Only offer those in the app. |
-| POST | `/auth/request` | `{type:'PHONE'\|'EMAIL', value}` | `{challengeId, expiresIn:300, devCode?}` (devCode only when `DEV_OTP=true`; the code is also logged) |
+| POST | `/auth/request` | `{type:'PHONE'\|'EMAIL', value, country?:'GH'\|'NG'\|'KE'}` | `{challengeId, expiresIn:300, devCode?}` (devCode only when `DEV_OTP=true`; the code is also logged) |
 | POST | `/auth/verify` | `{challengeId, code}` | `{token, user:{id,name}}`. Creates the account on first login. |
 | POST 🔒 | `/auth/link/request` | `{type, value}` | same as `/auth/request` (backup login) |
 | POST 🔒 | `/auth/link/verify` | `{challengeId, code}` | `{token, user}` (same account, now with 2 identities) |
@@ -32,7 +32,9 @@ Written by Claude from the backend code in `backend/src`. Last updated 2026-09-2
 (`DEV_OTP=true`: code logged and returned as `devCode`). `devCode` is **only** present for dev-mode deliveries.
 With no channel for a type, `/auth/request` returns 503 `PHONE_LOGIN_UNAVAILABLE` / `EMAIL_LOGIN_UNAVAILABLE`.
 
-Phone numbers are normalised: `0541234567`, `233541234567` and `054 123 4567` all become `+233541234567`.
+Phone numbers are normalised: `0541234567`, `233541234567` and `054 123 4567` all become `+233541234567`. Local numbers (leading `0`) use `country` (default `GH`): `0712345678` with `KE` becomes `+254712345678`, `08031234567` with `NG` becomes `+2348031234567`. International forms (`+254…`, `254…`, `00254…`) pick their own country. A new account's `country` comes from its phone number, or from `country` for email logins.
+
+**Countries.** Users and listings have `country` (`GH`/`NG`/`KE`, default `GH`). A listing copies its owner's country and gets that country's `currency`. `PATCH /me` accepts `country`. The feed only shows listings from the viewer's country.
 You can request a new code once a minute per identifier. A code expires after 5 minutes or 5 wrong attempts.
 A user can have at most one PHONE and one EMAIL identity. Each IP gets 20 requests per minute on `/auth/*`.
 
@@ -40,7 +42,7 @@ A user can have at most one PHONE and one EMAIL identity. Each IP gets 20 reques
 | Method | Path | Body | Returns |
 |---|---|---|---|
 | GET 🔒 | `/me` | | user (`id,name,area,latitude,longitude,createdAt`) + `identities[]` + `items[]` (all statuses, newest first) + `rating` (avg or null) + `ratingCount` |
-| PATCH 🔒 | `/me` | `{name?, area?, latitude?, longitude?}`. All optional; send lat and lng together. | same as `GET /me` (**changed**: it used to return `{id,name}`) |
+| PATCH 🔒 | `/me` | `{name?, country?, area?, latitude?, longitude?}`. All optional; send lat and lng together. | same as `GET /me` (**changed**: it used to return `{id,name}`) |
 | DELETE 🔒 | `/me` | `{confirm:"DELETE"}` | `{deleted:true}`. **Permanent.** Removes logins (phone/email become free), listings + their photos, chat texts (→ "Message deleted"), swipes/saves, ratings, reports, push tokens; name becomes "Deleted user". All existing tokens → 401 `ACCOUNT_DELETED`. Sign the user out after success. |
 | GET 🔒 | `/saved` | | items I swiped RIGHT on in SHOP (not hidden/removed) |
 | DELETE 🔒 | `/saved/:itemId` | | `{saved:false}` (unsave; the item stays out of the Shop feed) |
@@ -66,7 +68,7 @@ condition `NEW LIKE_NEW GOOD FAIR`, status `LIVE RESERVED SOLD SWAPPED REMOVED`,
 | GET 🔒 | `/feed?mode=SHOP\|SWAP&category=&latitude=&longitude=` | `{items: Item+distanceKm (max 30), needsCloset}` |
 
 The feed excludes my items and anything I've swiped on in that mode. SHOP shows only sellable items,
-SWAP only swappable ones. It ranks by distance (location order: `latitude/longitude` query → saved profile location from `PATCH /me` → central Accra),
+SWAP only swappable ones. It ranks by distance (location order: `latitude/longitude` query → saved profile location from `PATCH /me` → central Accra, Lagos or Nairobi for the viewer's country),
 then age, then (in SWAP) how close the value is to my closet.
 
 | Method | Path | Body | Returns |
@@ -118,7 +120,7 @@ uploads 20/h & 60/day · new chats 30/h & 200/day · reports 10/h & 30/day · ra
 
 The server sends these to the *other* person (title / body), always with `data: {conversationId, kind}`. Tapping should open `chat/[conversationId]`:
 - `message`: title = sender's name, body = the message text
-- `offer`: "New offer on <item>", "<name> offered GH₵<amount>. Accept, counter or decline."
+- `offer`: "New offer on <item>", "<name> offered GH₵<amount>. Accept, counter or decline." (amounts use the item's currency: `GH₵1,200`, `₦25,000`, `KSh 3,500`)
 - `offer_accepted` / `offer_declined`: "Offer accepted 🎉" / "Offer declined"
 - `match`: "It's a Havana Match! 🎉", "<name> wants to swap for your <item>. Say hello!"
 - `swap`: "Swap update" ("<name> agreed to the swap." / "confirmed the handover.") or "Swap done ✓"

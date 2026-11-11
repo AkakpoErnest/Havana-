@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="motion.css">
 </head>
 <body>
-  <!-- Background: motion.js fills .bg-float with these icons drifting upward (skipped under reduced motion). -->
+  <!-- Background: motion.js fills .bg-float with these icons drifting upward and switches them to match the section in view (skipped under reduced motion). -->
   <svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false">
     <defs>
       <symbol id="i-shoe" viewBox="0 0 24 24"><path d="M2 17v-5.5l4.5-1.5 3 3h4.5l7 2.5V17zM2 20h20"/></symbol>
@@ -28,7 +28,12 @@
       <symbol id="i-shirt" viewBox="0 0 24 24"><path d="M8 3 3 6l2 4 3-1v12h8V9l3 1 2-4-5-3a4 4 0 0 1-8 0z"/></symbol>
       <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-10.2A4.2 4.2 0 0 1 12 7.2a4.2 4.2 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z"/></symbol>
       <symbol id="i-swap" viewBox="0 0 24 24"><path d="M4 8h15l-4-4M20 16H5l4 4"/></symbol>
-      <symbol id="i-cedi" viewBox="0 0 24 24"><rect x="1.5" y="6" width="21" height="12" rx="6"/><path d="M10.5 9.2a3 3 0 1 0 0 5.6M9 7.8v8.4"/><path d="M15 12h3"/></symbol>
+      <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/></symbol>
+      <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 20V5M6 11l6-6 6 6"/></symbol>
+      <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-6.2-6.5-11.2a6.5 6.5 0 0 1 13 0C18.5 14.8 12 21 12 21z"/><circle cx="12" cy="9.8" r="2.3"/></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.5c0 4.6 3.2 8.2 7.5 9.5 4.3-1.3 7.5-4.9 7.5-9.5V6z"/><path d="m8.8 12 2.3 2.3 4.2-4.6"/></symbol>
+      <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9.5h8M8 12.5h5"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></symbol>
     </defs>
   </svg>
   <div class="bg-float" aria-hidden="true"></div>
@@ -45,7 +50,7 @@
   </header>
 
   <main id="main">
-    <section class="hero" aria-labelledby="hero-title">
+    <section class="hero" data-bg="hero" aria-labelledby="hero-title">
       <div class="hero-copy">
         <p class="eyebrow">Africa's second-hand sweet spot</p>
         <h1 id="hero-title">Good things.<br>New stories.</h1>
@@ -54,7 +59,7 @@
           <a class="btn btn-mango" href="#download">Get Havana for Android</a>
           <a class="btn btn-ghost" href="#how">See how it works</a>
         </div>
-        <p class="fineprint">Prices in GH₵. Pay each other directly with MoMo or cash on pickup.</p>
+        <p class="fineprint">Prices in your local currency: GH₵, ₦ or KSh. Pay each other directly with mobile money (MoMo, M-Pesa) or cash on pickup.</p>
       </div>
 
       <!-- CODEX: hero visual (start). Codex may replace this block's contents with artwork/motion; keep the outer div. -->
@@ -93,7 +98,7 @@
       <!-- CODEX: hero visual (end) -->
     </section>
 
-    <section id="how" class="section" aria-labelledby="how-title">
+    <section id="how" class="section" data-bg="how" aria-labelledby="how-title">
       <h2 id="how-title">Three ways to trade</h2>
       <div class="ways">
         <article class="way way-shop">
@@ -117,15 +122,15 @@
       </div>
     </section>
 
-    <section class="section section-tint" aria-labelledby="cats-title">
+    <section class="section section-tint" data-bg="cats" aria-labelledby="cats-title">
       <h2 id="cats-title">Find it on Havana</h2>
       <ul class="chips" role="list">
         <li>Clothes</li><li>Shoes</li><li>Bags</li><li>Furniture</li><li>Electronics</li><li>Household</li><li>Other good things</li>
       </ul>
-      <p class="section-note">Make room for something new: up to 6 photos (we keep them small to save your data), a price in whole cedis, and your area, from Osu to Madina.</p>
+      <p class="section-note">Make room for something new: up to 6 photos (we keep them small to save your data), a price in your local currency, and your area, from Osu to Westlands.</p>
     </section>
 
-    <section id="why" class="section" aria-labelledby="why-title">
+    <section id="why" class="section" data-bg="why" aria-labelledby="why-title">
       <p class="eyebrow">Why Havana?</p>
       <h2 id="why-title">Life changes. Good things can keep going.</h2>
       <p class="lede why-intro">Moving rooms, starting school, making space, or watching your budget? Havana brings local second-hand finds, offers, and swaps into one place.</p>
@@ -140,14 +145,14 @@
       <p class="why-local"><b>Built for everyday life in Africa, starting in Accra.</b> Think furnishing a student room in Madina, finding clothes near Osu, or passing on furniture when moving from East Legon. These are examples of how to use Havana; actual listings depend on what people post.</p>
     </section>
 
-    <section id="sell" class="section story" aria-labelledby="sell-title">
+    <section id="sell" class="section story" data-bg="sell" aria-labelledby="sell-title">
       <div>
         <p class="eyebrow">Less clutter. More possibility.</p>
         <h2 id="sell-title">Someone’s next find is already in your room.</h2>
         <p class="lede">The jacket you’ve outgrown. The chair that doesn’t fit. Give a good thing another chapter with someone nearby.</p>
         <ol class="steps">
           <li><b>Show what you’ve got.</b><span>Add up to six photos. Show the whole item, the details, and any wear so buyers know what to expect.</span></li>
-          <li><b>Choose how to trade.</b><span>Set a price in whole Ghana cedis, a swap value, or both. Add your area so people can find local listings.</span></li>
+          <li><b>Choose how to trade.</b><span>Set a price in your local currency (GH₵, ₦ or KSh), a swap value, or both. Add your area so people can find local listings.</span></li>
           <li><b>Work out the details in chat.</b><span>Answer questions, consider offers, and agree on a public meeting place. Inspect the item before money or goods change hands.</span></li>
         </ol>
       </div>
@@ -157,7 +162,7 @@
       </figure>
     </section>
 
-    <section class="section swap-detail" aria-labelledby="swap-title">
+    <section class="section swap-detail" data-bg="swap" aria-labelledby="swap-title">
       <p class="eyebrow">A good trade goes both ways</p>
       <h2 id="swap-title">Your jacket. Their speaker. A fresh start.</h2>
       <p class="lede">List something in your Swap Closet, then explore items you’d like in return. A match happens when you each want something from the other.</p>
@@ -174,11 +179,11 @@
     </section>
     <!-- CODEX: screenshots (end) -->
 
-    <section id="safety" class="section" aria-labelledby="safety-title">
+    <section id="safety" class="section" data-bg="safety" aria-labelledby="safety-title">
       <h2 id="safety-title">Good deals. Safe meetups.</h2>
       <ul class="safety" role="list">
         <li><b>Meet in public.</b> A busy, well-lit place is best.</li>
-        <li><b>Check before you pay.</b> Look the item over first, then pay with MoMo or cash.</li>
+        <li><b>Check before you pay.</b> Look the item over first, then pay with mobile money or cash.</li>
         <li><b>No payments in the app.</b> Havana never holds your money. Never send money in advance.</li>
         <li><b>Your location stays private.</b> Others see your area and a rough distance, never your exact spot.</li>
         <li><b>Report anything off.</b> Listings reported by several people are hidden and reviewed.</li>
@@ -186,25 +191,25 @@
       </ul>
     </section>
 
-    <section id="faq" class="section faq" aria-labelledby="faq-title">
+    <section id="faq" class="section faq" data-bg="faq" aria-labelledby="faq-title">
       <p class="eyebrow">Before your first find</p>
       <h2 id="faq-title">A few things to know.</h2>
       <details><summary>Can I download Havana today?</summary><p>Yes. The Android beta is available as a direct download from the <a href="#download">Get Havana</a> section. It is not a Play Store release yet.</p></details>
-      <details><summary>How do I pay for an item?</summary><p>Arrange the sale with the seller in chat. Meet in public, inspect the item, then pay the seller directly with MoMo or cash. Havana does not process payments or hold money.</p></details>
+      <details><summary>How do I pay for an item?</summary><p>Arrange the sale with the seller in chat. Meet in public, inspect the item, then pay the seller directly with mobile money (such as MoMo or M-Pesa) or cash. Havana does not process payments or hold money.</p></details>
       <details><summary>Do I have to swap, or can I just buy?</summary><p>You can browse Shop and buy without offering anything in return. For swaps, add an item to your Swap Closet so the other person has something to choose.</p></details>
       <details><summary>Can I negotiate the price?</summary><p>Yes. Open Haggle Mode to send an offer in chat. You can use the asking price or the suggested discounts, or enter an amount. The seller can accept, counter, or decline.</p></details>
-      <details><summary>Where is Havana available?</summary><p>Havana is built for cities across Africa. We’re starting in Accra, with listings organized by areas such as Osu, Madina, East Legon, Labone, Spintex, and Kaneshie. Distance is approximate; agree on the actual meeting place in chat.</p></details>
+      <details><summary>Where is Havana available?</summary><p>Havana is built for cities across Africa and is open in Ghana, Nigeria and Kenya, starting with Accra, Lagos and Nairobi. You see listings from your own country, by area (for example Osu, Lekki or Westlands). Distance is approximate; agree on the actual meeting place in chat.</p></details>
       <details><summary>Will other people see my exact location?</summary><p>Other users see your area and a rough distance rather than precise coordinates. You decide where to meet and what details to share in your conversation.</p></details>
       <details><summary>What phones does the Android beta support?</summary><p>The preview requires Android 7 or newer and an internet connection. An iPhone download is not available yet. Availability updates will be posted on this page.</p></details>
       <details><summary>How do I report a listing or delete my account?</summary><p>Report a listing from its detail page in the app. To remove your account, use “Delete account” in your profile or read the <a href="https://havana-api.onrender.com/account-deletion">account deletion information</a>. Our <a href="https://havana-api.onrender.com/privacy">privacy policy</a> explains how account data is handled.</p></details>
     </section>
 
-    <section id="download" class="section download" aria-labelledby="download-title">
+    <section id="download" class="section download" data-bg="download" aria-labelledby="download-title">
       <h2 id="download-title">Get Havana</h2>
       <p>The Android beta is here. Browse local finds, list what you no longer need, and give swapping a try.</p>
       <!-- DOWNLOAD: APK lives in R2 (downloads/havana-beta.apk); see website/HANDOFF.md, "Download gate". -->
       <div class="download-box">
-        <a class="btn btn-mango" href="https://pub-38685ea331f04213b729c1d948db3253.r2.dev/downloads/havana-beta.apk" download>Download for Android (APK, 106 MB)</a>
+        <a class="btn btn-mango" href="https://pub-38685ea331f04213b729c1d948db3253.r2.dev/downloads/havana-beta.apk?v=2" download>Download for Android (APK, 106 MB)</a>
         <p class="fineprint">Android 7 or newer. iPhone comes later.</p>
         <p class="fineprint">After it downloads, open the file and tap <b>Allow from this source</b>, then <b>Install</b>.</p>
       </div>
