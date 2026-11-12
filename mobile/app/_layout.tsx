@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -9,7 +9,7 @@ import { useFonts } from 'expo-font';
 import { BricolageGrotesque_500Medium } from '@expo-google-fonts/bricolage-grotesque/500Medium';
 import { BricolageGrotesque_700Bold } from '@expo-google-fonts/bricolage-grotesque/700Bold';
 import { SessionProvider, useSession } from '../src/session';
-import { C, ErrorBox, Loading, Page } from '../src/ui';
+import { Button, C, ErrorBox, Loading, Page, T } from '../src/ui';
 import { api } from '../src/api';
 import { User } from '../src/types';
 import { LaunchIntro } from '../src/LaunchIntro';
@@ -21,8 +21,31 @@ void SplashScreen.preventAutoHideAsync().catch(() => {});
 const client = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 15000 }, mutations: { retry: false } },
 });
+/** Opening the app while signed in: a sleeping server can take a minute to answer `/me`. After 20 s,
+ *  offer a retry and a way out, so nobody is stuck looking at a spinner. */
+function StartupWait({ retry, signOut }: { retry: () => void; signOut: () => void }) {
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setStuck(true), 20_000);
+    return () => clearTimeout(timer);
+  }, []);
+  return (
+    <Page>
+      <Loading />
+      {stuck && (
+        <View style={{ gap: 10 }}>
+          <T style={{ color: C.muted, textAlign: 'center' }}>
+            Still waiting. Check your internet connection, or try again.
+          </T>
+          <Button title="Try again" onPress={retry} />
+          <Button title="Log out" outline onPress={signOut} />
+        </View>
+      )}
+    </Page>
+  );
+}
 function Routes() {
-  const { ready, signedIn } = useSession();
+  const { ready, signedIn, signOut } = useSession();
   const profile = useQuery({
     queryKey: ['me'],
     queryFn: () => api<User>('/me'),
@@ -35,9 +58,13 @@ function Routes() {
     return profile.error ? (
       <Page>
         <ErrorBox error={profile.error} retry={() => void profile.refetch()} />
+        <Button title="Log out" outline onPress={() => void signOut()} />
       </Page>
     ) : (
-      <Loading />
+      <StartupWait
+        retry={() => void profile.refetch({ cancelRefetch: true })}
+        signOut={() => void signOut()}
+      />
     );
   }
   return (
