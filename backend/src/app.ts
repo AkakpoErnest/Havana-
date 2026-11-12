@@ -18,7 +18,7 @@ import { AdminGuard, Moderation } from './admin';
 import { Accounts } from './account';
 import { LocationPrivacy } from './privacy';
 import { LegalController } from './legal';
-import { ConversationDto, FeedDto, ListingDto, MessagesDto, ProfileDto, PushCleanupDto, DeleteAccountDto, PushTokenDto, OfferActionDto, OfferDto, OtpDto, RatingDto, ReportDto, StatusDto, SwapActionDto, SwipeDto, TextDto, VerifyDto } from './dto';
+import { ConversationDto, FeedDto, ListingDto, MessagesDto, ProfileDto, PushCleanupDto, DeleteAccountDto, PushTokenDto, OfferActionDto, OfferDto, OtpDto, RatingDto, ReportDto, StatusDto, SwapActionDto, SwipeDto, TextDto, VerifyDto,BrowseDto } from './dto';
 import { ErrorCodes, coded } from './errors';
 @Controller()
 @UseGuards(OtpRateGuard)
@@ -74,6 +74,7 @@ class ApiController {
   @Delete('me') deleteAccount(@Req() r:AuthedRequest,@Body() d:DeleteAccountDto) { void d; return this.accounts.delete(r.userId); }
   @Patch('me') profile(@Req() r:AuthedRequest,@Body() d:ProfileDto) { return this.market.profile(r.userId,d,r.trusted); }
   @Get('feed') feed(@Req() r:AuthedRequest,@Query() q:FeedDto) { return this.market.feed(r.userId,q); }
+  @Get('browse') browse(@Req() r:AuthedRequest,@Query() q:BrowseDto) { return this.market.browse(r.userId,q); }
   @Get('saved') saved(@Req() r:AuthedRequest) { return this.market.saved(r.userId); }
   @Delete('saved/:itemId') unsave(@Req() r:AuthedRequest,@Param('itemId',ParseUUIDPipe) itemId:string) { return this.market.unsave(r.userId,itemId); }
   @Limit('listing','new listings',{max:10,seconds:HOUR},{max:30,seconds:DAY}) @Post('items') create(@Req() r:AuthedRequest,@Body() d:ListingDto) { return this.market.create(r.userId,d); }

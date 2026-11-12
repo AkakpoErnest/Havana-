@@ -60,3 +60,35 @@ services:
       - path: /assets/*
         name: Cache-Control
         value: public, max-age=604800
+
+  # Havana web app: the same Expo app as the APK, built for browsers, so people without Android
+  # (iPhone, laptop) can sign in. Free static site; talks to havana-api like the phone app.
+  - type: web
+    name: havana-app
+    runtime: static
+    rootDir: mobile
+    buildCommand: npm ci && npx expo export --platform web --output-dir dist
+    staticPublishPath: dist
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: EXPO_PUBLIC_API_URL
+        value: https://havana-api.onrender.com
+      - key: EXPO_NO_TELEMETRY
+        value: "1"
+    routes:
+      # Single-page app: every path (e.g. /chat/123 after a reload) loads index.html and the router takes over.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /_expo/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable

@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { Db } from './db';
-import { FeedDto, ListingDto, ProfileDto, SwipeDto } from './dto';
+import { BrowseDto, FeedDto, ListingDto, ProfileDto, SwipeDto } from './dto';
 import { coded } from './errors';
 import { Push } from './push';
 import { isAdminIdentity } from './admin';
@@ -59,6 +59,24 @@ export class Market {
     }).sort((a,b)=>a.score-b.score).slice(0,30);
     // The ranking score stays server-side: it encodes distance (SEC-003).
     return {items:ranked.map(r=>r.item),needsCloset:q.mode==='SWAP'&&!closet.length};
+  }
+  async browse(userId:string,q:BrowseDto) {
+    const user=await this.db.user.findUniqueOrThrow({where:{id:userId},select:{latitude:true,longitude:true,country:true}});
+    const home=isCountry(user.country)?user.country:DEFAULT_COUNTRY;
+    const words=q.q?.trim();
+    const items=await this.db.item.findMany({where:{ownerId:{not:userId},country:home,status:'LIVE',hidden:false,kind:'ITEM',category:q.category,
+      ...(q.trade==='sell'?{sell:true}:q.trade==='swap'?{swap:true}:{}),
+      ...(words?{OR:[{title:{contains:words,mode:'insensitive'}},{description:{contains:words,mode:'insensitive'}},{area:{contains:words,mode:'insensitive'}}]}:{})},
+      include:{owner:{select:ownerSelect}},orderBy:{createdAt:'desc'},take:500});
+    const [lat,lon]=q.latitude!=null&&q.longitude!=null?[q.latitude,q.longitude]:user.latitude!=null&&user.longitude!=null?[user.latitude,user.longitude]:[...COUNTRIES[home].center];
+    // SEC-003: distances come from the item's grid cell, like the swipe feed.
+    const withKm=items.map(item=>({...item,distanceKm:item.latitude!=null&&item.longitude!=null?roundDistance(distance(lat,lon,gridCell(item.latitude),gridCell(item.longitude))):null}));
+    const price=(i:{sell:boolean;price:number|null;swapValue:number|null})=>(i.sell?i.price:i.swapValue)??0;
+    if(q.sort==='near') withKm.sort((a,b)=>(a.distanceKm??1e9)-(b.distanceKm??1e9));
+    if(q.sort==='price_low') withKm.sort((a,b)=>price(a)-price(b));
+    if(q.sort==='price_high') withKm.sort((a,b)=>price(b)-price(a));
+    const page=withKm.slice(q.offset,q.offset+20);
+    return {items:page,nextOffset:q.offset+20<withKm.length?q.offset+20:null};
   }
   async status(userId:string,id:string,status:'LIVE'|'RESERVED'|'SOLD'|'SWAPPED'|'REMOVED') {
     return this.db.atomic(async tx=>{
