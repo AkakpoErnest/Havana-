@@ -110,7 +110,7 @@ export class Market {
     const item=await tx.item.findUnique({where:{id:itemId}});
     if(!item||!item.sell||item.hidden||item.status!=='LIVE'||item.ownerId===userId) throw new BadRequestException(coded('LISTING_UNAVAILABLE','This item is unavailable for buying.'));
     const matchKey=`shop:${userId}:${itemId}`;
-    return tx.conversation.upsert({where:{matchKey},update:{},create:{buyerId:userId,sellerId:item.ownerId,itemId,matchKey,messages:{create:{type:'SYSTEM',text:'Meet in public. Check the item before paying. Pay directly by MoMo or cash on pickup; Havana never collects payment.'}}},include:conversationInclude});
+    return tx.conversation.upsert({where:{matchKey},update:{},create:{buyerId:userId,sellerId:item.ownerId,itemId,matchKey,messages:{create:{type:'SYSTEM',text:'Meet in public. Check the item before paying. Pay directly by mobile money (MoMo, M-Pesa) or cash on pickup; Havana never collects payment.'}}},include:conversationInclude});
   }
   async report(userId:string,itemId:string,reason:string) {
     return this.db.atomic(async tx=>{
