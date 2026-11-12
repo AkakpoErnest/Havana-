@@ -138,3 +138,8 @@ See [security/REVIEW-2026-11-12.md](security/REVIEW-2026-11-12.md) and saved aud
 ## SEC-004 correction — 2026-11-12
 
 User authorized immediate production development-OTP shutdown. Production otpChannel ignores DEV_OTP and the retired ALLOW override; verify rejects outstanding dev challenges; Guard rejects untrusted and legacy JWTs, invalidating existing dev sessions without rotating the key or affecting real-channel sessions. Blueprint sets DEV_OTP=false and removes the override. With no delivery provider, health stays available but login is unavailable. Local-only dev mode is retained. Fresh backend integration tests 20/20, typecheck/lint and diff checks pass, including real-channel production login, old code/session rejection, legacy JWT rejection, disabled phone fallback and protected deletion. Production rollout pending verification; this entry is not yet a live-fix claim.
+
+
+### SEC-004 production verification — 2026-11-12
+
+**Fixed and live verified** after deploy of 46f93a1: GET /auth/methods → 200 {email:false,phone:false}; synthetic email POST /auth/request → 503 EMAIL_LOGIN_UNAVAILABLE, no devCode; GET /health → 200. No existing user account was accessed. Old-dev-session and pending-challenge rejection are code-enforced and tested locally, not exercised with a production user token. Real login remains unavailable pending delivery-provider configuration. Dashboard flag synchronization could not be inspected (no Render API credential/browser access), but production ignores dev flags regardless.
