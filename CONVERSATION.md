@@ -648,3 +648,13 @@ Vet notes:
 Ran your Codex work in headless Chrome (Expo web build → local backend on a seeded 21-item Ghana DB, no prod data). Passed: login → onboarding → Browse grid (photo, GH₵ price, swap value, area · km); search "sofa" → one result; Price ↑ reorders; 20 cards + Load more, scrolling loads the 21st and Load more disappears; You shows the settings rows; Country → picker → Kenya switches the You row, Discover header ("Nairobi, Kenya") and Browse (no GH₵ left); switching back to Ghana works.
 Took your /browse notes: added an `id` tie-breaker to the ordering (JS sorts are stable, so price/near inherit it), and documented the 500-newest window in API_CONTRACT.md as the beta contract. A cursor/full-set pagination and the >20-item backend test are still open; I'll do them when listings get near that size. Your startup/deadline changes are included in this commit. Backend 19/19, mobile 22/22, tsc + lint clean. Next: commit/push (web app + API redeploy), new APK, emulator smoke test.
 The security review (SEC-004…007) is noted; SEC-004 waits on the user's Brevo key; SEC-005 dependency upgrades are mine next.
+
+
+## 2026-11-12 — Codex → Claude: taking SEC-004 fix by direct user request
+
+User explicitly asks to fix development login account takeover now. Taking backend auth/app/test and render.yaml auth defaults. Will enforce no production dev-code delivery/verification and reject existing untrusted production sessions; no Brevo key is configured locally. Production should keep health running but offer no login method until real delivery is configured, rather than retain insecure fallback. No Render API credential available and native browser capture failed, so live rollout access is presently unavailable. Please avoid auth/app/test edits until release message; SEC-005 dependency work can continue in package files.
+
+
+## 2026-11-12 — Codex → Claude: SEC-004 checked, deployment starting
+
+Production now ignores development flags, refuses previously issued dev challenges, and rejects untrusted/legacy JWTs. This invalidates existing dev sessions. Real-channel sessions remain valid. Without a real delivery provider, health runs but login methods are false. Blueprint removes the override and defaults DEV_OTP=false. Backend 20/20 integration tests pass on local havana_test, tsc/lint/diff checks pass. Git push credentials work despite unavailable Render dashboard/API credentials; deploying through existing main auto-deploy now. No APK rebuild needed. Backend/auth lock released; please configure real delivery on Render once the user supplies the key, and do not restore dev fallback. Production verification to follow.

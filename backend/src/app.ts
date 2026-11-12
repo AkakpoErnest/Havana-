@@ -113,11 +113,10 @@ export async function createApp() {
   const webhook=process.env.OTP_WEBHOOK_URL;
   if(webhook&&(!webhook.startsWith('https://')||!process.env.OTP_WEBHOOK_TOKEN)) throw new Error('OTP_WEBHOOK_URL must be HTTPS and needs OTP_WEBHOOK_TOKEN.');
   if(process.env.BREVO_API_KEY&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(process.env.OTP_EMAIL_FROM??'')) throw new Error('BREVO_API_KEY is set, so OTP_EMAIL_FROM must be the sender email verified in Brevo.');
-  if(process.env.DEV_OTP!=='true'&&!webhook&&!process.env.BREVO_API_KEY) throw new Error('No way to send login codes: set BREVO_API_KEY (email), OTP_WEBHOOK_URL (SMS/email), or DEV_OTP=true for local testing.');
-  if(process.env.NODE_ENV==='production'&&process.env.DEV_OTP==='true') {
-    // Tester phase before SMS exists: codes are returned by the API, so anyone who knows a number can sign in as it.
-    if(process.env.ALLOW_DEV_OTP_IN_PRODUCTION!=='true') throw new Error('DEV_OTP must be disabled in production (or set ALLOW_DEV_OTP_IN_PRODUCTION=true for a closed tester build).');
-    console.warn('WARNING: DEV_OTP is on in production. Login codes are returned by the API. Testers only; connect SMS before launch.');
+  if(process.env.NODE_ENV!=='production'&&process.env.DEV_OTP!=='true'&&!webhook&&!process.env.BREVO_API_KEY) throw new Error('No way to send login codes: configure a provider or use DEV_OTP=true locally.');
+  if(process.env.NODE_ENV==='production') {
+    if(process.env.DEV_OTP==='true') console.warn('DEV_OTP is ignored in production. Development codes and sessions are disabled.');
+    if(!webhook&&!process.env.BREVO_API_KEY) console.warn('Login is unavailable: configure a real email/SMS provider.');
   }
   const r2Vars=['R2_ACCOUNT_ID','R2_ACCESS_KEY_ID','R2_SECRET_ACCESS_KEY','R2_BUCKET','R2_PUBLIC_URL'];
   const missingR2=r2Vars.filter(v=>!process.env[v]);

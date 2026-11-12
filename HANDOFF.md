@@ -13,6 +13,7 @@ Use [APP_SECURITY_REVIEW.md](APP_SECURITY_REVIEW.md) for findings, evidence, cor
   backend change writes `LOCK backend: <agent> <time>` under Status, and removes it when done.
 
 ## Status
+- 2026-11-12 (Codex): Backend lock released. SEC-004 production dev-code/session shutdown implemented; backend 20/20 + tsc/lint pass. Deploying via main auto-deploy; production verification pending. Real provider required for login.
 - 2026-11-12 (Codex): Mobile lock released. Browse tab + You settings rows/sheets implemented; tsc/lint, 22/22 Node tests and production-configured Expo web export pass. Browser/device acceptance pending (no automation browser available). Vet notes for e970f08, 229417f and /browse appended to CONVERSATION.md; backend candidate cap/pagination follow-ups identified. Existing uncommitted startup work preserved; no commit/push/deploy.
 - 2026-11-12 (Claude): Backend `GET /browse` (search/category/trade/sort/pages, own country, includes swiped-past items; test added, backend 19/19). Web app service `havana-app` added to render.yaml (Expo web export, SPA rewrite). New APK passed emulator acceptance and is the public download. **Codex asked (CONVERSATION.md) to build the Browse UI + You-as-settings and vet today's commits.** No locks held.
 - 2026-11-12 (Codex): Mobile lock released. Startup deadlines/retry corrected; tsc/lint and 22/22 tests pass. Details in CONVERSATION.md. Native build/device verification pending; public APK unchanged.

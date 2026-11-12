@@ -14,7 +14,7 @@ type OtpChannel='brevo'|'webhook'|'dev';
 export function otpChannel(type:'EMAIL'|'PHONE'):OtpChannel|null {
   if(type==='EMAIL'&&process.env.BREVO_API_KEY) return 'brevo';
   if(process.env.OTP_WEBHOOK_URL) return 'webhook';
-  if(process.env.DEV_OTP==='true') return 'dev';
+  if(process.env.NODE_ENV!=='production'&&process.env.DEV_OTP==='true') return 'dev';
   return null;
 }
 export const loginMethods=()=>({email:otpChannel('EMAIL')!==null,phone:otpChannel('PHONE')!==null});
@@ -80,7 +80,7 @@ export class Auth {
   async verify(dto:VerifyDto, linkUserId?:string, linkTrusted=false) {
     const result=await this.db.atomic(async tx=>{
       const challenge=await tx.otpChallenge.findUnique({where:{id:dto.challengeId}});
-      if(!challenge || challenge.expiresAt<new Date() || challenge.attempts>=5 || (challenge.linkUserId??undefined)!==linkUserId) return null;
+      if(!challenge || (process.env.NODE_ENV==='production'&&challenge.channel==='dev') || challenge.expiresAt<new Date() || challenge.attempts>=5 || (challenge.linkUserId??undefined)!==linkUserId) return null;
       const valid=timingSafeEqual(Buffer.from(challenge.hash,'hex'),Buffer.from(this.hash(challenge.value,dto.code),'hex'));
       if(!valid) { await tx.otpChallenge.update({where:{id:challenge.id},data:{attempts:{increment:1}}}); return null; }
       let identity=await tx.authIdentity.findUnique({where:{value:challenge.value}});
@@ -108,6 +108,8 @@ export class Guard implements CanActivate {
     try {
       if(!token) throw new Error();
       const payload=this.jwt.verify<{sub:string;trusted?:boolean}>(token);
+      // Invalidate existing dev-issued (and legacy unmarked) sessions after production cutover.
+      if(process.env.NODE_ENV==='production'&&payload.trusted!==true) throw new Error();
       req.userId=payload.sub; req.trusted=payload.trusted===true;
     }
     catch { throw new UnauthorizedException('Please sign in again.'); }

@@ -5,6 +5,7 @@ import request from 'supertest';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import sharp from 'sharp';
 import { Db } from '../src/db';
+import { JwtService } from '@nestjs/jwt';
 import { createApp } from '../src/app';
 import { OtpRateGuard, normalize } from '../src/auth';
 import { FULL_MAX_BYTES, thumbOf } from '../src/photos';
@@ -521,4 +522,49 @@ test('browse lists every live listing in my country, with search, filters, sorti
   assert.ok(near.every((i:{distanceKm:number},n:number)=>n===0||near[n-1].distanceKm<=i.distanceKm));
   assert.equal((await http.get('/browse').set(as(buyer)).expect(200)).body.nextOffset,null);
   await http.get('/browse?sort=cheapest').set(as(buyer)).expect(400);
+});
+
+test('production ignores dev overrides, rejects outstanding dev challenges and sessions, and uses real delivery',async()=>{
+  const keys=['NODE_ENV','DEV_OTP','ALLOW_DEV_OTP_IN_PRODUCTION','BREVO_API_KEY','OTP_EMAIL_FROM','OTP_WEBHOOK_URL'];
+  const saved=Object.fromEntries(keys.map(key=>[key,process.env[key]]));
+  const realFetch=globalThis.fetch;
+  const resetRate=()=> (app.get(OtpRateGuard) as unknown as {buckets:Map<string,unknown>}).buckets.clear();
+  resetRate();
+  const old=await login('sec004-old@test.com');
+  const pending=await http.post('/auth/request').send({type:'EMAIL',value:'sec004-pending@test.com'}).expect(201);
+  try {
+    process.env.NODE_ENV='production';
+    process.env.DEV_OTP='true';
+    process.env.ALLOW_DEV_OTP_IN_PRODUCTION='true';
+    delete process.env.BREVO_API_KEY; delete process.env.OTP_EMAIL_FROM; delete process.env.OTP_WEBHOOK_URL;
+    assert.deepEqual((await http.get('/auth/methods').expect(200)).body,{email:false,phone:false});
+    const unavailable=await http.post('/auth/request').send({type:'EMAIL',value:'sec004-off@test.com'}).expect(503);
+    assert.equal(unavailable.body.devCode,undefined);
+    await http.post('/auth/verify').send({challengeId:pending.body.challengeId,code:pending.body.devCode}).expect(401);
+    await http.get('/me').set(as(old)).expect(401);
+    const legacy=app.get(JwtService).sign({sub:old.id});
+    await http.get('/me').set({Authorization:`Bearer ${legacy}`}).expect(401);
+    await http.delete('/me').set(as(old)).send({confirm:'DELETE'}).expect(401);
+    // A stale deploy flag must not restore fallback for phone login, even with email enabled.
+    process.env.BREVO_API_KEY='test-brevo-key';process.env.OTP_EMAIL_FROM='hello@havana.test';
+    let emailed='';
+    globalThis.fetch=(async(input:string|URL|Request,init?:RequestInit)=>{
+      if(String(input)==='https://api.brevo.com/v3/smtp/email') {
+        emailed=JSON.parse(String(init!.body)).subject.match(/^(\d{6}) /)[1];
+        return new Response('{"messageId":"sec004"}',{status:201});
+      }
+      return realFetch(input,init);
+    }) as typeof fetch;
+    assert.deepEqual((await http.get('/auth/methods').expect(200)).body,{email:true,phone:false});
+    await http.post('/auth/request').send({type:'PHONE',value:'0712345678',country:'KE'}).expect(503);
+    const challenge=await http.post('/auth/request').send({type:'EMAIL',value:'sec004-real@test.com'}).expect(201);
+    assert.equal(challenge.body.devCode,undefined);
+    const verified=await http.post('/auth/verify').send({challengeId:challenge.body.challengeId,code:emailed}).expect(201);
+    await http.get('/me').set({Authorization:`Bearer ${verified.body.token}`}).expect(200);
+    await http.get('/health').expect(200);
+  } finally {
+    globalThis.fetch=realFetch;
+    for(const key of keys) { if(saved[key]===undefined) delete process.env[key]; else process.env[key]=saved[key]; }
+    resetRate();
+  }
 });

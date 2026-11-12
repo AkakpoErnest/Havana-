@@ -49,7 +49,7 @@ Open `backend/.env`. Replace `JWT_SECRET` with your own random secret, at least 
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-Keep `DEV_OTP=true` for testing. Then run:
+Keep `DEV_OTP=true` for local testing only. Then run:
 
 ```sh
 npm run db:generate
@@ -206,7 +206,7 @@ All routes except health and login require `Authorization: Bearer <token>`. Toke
 - Feed ranks up to the 500 freshest eligible listings, returning 30 by distance + freshness + swap-value similarity. Missing GPS uses central Accra; unknown item locations rank lower. This is appropriate for the Accra v1 dataset, not an unbounded marketplace search engine.
 - Chat polls every 3 seconds while mounted and retains fetched messages on connection errors. Mutations are not automatically retried; uploads and unsent form data remain on screen on failure. There are no push notifications or offline send queue.
 - Uploaded files live in `backend/uploads`; keep this folder and PostgreSQL backed up together. Orphan upload cleanup, moderation tooling, account recovery/removal and multi-server rate limits are future operational work. Inbox returns the latest 100 conversations.
-- `DEV_OTP=true` exposes codes intentionally for local testing. Production startup rejects this setting. To send real codes, disable it and configure an HTTPS `OTP_WEBHOOK_URL` and `OTP_WEBHOOK_TOKEN`; your provider adapter must accept authenticated JSON `{type,value,code}` and deliver the message. No paid SMS/email service is configured. OTPs expire in five minutes and permit five wrong guesses; per-IP and per-identity request limits apply.
+- `DEV_OTP=true` exposes codes intentionally for local testing. Production ignores this setting and always rejects development challenges and untrusted/legacy sessions; the old ALLOW_DEV_OTP_IN_PRODUCTION override has no effect. To send real codes, disable it and configure an HTTPS `OTP_WEBHOOK_URL` and `OTP_WEBHOOK_TOKEN`; your provider adapter must accept authenticated JSON `{type,value,code}` and deliver the message. No paid SMS/email service is configured. OTPs expire in five minutes and permit five wrong guesses; per-IP and per-identity request limits apply.
 - Local HTTP is enabled for development APKs. Use HTTPS and disable Android cleartext traffic in the build-properties plugin before publishing. This repository is a testable v1, not a deployed public service.
 
 ## Deploy (Render + Neon + Cloudflare R2)
@@ -239,12 +239,13 @@ They are never committed. The Render blueprint asks for `DATABASE_URL`, `DIRECT_
 5. Keep it awake (optional): a free uptime monitor (e.g. UptimeRobot) on `https://havana-api.onrender.com/health`
    every 5–10 min.
 
-**Before a public launch:** `DEV_OTP=true` + `ALLOW_DEV_OTP_IN_PRODUCTION=true` (set in `render.yaml`) make the
-API return login codes, so anyone who knows a phone number could sign in as that person. Instead:
-- **Email login (free):** create a Brevo account, verify a sender address, and set `BREVO_API_KEY` + `OTP_EMAIL_FROM`
-  on Render. Then set `DEV_OTP=false` and delete `ALLOW_DEV_OTP_IN_PRODUCTION`. Email codes are emailed, and phone login shows
-  "coming soon" (`GET /auth/methods` → `{email:true, phone:false}`).
+**Production authentication:** development codes are disabled regardless of `DEV_OTP` or the retired
+`ALLOW_DEV_OTP_IN_PRODUCTION` flag. Existing development/legacy sessions are rejected, so testers must sign in again through a real delivery channel. Health remains available with no provider, but both login methods are unavailable.
+- **Email login:** verify a sender in Brevo and set `BREVO_API_KEY` + `OTP_EMAIL_FROM` on Render.
+  Keep `DEV_OTP=false` and remove `ALLOW_DEV_OTP_IN_PRODUCTION`. Verify an actual delivered email code,
+  no `devCode` in the response, and `/auth/methods` → `{email:true, phone:false}` when no SMS provider is configured.
 - **Phone login:** connect an SMS provider through `OTP_WEBHOOK_URL` / `OTP_WEBHOOK_TOKEN`.
+- Do not restore the development override to fix delivery errors. Configure the provider instead.
 
 ## Push notifications
 

@@ -133,3 +133,8 @@ SEC-002: independently inspected retire(), register(), recover() and notificatio
 ## Broader review — 2026-11-12
 
 See [security/REVIEW-2026-11-12.md](security/REVIEW-2026-11-12.md) and saved audit JSON files for new SEC-004 (development OTP account takeover/configuration), SEC-005 (request/image decoder dependencies), SEC-006 (no server logout revocation), and SEC-007 (preview signing/cleartext settings). Ordered evidence, remediation and verification limits are recorded there. No production settings or implementation changed in this audit.
+
+
+## SEC-004 correction — 2026-11-12
+
+User authorized immediate production development-OTP shutdown. Production otpChannel ignores DEV_OTP and the retired ALLOW override; verify rejects outstanding dev challenges; Guard rejects untrusted and legacy JWTs, invalidating existing dev sessions without rotating the key or affecting real-channel sessions. Blueprint sets DEV_OTP=false and removes the override. With no delivery provider, health stays available but login is unavailable. Local-only dev mode is retained. Fresh backend integration tests 20/20, typecheck/lint and diff checks pass, including real-channel production login, old code/session rejection, legacy JWT rejection, disabled phone fallback and protected deletion. Production rollout pending verification; this entry is not yet a live-fix claim.

@@ -16,14 +16,13 @@ services:
         value: 22
       - key: JWT_SECRET
         generateValue: true
-      # Until a real SMS/email OTP provider is connected, login codes are shown in the app.
-      # Anyone who knows a phone number could log in as that person, so only share with testers.
+      # Production never returns development codes; configure real email delivery before login is available.
       - key: DEV_OTP
-        value: "true"
-      # Render runs with NODE_ENV=production, where DEV_OTP is refused unless this explicit opt-in is set.
-      # Remove both once the SMS OTP webhook is configured.
-      - key: ALLOW_DEV_OTP_IN_PRODUCTION
-        value: "true"
+        value: "false"
+      - key: BREVO_API_KEY
+        sync: false
+      - key: OTP_EMAIL_FROM
+        sync: false
       - key: DATABASE_URL       # Neon pooled connection string
         sync: false
       - key: DIRECT_URL         # Neon direct connection string (migrations)

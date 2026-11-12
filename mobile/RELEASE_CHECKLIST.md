@@ -74,3 +74,10 @@ The generated project uses a development signing key for this local preview. Sto
 - Claude reports a fresh Kenya-flow emulator acceptance on the multi-country APK; see HANDOFF.md for artifact details. Two-phone and native push acceptance remain separate checks.
 - APK is publicly downloadable per Claude’s update; real OTP delivery remains the highest-priority deployment follow-up. The blueprint’s development defaults do not prove the current live settings.
 - Privacy/account-deletion pages already exist; confirm final policy wording, terms, support contact and store materials rather than treating page creation as unfinished.
+
+
+## Production authentication cutover (SEC-004)
+
+- Production refuses development codes and development/legacy sessions even if stale DEV_OTP/ALLOW flags remain. Testers must sign in again using delivered codes.
+- Configure a verified Brevo sender and BREVO_API_KEY/OTP_EMAIL_FROM (or real SMS webhook) on Render. Without a provider, login stays unavailable; never restore the old override.
+- After deploying, confirm /auth/methods matches configured delivery, no devCode is returned, a real delivered code logs in, and an old development token receives 401. No APK rebuild is needed for this backend enforcement.
