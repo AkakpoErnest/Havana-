@@ -66,6 +66,7 @@ condition `NEW LIKE_NEW GOOD FAIR`, status `LIVE RESERVED SOLD SWAPPED REMOVED`,
 | Method | Path | Returns |
 |---|---|---|
 | GET 🔒 | `/feed?mode=SHOP\|SWAP&category=&latitude=&longitude=` | `{items: Item+distanceKm (max 30), needsCloset}` |
+| GET 🔒 | `/browse?q=&category=&trade=all\|sell\|swap&sort=new\|near\|price_low\|price_high&offset=&latitude=&longitude=` | `{items: Item+distanceKm, nextOffset: number\|null}`: 20 per page. Covers the newest 500 matching live listings in my country (not mine; includes ones I swiped past), sorted within that window. |
 
 The feed excludes my items and anything I've swiped on in that mode. SHOP shows only sellable items,
 SWAP only swappable ones. It ranks by distance (location order: `latitude/longitude` query → saved profile location from `PATCH /me` → central Accra, Lagos or Nairobi for the viewer's country),

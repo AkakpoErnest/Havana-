@@ -15,6 +15,7 @@ export default function TabLayout() {
       {(
         [
           ['index', 'Discover', 'sparkles-outline'],
+          ['browse', 'Browse', 'grid-outline'],
           ['list', 'Sell / Swap', 'add-circle-outline'],
           ['inbox', 'Inbox', 'chatbubbles-outline'],
           ['profile', 'You', 'person-outline'],

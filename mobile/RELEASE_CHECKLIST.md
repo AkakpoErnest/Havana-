@@ -6,7 +6,7 @@ Track cross-agent findings and verification in [APP_SECURITY_REVIEW.md](../APP_S
 
 Preview APK and production builds use `https://havana-api.onrender.com` through `eas.json`. Local Expo uses `mobile/.env`; set `EXPO_PUBLIC_API_URL` there to the hosted URL if testing away from the laptop, then restart Expo.
 
-The app allows 75 seconds for API requests and 90 seconds for uploads. After eight seconds, login and loading screens explain that connecting can take about a minute. Requests that modify data are not automatically retried.
+Startup profile requests allow 20 seconds with manual retry; saved-login reads allow 10 seconds with a retryable error. Other API requests allow 75 seconds and uploads 90 seconds. Deadlines cover response-body reads as well as headers. After eight seconds, login and loading screens explain that connecting can take about a minute. Requests that modify data are not automatically retried.
 
 Brand assets live in `assets/`. A new native build is required to see the icon and native splash changes; Expo Go is not a reliable native splash preview. See [Expo's splash guidance](https://docs.expo.dev/develop/user-interface/splash-screen-and-app-icon/).
 
@@ -36,7 +36,9 @@ The generated project uses a development signing key for this local preview. Sto
 - Turn off networking, try login or refresh, and confirm a useful error appears and retry works after reconnecting.
 - Use a new account: complete name and area, restart, and confirm onboarding stays completed.
 - Publish a listing on web and Android: while uploading, fields/toggles and photo removal must stay locked. A failed publish retains the draft.
-- Type a profile name/area draft, then save location; the draft must remain. Edits typed while an earlier profile save is pending must also remain.
+- You → Name / Area: save each independently, confirm fields lock during save and failed saves retain the draft. Country → pick GH/NG/KE, confirm the row updates and Discover/Browse refresh for that country.
+- Browse on Android, iPhone and web: search, category/trade/sort, more than 20 results, load-more failure/retry, open item then Back, empty/error states.
+- You on web and phones: open/close every settings sheet, deny location (or let it time out), save location, manage listing status, saved items, backup login, admin reports, cancel account deletion, and log out. Confirm sheets dismiss when opening an item.
 - Upload a photo and check its previews in the feed/profile, then open the listing and confirm the full photo loads.
 - On two phones: send an offer, accept/counter it, swap, and exchange chat messages. Check the keyboard does not cover the composer.
 - While a login or backup code request is pending, the phone/email selector and destination field must stay locked. During verification, the code and restart button must stay locked. Restarting a failed attempt clears the old code and error.

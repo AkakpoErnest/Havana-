@@ -14,6 +14,7 @@ import { api } from '../src/api';
 import { User } from '../src/types';
 import { LaunchIntro } from '../src/LaunchIntro';
 import { usePushNotifications } from '../src/notifications';
+import Constants from 'expo-constants';
 import * as SplashScreen from 'expo-splash-screen';
 
 // Keep the native brand screen visible until fonts and the first app frame are ready.
@@ -32,6 +33,7 @@ function StartupWait({ retry, signOut }: { retry: () => void; signOut: () => voi
   return (
     <Page>
       <Loading />
+      <StartupVersion />
       {stuck && (
         <View style={{ gap: 10 }}>
           <T style={{ color: C.muted, textAlign: 'center' }}>
@@ -44,27 +46,51 @@ function StartupWait({ retry, signOut }: { retry: () => void; signOut: () => voi
     </Page>
   );
 }
+function StartupVersion() {
+  return (
+    <T style={{ color: C.muted, textAlign: 'center' }}>
+      Havana {Constants.nativeAppVersion ?? Constants.expoConfig?.version ?? 'unknown'} · startup
+      fix 1
+    </T>
+  );
+}
 function Routes() {
-  const { ready, signedIn, signOut } = useSession();
+  const { ready, signedIn, signOut, startupError, retryStartup } = useSession();
   const profile = useQuery({
     queryKey: ['me'],
-    queryFn: () => api<User>('/me'),
+    queryFn: ({ signal }) => api<User>('/me', 'GET', undefined, { timeoutMs: 20_000, signal }),
+    retry: false,
     enabled: ready && signedIn,
   });
   const needsOnboarding = profile.data?.name === 'Havana neighbour';
   usePushNotifications(signedIn && !!profile.data && !needsOnboarding);
-  if (!ready) return <Loading />;
+  const retryProfile = async () => {
+    await client.cancelQueries({ queryKey: ['me'], exact: true });
+    void profile.refetch();
+  };
+  if (startupError)
+    return (
+      <Page>
+        <ErrorBox error={startupError} retry={retryStartup} />
+        <StartupVersion />
+      </Page>
+    );
+  if (!ready)
+    return (
+      <Page>
+        <Loading />
+        <StartupVersion />
+      </Page>
+    );
   if (signedIn && !profile.data) {
     return profile.error ? (
       <Page>
-        <ErrorBox error={profile.error} retry={() => void profile.refetch()} />
+        <StartupVersion />
+        <ErrorBox error={profile.error} retry={() => void retryProfile()} />
         <Button title="Log out" outline onPress={() => void signOut()} />
       </Page>
     ) : (
-      <StartupWait
-        retry={() => void profile.refetch({ cancelRefetch: true })}
-        signOut={() => void signOut()}
-      />
+      <StartupWait retry={() => void retryProfile()} signOut={() => void signOut()} />
     );
   }
   return (

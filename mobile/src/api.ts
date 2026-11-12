@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import { withDeadline } from './deadline';
 export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? '').replace(/\/$/, '');
 let token: string | null = null;
 let expired: (() => void) | undefined;
@@ -21,7 +22,11 @@ const tokenStore =
         remove: () => SecureStore.deleteItemAsync(TOKEN_KEY),
       };
 export async function loadToken() {
-  token = await tokenStore.get();
+  token = await withDeadline(
+    () => tokenStore.get(),
+    10_000,
+    'Could not open your saved login. Please try again.',
+  );
   return token;
 }
 export async function saveToken(value: string | null) {
@@ -48,42 +53,50 @@ export class ApiError extends Error {
     super(message);
   }
 }
-export async function api<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
+export async function api<T>(
+  path: string,
+  method = 'GET',
+  body?: unknown,
+  options?: { timeoutMs?: number; signal?: AbortSignal },
+): Promise<T> {
   if (!API_URL)
     throw new Error(
       'Set EXPO_PUBLIC_API_URL in mobile/.env to your laptop’s Wi-Fi address, then restart Expo.',
     );
-  let response: Response;
-  const controller = new AbortController();
-  // Allow the hosted API to wake after idle; uploads get extra time on slow connections.
-  const timeout = setTimeout(() => controller.abort(), body instanceof FormData ? 90_000 : 75_000);
-  try {
-    response = await fetch(API_URL + path, {
-      method,
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
-      },
-      body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
-      signal: controller.signal,
-    });
-  } catch {
-    throw new Error(
-      'Cannot reach Havana right now. Check your internet connection and try again in a moment.',
-    );
-  } finally {
-    clearTimeout(timeout);
-  }
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    if (response.status === 401 && !path.startsWith('/auth/')) expired?.();
-    throw new ApiError(
-      Array.isArray(data.message)
-        ? data.message.join('\n')
-        : (data.message ?? 'Something went wrong. Please retry.'),
-      response.status,
-      typeof data.code === 'string' ? data.code : undefined,
-    );
-  }
-  return data as T;
+  return withDeadline(
+    async (signal) => {
+      let response: Response;
+      try {
+        response = await fetch(API_URL + path, {
+          method,
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...(body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+          },
+          body:
+            body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
+          signal,
+        });
+      } catch {
+        throw new Error(
+          'Cannot reach Havana right now. Check your internet connection and try again in a moment.',
+        );
+      }
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (response.status === 401 && !path.startsWith('/auth/')) expired?.();
+        throw new ApiError(
+          Array.isArray(data.message)
+            ? data.message.join('\n')
+            : (data.message ?? 'Something went wrong. Please retry.'),
+          response.status,
+          typeof data.code === 'string' ? data.code : undefined,
+        );
+      }
+      return data as T;
+    },
+    options?.timeoutMs ?? (body instanceof FormData ? 90_000 : 75_000),
+    'Cannot reach Havana right now. Check your internet connection and try again in a moment.',
+    options?.signal,
+  );
 }

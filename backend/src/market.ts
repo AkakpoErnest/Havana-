@@ -67,7 +67,7 @@ export class Market {
     const items=await this.db.item.findMany({where:{ownerId:{not:userId},country:home,status:'LIVE',hidden:false,kind:'ITEM',category:q.category,
       ...(q.trade==='sell'?{sell:true}:q.trade==='swap'?{swap:true}:{}),
       ...(words?{OR:[{title:{contains:words,mode:'insensitive'}},{description:{contains:words,mode:'insensitive'}},{area:{contains:words,mode:'insensitive'}}]}:{})},
-      include:{owner:{select:ownerSelect}},orderBy:{createdAt:'desc'},take:500});
+      include:{owner:{select:ownerSelect}},orderBy:[{createdAt:'desc'},{id:'desc'}],take:500});
     const [lat,lon]=q.latitude!=null&&q.longitude!=null?[q.latitude,q.longitude]:user.latitude!=null&&user.longitude!=null?[user.latitude,user.longitude]:[...COUNTRIES[home].center];
     // SEC-003: distances come from the item's grid cell, like the swipe feed.
     const withKm=items.map(item=>({...item,distanceKm:item.latitude!=null&&item.longitude!=null?roundDistance(distance(lat,lon,gridCell(item.latitude),gridCell(item.longitude))):null}));
