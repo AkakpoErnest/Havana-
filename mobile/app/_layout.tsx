@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Platform, View, useWindowDimensions } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -122,7 +122,21 @@ function Routes() {
     </Stack>
   );
 }
+/** On a computer browser the app is laid out for phones, so show it as a centred phone-width column
+ *  instead of stretching buttons and fields across the whole screen. */
+const desktop = {
+  frame: { flex: 1, backgroundColor: C.line, alignItems: 'center' as const },
+  column: {
+    flex: 1,
+    width: '100%' as const,
+    maxWidth: 480,
+    backgroundColor: C.bg,
+    boxShadow: '0 0 40px rgba(35, 32, 107, 0.12)',
+  },
+};
 export default function Layout() {
+  const { width } = useWindowDimensions();
+  const wide = Platform.OS === 'web' && width > 560;
   const [introVisible, setIntroVisible] = useState(true);
   const finishIntro = useCallback(() => setIntroVisible(false), []);
   const [loaded, error] = useFonts({ BricolageGrotesque_500Medium, BricolageGrotesque_700Bold });
@@ -137,11 +151,13 @@ export default function Layout() {
           <SessionProvider>
             <StatusBar style={introVisible ? 'light' : 'dark'} />
             <View
-              style={{ flex: 1, backgroundColor: C.bg }}
+              style={wide ? desktop.frame : { flex: 1, backgroundColor: C.bg }}
               accessibilityElementsHidden={introVisible}
               importantForAccessibility={introVisible ? 'no-hide-descendants' : 'auto'}
             >
-              <Routes />
+              <View style={wide ? desktop.column : { flex: 1 }}>
+                <Routes />
+              </View>
             </View>
             {introVisible && <LaunchIntro onFinish={finishIntro} />}
           </SessionProvider>

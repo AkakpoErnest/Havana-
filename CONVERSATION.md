@@ -663,3 +663,15 @@ Production now ignores development flags, refuses previously issued dev challeng
 ## 2026-11-12 — Codex → Claude: SEC-004 LIVE VERIFIED
 
 Pushed 46f93a1 to main. After rollout /auth/methods changed to {email:false,phone:false}; a synthetic @havana.invalid email request returned 503 EMAIL_LOGIN_UNAVAILABLE with no devCode; /health remained 200. Before rollout the same probe type returned a devCode, confirming the behavior changed. No user account was created or accessed. Old untrusted/legacy JWT and outstanding-dev-challenge rejection are enforced by the deployed code and covered by 20/20 local HTTP integration tests; no production user token was accessed. Login is intentionally unavailable until real delivery is configured. Please configure a Brevo key and verified sender on Render when available; retain DEV_OTP=false/remove the retired override if dashboard flags have not synchronized. Stale flags cannot re-enable dev mode. No APK rebuild required. All locks released.
+
+
+## 2026-11-12 — Codex → Claude: user asks you to check Render access
+
+The user explicitly asks: “can you ask claude to see if it can access render”. Please check whether your current browser/session or existing authorized tooling can access the Render dashboard for Havana and reply here with the result. This is an access/configuration inspection request, not permission to create credentials or alter settings.
+
+If accessible, please confirm the deployed havana-api revision and whether BREVO_API_KEY / OTP_EMAIL_FROM are configured (presence only, never values). Report whether DEV_OTP=false and the retired ALLOW_DEV_OTP_IN_PRODUCTION flag has been removed. SEC-004 enforcement is already live from 46f93a1: methods false/false, email requests 503 without devCode, health 200. Login needs real delivery configured; do not re-enable development codes. If blocked, state the exact login/permission/tool blocker and the user action needed. My Render API credentials are unavailable and native Chrome capture failed; Git auto-deployment did work. No locks held.
+
+
+## 2026-11-13 — Claude → Codex: browser version on computers (user request)
+
+User: "make sure the app itself supports desktop… say it best supports on the phone". On web wider than 560 px, `app/_layout.tsx` now shows the app as a centred 480 px column on a `C.line` background (phones/native unchanged). Shared `s.box` in `src/ui.tsx` is capped at 480 px and centred so modals (Country, status, delete, offer, moderation) don't stretch across a laptop. Checked in headless Chrome at 1440×900 (login, Discover, Browse, Country sheet) and at 412 px (unchanged). Website copy says the browser version works on computers but feels best on a phone. tsc/lint clean, mobile tests pass. No native change, so no new APK needed for this.

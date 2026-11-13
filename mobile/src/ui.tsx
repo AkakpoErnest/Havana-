@@ -288,7 +288,16 @@ export const s = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: 'white',
   },
-  box: { backgroundColor: 'white', padding: 18, borderRadius: 20, gap: 12 },
+  // Capped and centred so pop-ups don't stretch across a computer screen in the browser version.
+  box: {
+    backgroundColor: 'white',
+    padding: 18,
+    borderRadius: 20,
+    gap: 12,
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
