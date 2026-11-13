@@ -7,3 +7,4 @@ expo-env.d.ts
 # Generated native project and local APK artifacts
 /android/
 /artifacts/
+store/*.aab

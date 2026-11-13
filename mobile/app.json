@@ -21,7 +21,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#23206B",
         "monochromeImage": "./assets/monochrome-icon.png"
-      }
+      },
+      "versionCode": 1
     },
     "plugins": [
       "expo-router",
@@ -66,7 +67,8 @@
           "color": "#23206B",
           "defaultChannel": "default"
         }
-      ]
+      ],
+      "./plugins/withReleaseSigning"
     ],
     "experiments": {
       "typedRoutes": true
