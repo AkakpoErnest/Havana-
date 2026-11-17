@@ -1,0 +1,52 @@
+/* "Why Havana?" (Claude): six reason cards with a small drawn icon each. Kept calm on purpose:
+   cards fade up once, each icon plays one short animation, and a gentle lift on hover. */
+.why-card { position: relative; overflow: hidden; border-top: 4px solid var(--accent, var(--brand)); transition: transform .25s ease, box-shadow .25s ease; }
+.why-card h3 { margin: 0 0 8px; }
+@media (hover: hover) { .why-card:hover { transform: translateY(-4px); box-shadow: 0 18px 40px rgba(35, 32, 107, .12); } }
+
+.why-ico { display: grid; place-items: center; width: 60px; height: 60px; margin-bottom: 16px; border-radius: 18px; background: var(--accent, var(--brand)); }
+.why-ico svg { width: 38px; height: 38px; fill: none; stroke: #fff; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; overflow: visible; }
+.why-ico svg * { transform-box: view-box; }
+.why-ico .i-glow { fill: #fff; stroke: none; opacity: .18; }
+.why-ico .i-ripple { stroke-width: 2; opacity: .5; }
+
+.why-mango { --accent: var(--mango); }
+.why-leaf { --accent: var(--leaf); }
+.why-pink { --accent: var(--pink); }
+.why-brand { --accent: var(--brand); }
+.why-mango .why-ico svg { stroke: var(--ink); }
+
+/* Entrance: only when JS is on (.why-on), so without JS everything is simply visible. */
+.why-on .why-card { opacity: 0; transform: translateY(26px); transition: opacity .6s ease, transform .6s cubic-bezier(.2, .7, .3, 1), box-shadow .25s ease; }
+.why-on .why-card:nth-child(3n + 2) { transition-delay: .08s; }
+.why-on .why-card:nth-child(3n + 3) { transition-delay: .16s; }
+.why-on .why-card.is-in { opacity: 1; transform: none; }
+@media (hover: hover) { .why-on .why-card.is-in:hover { transform: translateY(-4px); transition-delay: 0s; } }
+
+/* One short icon animation per card, played as the card arrives. */
+.why-card.is-in .i-tag { transform-origin: 17px 18px; animation: why-swing 1.1s ease-out .3s both; }
+.why-card.is-in .i-flap-l { transform-origin: 10px 21px; animation: why-flap-l .7s ease-out .35s both; }
+.why-card.is-in .i-flap-r { transform-origin: 38px 21px; animation: why-flap-r .7s ease-out .45s both; }
+.why-card.is-in .i-swap { transform-origin: 24px 24px; animation: why-turn .9s cubic-bezier(.5, 0, .3, 1) .35s both; }
+.why-card.is-in .i-pin { animation: why-drop .8s cubic-bezier(.3, 1.4, .5, 1) .3s both; }
+.why-card.is-in .i-ripple { transform-origin: 24px 40px; animation: why-ripple .9s ease-out .7s both; }
+.why-card.is-in .i-dot { animation: why-dot .5s ease-in-out .3s 3 both; }
+.why-card.is-in .i-dot:nth-of-type(2) { animation-delay: .45s; }
+.why-card.is-in .i-dot:nth-of-type(3) { animation-delay: .6s; }
+.why-card.is-in .i-glow { animation: why-glow .9s ease-out .4s both; }
+.why-card.is-in .i-ray { animation: why-glow-ray .9s ease-out .4s both; }
+
+@keyframes why-swing { 0% { transform: rotate(-35deg); } 40% { transform: rotate(14deg); } 70% { transform: rotate(-6deg); } 100% { transform: rotate(0); } }
+@keyframes why-flap-l { from { transform: rotate(-70deg); } to { transform: rotate(0); } }
+@keyframes why-flap-r { from { transform: rotate(70deg); } to { transform: rotate(0); } }
+@keyframes why-turn { from { transform: rotate(-180deg); } to { transform: rotate(0); } }
+@keyframes why-drop { from { transform: translateY(-16px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes why-ripple { from { transform: scale(.3); opacity: .9; } to { transform: scale(1.4); opacity: .35; } }
+@keyframes why-dot { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes why-glow { from { opacity: 0; transform: scale(.4); } to { opacity: .18; transform: none; } }
+@keyframes why-glow-ray { from { opacity: 0; } to { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .why-on .why-card { opacity: 1; transform: none; transition: none; }
+  .why-card.is-in * { animation: none !important; }
+}

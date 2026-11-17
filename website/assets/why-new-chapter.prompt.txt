@@ -1,0 +1,6 @@
+Generated with the built-in image_gen tool, 17 November 2026.
+
+Prompt:
+Create one premium 3D editorial illustration for Havana, an African local marketplace website. Wide landscape composition, roughly 3:2. A delightful sculptural still life of useful home objects finding a new chapter: an elegant low lounge chair with mango orange upholstery and light ash-wood frame, a curved hibiscus pink desk lamp, a compact deep indigo portable speaker with no logo, and a lush small leafy plant in a cream ceramic pot. Arrange the objects together naturally on a low rounded lavender display platform, viewed at a three-quarter angle, with beautiful dimensional depth, tactile matte ceramic, fabric and wood materials, soft ambient occlusion and studio shadows. High-end playful product design / polished Blender or clay render aesthetic, sophisticated not childish. Clean very pale lavender seamless background #EFEDF7. Objects fill most of frame but leave generous edge margins. Crisp silhouettes, warm soft directional light. No photography, no floating photo cards, no handbags, no headphones, no stools, no text, no letters, no numbers, no logos, no watermark. This is a brand-new dedicated illustration, not a website mockup. Return only artwork.
+
+Output: why-new-chapter.webp, 1200x800, 82448 bytes. Original generated PNG retained under Codex generated_images.

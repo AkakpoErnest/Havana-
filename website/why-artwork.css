@@ -1,0 +1,8 @@
+/* New artwork is separate from Claude's animated Why cards. */
+#why .why-artwork { margin: 30px auto 40px; max-width: 760px; }
+#why .why-artwork img { display: block; width: 100%; height: auto; border-radius: 28px; box-shadow: 0 20px 48px #23206b12; }
+#why .why-artwork figcaption { margin: 12px 8px 0; font-size: .75rem; text-align: center; color: var(--muted); }
+@media (max-width: 600px) {
+  #why .why-artwork { margin: 24px auto 30px; }
+  #why .why-artwork img { border-radius: 20px; }
+}

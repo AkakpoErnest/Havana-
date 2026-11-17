@@ -23,6 +23,8 @@ services:
         sync: false
       - key: OTP_EMAIL_FROM
         sync: false
+      - key: SUPPORT_EMAIL
+        value: korkuernest@gmail.com
       - key: DATABASE_URL       # Neon pooled connection string
         sync: false
       - key: DIRECT_URL         # Neon direct connection string (migrations)

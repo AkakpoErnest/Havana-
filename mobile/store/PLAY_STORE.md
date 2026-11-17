@@ -38,7 +38,7 @@ Play Console → **Create app**
 - Feature graphic: `feature-graphic.png` (1024×500)
 - Phone screenshots: everything in `screenshots/`
 
-**Category:** Shopping · **Email:** your support email · **Website:** https://havana-web.onrender.com
+**Category:** Shopping · **Email:** korkuernest@gmail.com · **Website:** https://havana-web.onrender.com
 
 ## 3. App content (Policy → App content)
 

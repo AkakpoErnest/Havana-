@@ -17,6 +17,8 @@
   <link rel="stylesheet" href="motion.css">
   <link rel="stylesheet" href="scrolly.css">
   <link rel="stylesheet" href="ring.css">
+  <link rel="stylesheet" href="why.css">
+  <link rel="stylesheet" href="why-artwork.css">
 </head>
 <body>
   <!-- Background: motion.js fills .bg-float with these icons drifting upward and switches them to match the section in view (skipped under reduced motion). -->
@@ -175,19 +177,54 @@
     </section>
     <!-- CODEX: categories ring (end) -->
 
+    <!-- WHY section: Claude (why.css, why.js). Animated icons are inline SVG, no photos. -->
     <section id="why" class="section" data-bg="why" aria-labelledby="why-title">
       <p class="eyebrow">Why Havana?</p>
-      <h2 id="why-title">Life changes. Good things can keep going.</h2>
-      <p class="lede why-intro">Moving rooms, starting school, making space, or watching your budget? Havana brings local finds, new and used, plus offers and swaps into one place.</p>
+      <h2 id="why-title">Life changes. Good things keep going.</h2>
+      <p class="lede why-intro">New room, new school, less space or a tighter budget? Find it, sell it or swap it, all in one place.</p>
+      <figure class="why-artwork">
+        <img src="assets/why-new-chapter.webp" width="1200" height="800" loading="lazy" alt="A 3D illustration of an orange lounge chair, pink lamp, indigo speaker and leafy plant, ready for a new home.">
+        <figcaption>A fresh start for good things. Illustration created for Havana.</figcaption>
+      </figure>
       <div class="reasons">
-        <article class="way"><p class="step-label">For your budget</p><h3>Find an option that fits</h3><p>When you need a chair, a pair of shoes, or something for your room, explore pre-loved options and discuss the price with the seller before deciding.</p></article>
-        <article class="way"><p class="step-label">For your space</p><h3>Pass on what you’ve outgrown</h3><p>Moving out or clearing a cupboard? List the things you no longer use so someone nearby can give them another home.</p></article>
-        <article class="way"><p class="step-label">For a fresh start</p><h3>Trade what you have for what you need</h3><p>If buying isn’t the right option, put an item in your Swap Closet. A mutual match lets two people exchange things they both want.</p></article>
-        <article class="way"><p class="step-label">For local connections</p><h3>Start with your neighbourhood</h3><p>Browse by category and see areas and approximate distances. Use chat to work out whether a meetup is practical before making the trip.</p></article>
-        <article class="way"><p class="step-label">For clearer conversations</p><h3>Keep the item and the offer together</h3><p>Ask about condition, send a price offer, and agree on details in the listing’s chat. Spend less effort piecing a deal together across separate messages.</p></article>
-        <article class="way"><p class="step-label">For another chapter</p><h3>Keep useful things in use</h3><p>A working lamp or a jacket with plenty of wear left doesn’t have to sit unused. Selling or swapping gives it a chance to be useful again.</p></article>
+        <article class="way why-card why-mango">
+          <div class="why-ico" aria-hidden="true"><svg viewBox="0 0 48 48"><g class="i-tag"><path d="M10 26V11h15l15 15-15 15z"/><circle cx="17" cy="18" r="2.6"/><path class="i-tag-string" d="M17 18 9 7"/></g></svg></div>
+          <p class="step-label">For your budget</p>
+          <h3>Pay less for good things</h3>
+          <p>Brand new or pre-loved, haggle a little and pay what feels fair.</p>
+        </article>
+        <article class="way why-card why-leaf">
+          <div class="why-ico" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="10" y="21" width="28" height="18" rx="2"/><path class="i-flap-l" d="M10 21 4 14h18l2 7"/><path class="i-flap-r" d="M38 21l6-7H26l-2 7"/><path d="M19 29h10"/></svg></div>
+          <p class="step-label">For your space</p>
+          <h3>Clear the cupboard</h3>
+          <p>List what you've outgrown, and someone nearby gives it a new home.</p>
+        </article>
+        <article class="way why-card why-pink">
+          <div class="why-ico" aria-hidden="true"><svg viewBox="0 0 48 48"><g class="i-swap"><path d="M10 18h26l-7-7"/><path d="M38 30H12l7 7"/></g></svg></div>
+          <p class="step-label">For a fresh start</p>
+          <h3>Swap, don't spend</h3>
+          <p>Fill your Swap Closet. When you both want each other's thing, it's a match.</p>
+        </article>
+        <article class="way why-card why-brand">
+          <div class="why-ico" aria-hidden="true"><svg viewBox="0 0 48 48"><ellipse class="i-ripple" cx="24" cy="40" rx="10" ry="3"/><g class="i-pin"><path d="M24 38s-11-10-11-19a11 11 0 0 1 22 0c0 9-11 19-11 19z"/><circle cx="24" cy="19" r="4"/></g></svg></div>
+          <p class="step-label">For your neighbourhood</p>
+          <h3>Start close to home</h3>
+          <p>See areas and rough distances, then meet somewhere public nearby.</p>
+        </article>
+        <article class="way why-card why-mango">
+          <div class="why-ico" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M7 10h34v22H18l-9 7v-7H7z"/><circle class="i-dot" cx="17" cy="21" r="2.4"/><circle class="i-dot" cx="24" cy="21" r="2.4"/><circle class="i-dot" cx="31" cy="21" r="2.4"/></svg></div>
+          <p class="step-label">For clear deals</p>
+          <h3>Haggle in one chat</h3>
+          <p>Questions, offers and pickup plans stay together with the listing.</p>
+        </article>
+        <article class="way why-card why-leaf">
+          <div class="why-ico" aria-hidden="true"><svg viewBox="0 0 48 48"><circle class="i-glow" cx="24" cy="27" r="13"/><path d="M15 21h18l-4-12H19z"/><path d="M24 21v17M16 40h16"/><path class="i-ray" d="M24 25v4M17 27l-2 3M31 27l2 3"/></svg></div>
+          <p class="step-label">For another chapter</p>
+          <h3>Give things a second life</h3>
+          <p>A good lamp or jacket shouldn't sit unused. Pass it on to a neighbour.</p>
+        </article>
       </div>
-      <p class="why-local"><b>Built for everyday life in Africa, starting in Accra.</b> Think furnishing a student room in Madina, finding clothes near Osu, or passing on furniture when moving from East Legon. These are examples of how to use Havana; actual listings depend on what people post.</p>
+      <p class="why-local"><b>Built for everyday life across Africa.</b> Think a student room in Madina, a phone in Yaba or a sofa in Westlands. These are examples; what you find depends on what neighbours and shops post.</p>
     </section>
 
     <section id="sell" class="section story" data-bg="sell" aria-labelledby="sell-title">
@@ -274,5 +311,6 @@
   <script src="motion.js" defer></script>
   <script src="scrolly.js" defer></script>
   <script src="ring.js" defer></script>
+  <script src="why.js" defer></script>
 </body>
 </html>
