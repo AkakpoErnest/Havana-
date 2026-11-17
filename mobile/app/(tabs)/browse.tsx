@@ -14,6 +14,7 @@ import {
   Field,
   Loading,
   Page,
+  ShopBadge,
   T,
   Title,
   categories,
@@ -28,6 +29,7 @@ export default function Browse() {
   const [trade, setTrade] = useState('all');
   const [sort, setSort] = useState('new');
   const [condition, setCondition] = useState('all');
+  const [seller, setSeller] = useState('all');
   const active = useScreenActive();
   const me = useQuery({ queryKey: ['me'], queryFn: () => api<User>('/me') });
   useEffect(() => {
@@ -44,12 +46,20 @@ export default function Browse() {
       category,
       trade,
       condition,
+      seller,
       sort,
     ],
     enabled: active && !!me.data,
     initialPageParam: 0,
     queryFn: ({ pageParam, signal }) => {
-      const params = new URLSearchParams({ q, trade, condition, sort, offset: String(pageParam) });
+      const params = new URLSearchParams({
+        q,
+        trade,
+        condition,
+        seller,
+        sort,
+        offset: String(pageParam),
+      });
       if (category !== 'ALL') params.set('category', category);
       return api<{ items: Item[]; nextOffset: number | null }>(
         `/browse?${params}`,
@@ -90,6 +100,14 @@ export default function Browse() {
           labels={{ all: 'New & used', new: 'Brand new', used: 'Used' }}
           value={condition}
           onChange={setCondition}
+        />
+      </View>
+      <View>
+        <Chips
+          values={['all', 'people', 'shops']}
+          labels={{ all: 'All sellers', people: 'People', shops: 'Shops' }}
+          value={seller}
+          onChange={setSeller}
         />
       </View>
       <View>
@@ -159,6 +177,7 @@ export default function Browse() {
                   : `Swap · ${money(item.swapValue, item.currency)}`}
               </T>
               <T numberOfLines={2}>{item.title}</T>
+              <ShopBadge show={item.owner.isShop} />
               <T style={{ fontSize: 12, color: C.muted }}>
                 {item.area}
                 {item.distanceKm != null ? ` · ${item.distanceKm} km` : ''}

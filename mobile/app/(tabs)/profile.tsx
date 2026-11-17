@@ -160,6 +160,7 @@ export default function Profile() {
         ['Country', `${countryOf(me.data?.country).flag} ${countryOf(me.data?.country).name}`],
         ['Name', me.data?.name ?? ''],
         ['Area', me.data?.area ?? 'Set your area'],
+        ['Selling as', me.data?.isShop ? 'Shop' : 'Person'],
         ['Saved location', me.data?.latitude != null ? 'Location saved' : 'Use your location'],
         ['Backup login', 'Manage'],
         ['My listings', String(me.data?.items.length ?? 0)],
@@ -262,6 +263,24 @@ export default function Profile() {
                         disabled={profile.isPending || !me.data}
                         onChange={(country) => {
                           if (country !== me.data?.country) profile.mutate({ country });
+                        }}
+                      />
+                    </>
+                  )}
+                  {sheet === 'Selling as' && (
+                    <>
+                      <T style={{ color: C.muted, fontSize: 13, lineHeight: 19 }}>
+                        Selling as a business? Choose Shop and buyers will see a Shop badge on your
+                        listings and chats.
+                      </T>
+                      <Chips
+                        values={['person', 'shop']}
+                        labels={{ person: 'Person', shop: 'Shop' }}
+                        value={me.data?.isShop ? 'shop' : 'person'}
+                        disabled={profile.isPending || !me.data}
+                        onChange={(v) => {
+                          if ((v === 'shop') !== !!me.data?.isShop)
+                            profile.mutate({ isShop: v === 'shop' });
                         }}
                       />
                     </>

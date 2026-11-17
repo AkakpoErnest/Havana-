@@ -72,7 +72,7 @@ condition `NEW LIKE_NEW GOOD FAIR`, status `LIVE RESERVED SOLD SWAPPED REMOVED`,
 | Method | Path | Returns |
 |---|---|---|
 | GET 🔒 | `/feed?mode=SHOP\|SWAP&category=&latitude=&longitude=` | `{items: Item+distanceKm (max 30), needsCloset}` |
-| GET 🔒 | `/browse?q=&category=&trade=all\|sell\|swap&condition=all\|new\|used&sort=new\|near\|price_low\|price_high&offset=&latitude=&longitude=` | `{items: Item+distanceKm, nextOffset: number\|null}`: 20 per page. Covers the newest 500 matching live listings in my country (not mine; includes ones I swiped past), sorted within that window. |
+| GET 🔒 | `/browse?q=&category=&trade=all\|sell\|swap&condition=all\|new\|used&seller=all\|people\|shops&sort=new\|near\|price_low\|price_high&offset=&latitude=&longitude=` | `{items: Item+distanceKm, nextOffset: number\|null}`: 20 per page. Covers the newest 500 matching live listings in my country (not mine; includes ones I swiped past), sorted within that window. |
 
 The feed excludes my items and anything I've swiped on in that mode. SHOP shows only sellable items,
 SWAP only swappable ones. It ranks by distance (location order: `latitude/longitude` query → saved profile location from `PATCH /me` → central Accra, Lagos or Nairobi for the viewer's country),
@@ -147,3 +147,5 @@ Everyone else gets 403 `NOT_ADMIN`.
 
 **Community rules (2026-11-17).** `PATCH /me` accepts `acceptTerms: true` (only `true`; sets `termsAcceptedAt`, returned by `GET /me`; null means the app must show the 18+ / rules step). `GET /auth/methods` → `{email, phone, supportEmail|null}`. Public pages: `/rules`, `/privacy`, `/account-deletion`. Listing title/description/area, profile name/area and chat text are screened: abusive wording (everywhere) and prohibited items (listings) → 400 `CONTENT_NOT_ALLOWED` with a friendly message. Saved locations (profile and listings) are stored as the ~1.1 km grid cell, so even the owner gets the rounded value back. Message push notifications say "New message about <item>" instead of the message text.
 
+
+**Shops (2026-11-17).** `PATCH /me {isShop: boolean}` (self-declared business seller). `isShop` is on `/me` and on every `owner` / `buyer` / `seller` object, so apps show a "Shop" badge. `/browse?seller=shops|people` filters by it.

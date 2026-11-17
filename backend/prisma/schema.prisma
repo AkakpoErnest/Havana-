@@ -67,6 +67,8 @@ model User {
   deletedAt DateTime?
   // When they confirmed they're 18+ and agreed to the community rules (onboarding). Null = not yet.
   termsAcceptedAt DateTime?
+  // Sells as a shop/business (self-declared): buyers see a "Shop" badge.
+  isShop Boolean @default(false)
   createdAt DateTime @default(now())
   identities AuthIdentity[]
   items Item[]

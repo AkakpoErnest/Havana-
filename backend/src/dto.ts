@@ -20,6 +20,7 @@ export class ProfileDto {
   @IsOptional() @IsNumber() @Min(-180) @Max(180) longitude?: number;
   /** "I'm 18 or older and agree to the community rules". Only `true` is accepted; it can't be withdrawn here. */
   @IsOptional() @Equals(true) acceptTerms?: true;
+  @IsOptional() @IsBoolean() isShop?: boolean;
 }
 export class ListingDto {
   @IsString() @Length(3,100) title!: string;
@@ -49,6 +50,8 @@ export class BrowseDto {
   @IsOptional() @IsIn(['all','sell','swap']) trade: 'all'|'sell'|'swap' = 'all';
   /** Brand new only, used only (any other condition), or both. */
   @IsOptional() @IsIn(['all','new','used']) condition: 'all'|'new'|'used' = 'all';
+  /** Everyone, private people only, or shops only. */
+  @IsOptional() @IsIn(['all','people','shops']) seller: 'all'|'people'|'shops' = 'all';
   @IsOptional() @Type(()=>Number) @IsInt() @Min(0) @Max(480) offset = 0;
   @IsOptional() @Type(()=>Number) @IsNumber() @Min(-90) @Max(90) latitude?: number;
   @IsOptional() @Type(()=>Number) @IsNumber() @Min(-180) @Max(180) longitude?: number;

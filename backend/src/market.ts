@@ -9,7 +9,7 @@ import { roundDistance } from './privacy';
 import { COUNTRIES, DEFAULT_COUNTRY, isCountry } from './countries';
 import { Safety } from './safety';
 import { assertAllowed } from './content';
-const ownerSelect={id:true,name:true} as const;
+const ownerSelect={id:true,name:true,isShop:true} as const;
 export const conversationInclude={item:true,swapItem:true,buyer:{select:ownerSelect},seller:{select:ownerSelect}} as const;
 /** Snap a coordinate to a 0.01° (~1.1 km) grid cell. */
 export const gridCell=(v:number)=>Math.round(v*100)/100;
@@ -75,6 +75,7 @@ export class Market {
     const items=await this.db.item.findMany({where:{ownerId:{notIn:[userId,...hidden]},country:home,status:'LIVE',hidden:false,kind:'ITEM',category:q.category,
       ...(q.trade==='sell'?{sell:true}:q.trade==='swap'?{swap:true}:{}),
       ...(q.condition==='new'?{condition:'NEW' as const}:q.condition==='used'?{condition:{not:'NEW' as const}}:{}),
+      ...(q.seller==='shops'?{owner:{isShop:true}}:q.seller==='people'?{owner:{isShop:false}}:{}),
       ...(words?{OR:[{title:{contains:words,mode:'insensitive'}},{description:{contains:words,mode:'insensitive'}},{area:{contains:words,mode:'insensitive'}}]}:{})},
       include:{owner:{select:ownerSelect}},orderBy:[{createdAt:'desc'},{id:'desc'}],take:500});
     const [lat,lon]=q.latitude!=null&&q.longitude!=null?[q.latitude,q.longitude]:user.latitude!=null&&user.longitude!=null?[user.latitude,user.longitude]:[...COUNTRIES[home].center];

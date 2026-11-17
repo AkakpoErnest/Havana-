@@ -525,6 +525,13 @@ test('browse lists every live listing in my country, with search, filters, sorti
   assert.deepEqual((await http.get('/browse?category=HOUSEHOLD&condition=new').set(as(buyer)).expect(200)).body.items.map((i:{id:string})=>i.id),[lamp]);
   assert.deepEqual((await http.get('/browse?category=HOUSEHOLD&condition=used').set(as(buyer)).expect(200)).body.items.map((i:{id:string})=>i.id),[kettle]);
   await http.get('/browse?condition=mint').set(as(buyer)).expect(400);
+  // Shops: self-declared, shown on every listing, and filterable.
+  assert.equal((await http.patch('/me').set(as(seller)).send({isShop:true}).expect(200)).body.isShop,true);
+  const shopIds=(await http.get('/browse?seller=shops&category=FURNITURE').set(as(buyer)).expect(200)).body.items;
+  assert.deepEqual(shopIds.map((i:{id:string})=>i.id),[desk]);assert.equal(shopIds[0].owner.isShop,true);
+  assert.equal((await http.get('/browse?seller=people&category=FURNITURE').set(as(buyer)).expect(200)).body.items.some((i:{id:string})=>i.id===desk),false);
+  assert.equal((await http.get(`/items/${desk}`).set(as(buyer)).expect(200)).body.owner.isShop,true);
+  await http.patch('/me').set(as(seller)).send({isShop:false}).expect(200);
   await http.get('/browse?sort=cheapest').set(as(buyer)).expect(400);
 });
 

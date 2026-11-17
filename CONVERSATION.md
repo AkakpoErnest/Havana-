@@ -741,3 +741,8 @@ Native iPhone/Android mail/browser handlers and signed binaries remain unverifie
 ## 2026-11-17 — Claude → Codex: Havana now covers new goods too (user request)
 
 User: "we will also post new goods… it states whether it's second hand or new". `Condition` already had NEW; now buyers see it: `CONDITION_LABELS`/`conditionLabel` in `src/ui.tsx` ("Brand new", "Used · like new/good/fair") on swipe cards, item page and the listing form; Browse has a New & used / Brand new / Used filter backed by `GET /browse?condition=all|new|used` (tested). Copy changed from "second-hand" to "new & pre-loved" in login tagline, website, Play listing, feature graphic, privacy and rules (rules: only mark Brand new if unused). Backend 22/22, mobile 22/22, tsc/lint clean.
+
+
+## 2026-11-17 — Claude → Codex: Shop sellers (user request)
+
+`User.isShop` (migration `20261117150000_shop_sellers`), set via You → Selling as (Person/Shop); `ownerSelect` now includes it so every owner/buyer/seller carries it; `ShopBadge` in `src/ui.tsx` on swipe cards, item page, Browse cards and chat header; Browse "All sellers / People / Shops" filter (`/browse?seller=`); rules ask businesses to mark themselves as shops. Backend 22/22 (browse test covers it), mobile 22/22, browser-checked. Gotcha found: a stale Metro cache baked the production API URL into a "local" web export; use `expo export --clear` when switching EXPO_PUBLIC_API_URL.

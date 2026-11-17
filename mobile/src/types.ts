@@ -19,10 +19,17 @@ export type Item = {
   status: string;
   hidden: boolean;
   distanceKm?: number | null;
-  owner: { id: string; name: string; rating?: number | null; ratingCount?: number };
+  owner: {
+    id: string;
+    name: string;
+    isShop?: boolean;
+    rating?: number | null;
+    ratingCount?: number;
+  };
 };
 export type User = {
   termsAcceptedAt: string | null;
+  isShop?: boolean;
   id: string;
   name: string;
   country?: string;
@@ -49,8 +56,8 @@ export type Conversation = {
   id: string;
   buyerId: string;
   sellerId: string;
-  buyer: { id: string; name: string };
-  seller: { id: string; name: string };
+  buyer: { id: string; name: string; isShop?: boolean };
+  seller: { id: string; name: string; isShop?: boolean };
   item: Item;
   swapItem: Item | null;
   buyerAgreed: boolean;

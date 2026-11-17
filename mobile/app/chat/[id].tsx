@@ -15,7 +15,7 @@ import { api, thumbUrl } from '../../src/api';
 import { ChatData, mergeHistory, mergeLatest } from '../../src/chat-cache';
 import { useScreenActive } from '../../src/useScreenActive';
 import { Message, User } from '../../src/types';
-import { Button, C, ErrorBox, Field, Loading, Page, T, money, s } from '../../src/ui';
+import { Button, C, ErrorBox, Field, Loading, Page, ShopBadge, T, money, s } from '../../src/ui';
 import { SafetySheet } from '../../src/SafetySheet';
 import { countryOf } from '../../src/countries';
 export default function ChatScreen() {
@@ -126,7 +126,10 @@ export default function ChatScreen() {
             style={{ width: 48, height: 48, borderRadius: 12 }}
           />
           <View style={{ flex: 1 }}>
-            <T style={{ fontFamily: 'BricolageGrotesque_700Bold' }}>{other?.name}</T>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <T style={{ fontFamily: 'BricolageGrotesque_700Bold' }}>{other?.name}</T>
+              <ShopBadge show={other?.isShop} />
+            </View>
             <T numberOfLines={1} style={{ fontSize: 12, color: C.muted }}>
               {c.item.title} · {c.swapItem ? 'Swap match' : money(c.item.price, c.item.currency)}
             </T>

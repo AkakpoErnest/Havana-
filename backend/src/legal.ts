@@ -42,7 +42,8 @@ export class LegalController {
 <h3>Be kind and honest</h3><ul>
 <li>No insults, threats, harassment, hate speech or sexual messages.</li>
 <li>Describe items truthfully, with your own photos. Only mark something <b>Brand new</b> if it is unused, and say if anything is damaged.</li>
-<li>Only list things you own and have the right to sell or swap.</li></ul>
+<li>Only list things you own and have the right to sell or swap.</li>
+<li>Selling as a business? Set <b>You → Selling as → Shop</b> so buyers see a Shop badge on your listings.</li></ul>
 <h3>Items you can't list</h3><ul>
 <li>Weapons, ammunition, explosives and their parts</li>
 <li>Drugs, medicines and prescription products, alcohol and tobacco</li>

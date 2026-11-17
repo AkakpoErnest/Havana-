@@ -223,6 +223,28 @@ export function Loading() {
     </View>
   );
 }
+/** Marks sellers who sell as a business, so buyers can tell a shop from a neighbour clearing their closet. */
+export function ShopBadge({ show }: { show?: boolean }) {
+  if (!show) return null;
+  return (
+    <T
+      accessibilityLabel="Shop"
+      style={{
+        fontSize: 11,
+        color: C.brand,
+        backgroundColor: '#E8E7F7',
+        paddingHorizontal: 7,
+        paddingVertical: 2,
+        borderRadius: 8,
+        overflow: 'hidden',
+        alignSelf: 'flex-start',
+        fontFamily: 'BricolageGrotesque_700Bold',
+      }}
+    >
+      Shop
+    </T>
+  );
+}
 export function Empty({ title, body }: { title: string; body: string }) {
   return (
     <View style={[s.box, { paddingVertical: 32 }]}>

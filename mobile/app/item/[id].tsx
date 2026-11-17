@@ -14,6 +14,7 @@ import {
   Loading,
   Page,
   Safety,
+  ShopBadge,
   T,
   Title,
   conditionLabel,
@@ -93,7 +94,10 @@ export default function ItemDetail() {
       </T>
       <T style={{ lineHeight: 24 }}>{item.description}</T>
       <View style={s.box}>
-        <T>{item.owner.name}</T>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <T>{item.owner.name}</T>
+          <ShopBadge show={item.owner.isShop} />
+        </View>
         <T style={{ color: C.muted, fontSize: 13 }}>
           ★ {item.owner.rating?.toFixed(1) ?? 'New neighbour'} · {item.owner.ratingCount ?? 0}{' '}
           ratings

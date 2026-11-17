@@ -11,7 +11,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Item, Mode } from './types';
-import { C, T, conditionLabel, money } from './ui';
+import { C, ShopBadge, T, conditionLabel, money } from './ui';
 import { photoUrl, thumbUrl } from './api';
 export function SwipeCard({
   item,
@@ -189,7 +189,10 @@ export function SwipeCard({
               {conditionLabel(item.condition)}
             </T>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <T style={{ fontSize: 12, color: C.brand }}>{item.owner.name}</T>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <T style={{ fontSize: 12, color: C.brand }}>{item.owner.name}</T>
+                <ShopBadge show={item.owner.isShop} />
+              </View>
               {item.swap && <T style={{ fontSize: 12, color: C.pink }}>↔ Open to swaps</T>}
             </View>
           </View>
