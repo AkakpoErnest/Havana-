@@ -12,6 +12,15 @@ type Reported = Item & {
   reports: { reason: string; createdAt: string }[];
 };
 
+type UserReport = {
+  id: string;
+  reason: string;
+  createdAt: string;
+  reporter: { id: string; name: string };
+  reported: { id: string; name: string; deletedAt: string | null };
+  messages: { senderId: string; type: string; text: string | null; amount: number | null }[];
+};
+
 /** Moderators only (server-enforced: admin email + a login code sent by email/SMS). */
 export default function Moderation() {
   const cache = useQueryClient();
@@ -29,9 +38,48 @@ export default function Moderation() {
       void cache.invalidateQueries({ queryKey: ['feed'] });
     },
   });
+  const people = useQuery({
+    queryKey: ['admin-user-reports'],
+    queryFn: () => api<UserReport[]>('/admin/user-reports'),
+  });
+  const resolve = useMutation({
+    mutationFn: (id: string) => api(`/admin/user-reports/${id}/resolve`, 'POST'),
+    onSuccess: () => void cache.invalidateQueries({ queryKey: ['admin-user-reports'] }),
+  });
   return (
     <Page>
       <Title>Review reports</Title>
+      <T style={{ fontFamily: 'BricolageGrotesque_700Bold' }}>People</T>
+      <ErrorBox error={people.error ?? resolve.error} retry={() => void people.refetch()} />
+      {people.data?.length === 0 && <T style={{ color: C.muted }}>No reported people.</T>}
+      {people.data?.map((r) => (
+        <View key={r.id} style={[s.box, { gap: 8 }]}>
+          <T style={{ fontFamily: 'BricolageGrotesque_700Bold' }}>
+            {r.reported.name}
+            {r.reported.deletedAt ? ' (deleted account)' : ''}
+          </T>
+          <T style={{ color: C.muted, fontSize: 12 }}>
+            Reported by {r.reporter.name} · {new Date(r.createdAt).toLocaleString()}
+          </T>
+          <T>“{r.reason}”</T>
+          {r.messages.map((m, i) => (
+            <T
+              key={i}
+              style={{ fontSize: 12, color: m.senderId === r.reported.id ? C.pink : C.muted }}
+            >
+              {m.senderId === r.reported.id ? r.reported.name : r.reporter.name}:{' '}
+              {m.type === 'OFFER' ? `offer ${m.amount}` : m.text}
+            </T>
+          ))}
+          <Button
+            title="Mark handled"
+            outline
+            disabled={resolve.isPending}
+            onPress={() => resolve.mutate(r.id)}
+          />
+        </View>
+      ))}
+      <T style={{ fontFamily: 'BricolageGrotesque_700Bold' }}>Listings</T>
       <T style={{ color: C.muted }}>
         Items are hidden automatically after 3 reports. Restore false alarms; remove real problems.
       </T>

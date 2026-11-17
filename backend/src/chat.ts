@@ -6,11 +6,12 @@ import { MessagesDto } from './dto';
 import { coded } from './errors';
 import { Push } from './push';
 import { money } from './countries';
+import { Safety } from './safety';
 // Poll cursors overlap by this much so rows from transactions that committed late are not missed.
 const CURSOR_OVERLAP_MS=5000;
 @Injectable()
 export class Chat {
-  constructor(private db:Db,private push:Push) {}
+  constructor(private db:Db,private push:Push,private safety:Safety) {}
   // The other participant, and how the current user appears in notifications.
   private other(c:{buyerId:string;sellerId:string},userId:string) { return c.buyerId===userId?c.sellerId:c.buyerId; }
   private nameOf(c:{buyerId:string;buyer:{name:string};seller:{name:string}},userId:string) { return c.buyerId===userId?c.buyer.name:c.seller.name; }
@@ -20,11 +21,19 @@ export class Chat {
     if(c.buyerId!==userId&&c.sellerId!==userId) throw new ForbiddenException('This chat is private.');
     return c;
   }
+  /** Chat membership plus a block check, for anything that reaches the other person. */
+  private async contact(tx:Prisma.TransactionClient,id:string,userId:string) {
+    const c=await this.member(tx,id,userId);
+    await this.safety.assertCanContact(userId,this.other(c,userId),tx);
+    return c;
+  }
   async inbox(userId:string) {
     const conversations=await this.db.conversation.findMany({where:{OR:[{buyerId:userId},{sellerId:userId}]},include:{...conversationInclude,messages:{orderBy:{createdAt:'desc'},take:1},_count:{select:{messages:{where:{type:{in:['TEXT','OFFER']}}}}}},orderBy:{updatedAt:'desc'},take:100});
+    const blocks=await this.db.block.findMany({where:{OR:[{blockerId:userId},{blockedId:userId}]},select:{blockerId:true,blockedId:true}});
+    const blockState=(otherId:string)=>blocks.some(b=>b.blockerId===userId&&b.blockedId===otherId)?'me':blocks.some(b=>b.blockerId===otherId)?'them':null;
     return conversations.map(({_count,...c})=>{
       const hasChatted=_count.messages>0;
-      return {...c,hasChatted,isNewMatch:c.swapItemId!=null&&!hasChatted&&!c.completedAt};
+      return {...c,hasChatted,isNewMatch:c.swapItemId!=null&&!hasChatted&&!c.completedAt,blocked:blockState(this.other(c,userId))};
     });
   }
   async messages(id:string,userId:string,q:MessagesDto) {
@@ -32,7 +41,7 @@ export class Chat {
     const found=await this.member(this.db,id,userId);
     // The stars I've given the other person, so the chat can show "Rated ✓" after reopening.
     const rating=await this.db.rating.findUnique({where:{fromId_toId:{fromId:userId,toId:found.buyerId===userId?found.sellerId:found.buyerId}},select:{stars:true}});
-    const conversation={...found,myRating:rating?.stars??null};
+    const conversation={...found,myRating:rating?.stars??null,blocked:await this.safety.between(userId,this.other(found,userId))};
     const parse=(value?:string)=>{
       const date=value?new Date(value):undefined;
       if(date&&isNaN(date.getTime())) throw new BadRequestException('Invalid message cursor.');
@@ -51,7 +60,7 @@ export class Chat {
   async text(id:string,userId:string,text:string) {
     if(!text.trim()) throw new BadRequestException('Write a message first.');
     const {message,c}=await this.db.atomic(async tx=>{
-      const c=await this.member(tx,id,userId);
+      const c=await this.contact(tx,id,userId);
       const message=await tx.message.create({data:{conversationId:id,senderId:userId,type:'TEXT',text:text.trim()}});
       await tx.conversation.update({where:{id},data:{updatedAt:new Date()}}); return {message,c};
     });
@@ -60,7 +69,7 @@ export class Chat {
   }
   async offer(id:string,userId:string,amount:number) {
     const {message,c}=await this.db.atomic(async tx=>{
-      const c=await this.member(tx,id,userId);
+      const c=await this.contact(tx,id,userId);
       if(c.swapItemId||!c.item.sell||c.item.status!=='LIVE'||c.item.hidden) throw new BadRequestException(coded('LISTING_UNAVAILABLE','Offers are only available on live sale items.'));
       await tx.message.updateMany({where:{conversationId:id,offerStatus:'PENDING'},data:{offerStatus:'COUNTERED'}});
       const message=await tx.message.create({data:{conversationId:id,senderId:userId,type:'OFFER',amount,offerStatus:'PENDING'}});
@@ -71,7 +80,7 @@ export class Chat {
   }
   async respond(id:string,messageId:string,userId:string,action:'ACCEPT'|'DECLINE') {
     const {c,offer}=await this.db.atomic(async tx=>{
-      const c=await this.member(tx,id,userId);
+      const c=await this.contact(tx,id,userId);
       const offer=await tx.message.findUnique({where:{id:messageId}});
       if(!offer||offer.conversationId!==id||offer.type!=='OFFER'||offer.offerStatus!=='PENDING'||offer.senderId===userId) throw new BadRequestException(coded('OFFER_NOT_PENDING','Only the recipient can respond to a pending offer.'));
       if(c.item.status!=='LIVE'||c.item.hidden) throw new BadRequestException(coded('LISTING_UNAVAILABLE','This item is no longer available.'));
@@ -94,7 +103,7 @@ export class Chat {
   async swap(id:string,userId:string,action:'AGREE'|'DONE') {
     let notice:{to:string;title:string;body:string}|undefined;
     const result=await this.db.atomic(async tx=>{
-      const c=await this.member(tx,id,userId);
+      const c=await this.contact(tx,id,userId);
       if(!c.swapItemId||!c.swapItem) throw new BadRequestException('This is not a swap match.');
       if(c.completedAt) return c;
       if(c.item.hidden||c.swapItem.hidden||c.item.status!=='LIVE'||c.swapItem.status!=='LIVE') throw new BadRequestException(coded('LISTING_UNAVAILABLE','One of these items is no longer available to swap.'));

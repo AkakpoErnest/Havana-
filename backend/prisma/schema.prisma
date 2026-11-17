@@ -78,6 +78,10 @@ model User {
   selling Conversation[] @relation("seller")
   orders Order[]
   pushTokens PushToken[]
+  blocking Block[] @relation("blocker")
+  blockedBy Block[] @relation("blocked")
+  userReportsMade UserReport[] @relation("userReporter")
+  userReportsAgainst UserReport[] @relation("userReported")
   @@map("users")
 }
 model AuthIdentity {
@@ -248,4 +252,27 @@ model PushToken {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([userId])
+}
+// Someone the blocker never wants to hear from again: no chats, offers, swaps or listings either way.
+model Block {
+  blockerId String
+  blocker User @relation("blocker",fields:[blockerId],references:[id])
+  blockedId String
+  blocked User @relation("blocked",fields:[blockedId],references:[id])
+  createdAt DateTime @default(now())
+  @@id([blockerId,blockedId])
+  @@index([blockedId])
+}
+// A person reported from a chat (harassment, scam, etc.), queued for moderators until resolved.
+model UserReport {
+  id String @id @default(uuid())
+  reporterId String
+  reporter User @relation("userReporter",fields:[reporterId],references:[id])
+  reportedId String
+  reported User @relation("userReported",fields:[reportedId],references:[id])
+  conversationId String?
+  reason String
+  createdAt DateTime @default(now())
+  resolvedAt DateTime?
+  @@index([resolvedAt,createdAt])
 }

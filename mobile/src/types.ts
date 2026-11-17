@@ -60,5 +60,7 @@ export type Conversation = {
   myRating?: number | null;
   hasChatted?: boolean;
   isNewMatch?: boolean;
+  /** Set when either person blocked the other: "me" if I did, "them" if they did. */
+  blocked?: 'me' | 'them' | null;
   messages?: Message[];
 };

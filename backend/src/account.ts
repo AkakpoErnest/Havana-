@@ -19,6 +19,8 @@ export class Accounts {
       await tx.swipe.deleteMany({ where: { userId } });
       await tx.rating.deleteMany({ where: { OR: [{ fromId: userId }, { toId: userId }] } });
       await tx.report.deleteMany({ where: { userId } });
+      await tx.block.deleteMany({ where: { OR: [{ blockerId: userId }, { blockedId: userId }] } });
+      await tx.userReport.deleteMany({ where: { reporterId: userId } });
       await tx.pushToken.deleteMany({ where: { userId } });
       await tx.upload.deleteMany({ where: { userId } });
       await tx.otpChallenge.deleteMany({ where: { OR: [{ linkUserId: userId }, { value: { in: identities.map((i) => i.value) } }] } });

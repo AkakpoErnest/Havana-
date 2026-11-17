@@ -76,3 +76,7 @@ export class PushCleanupDto {
   @IsUUID() registration!: string;
 }
 export class DeleteAccountDto { @IsIn(['DELETE']) confirm!: 'DELETE'; }
+export class UserReportDto {
+  @IsString() @Length(5,500) reason!: string;
+  @IsOptional() @IsUUID() conversationId?: string;
+}

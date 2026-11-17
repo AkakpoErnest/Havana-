@@ -58,6 +58,12 @@ Seed/older photos (Unsplash, `.jpg`) have no preview, so use them as-is.
 | GET 🔒 | `/items/:id` | | Item + `owner:{id,name,rating,ratingCount}` (404 if hidden/removed, unless it's yours) |
 | PATCH 🔒 | `/items/:id/status` | `{status: LIVE\|RESERVED\|SOLD\|REMOVED}` | Item (owner only; SWAPPED is set only by completing a swap) |
 | POST 🔒 | `/items/:id/report` | `{reason 5–500}` | `{reported:true}`. Hidden after 3 distinct reporters. |
+| POST 🔒 | `/users/:userId/report` | `{reason 5–500, conversationId?}` | `{reported:true}`. Goes to the moderator queue; with `conversationId`, both people must be in that chat (else 403). |
+| GET 🔒 | `/blocks` | | `[{id,name,blockedAt}]` people I blocked |
+| POST 🔒 | `/blocks/:userId` | | `{blocked:true}` (idempotent; 400 for yourself). Both ways: no new chats, messages, offers, swaps or swap matches (403 `BLOCKED`), and neither sees the other's listings in feed/browse/saved/item (404). Chat history stays readable; conversations carry `blocked: 'me'\|'them'\|null`. |
+| DELETE 🔒 | `/blocks/:userId` | | `{blocked:false}` |
+| GET 🛡 | `/admin/user-reports` | | open user reports with reporter, reported person and the chat's last 20 messages |
+| POST 🛡 | `/admin/user-reports/:id/resolve` | | marks it handled |
 
 Enums: category `CLOTHES SHOES BAGS FURNITURE ELECTRONICS HOUSEHOLD OTHER`,
 condition `NEW LIKE_NEW GOOD FAIR`, status `LIVE RESERVED SOLD SWAPPED REMOVED`, kind `ITEM` (`RENTAL` reserved).

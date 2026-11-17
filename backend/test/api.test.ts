@@ -524,6 +524,45 @@ test('browse lists every live listing in my country, with search, filters, sorti
   await http.get('/browse?sort=cheapest').set(as(buyer)).expect(400);
 });
 
+test('blocking stops chats, offers and listings both ways; people can be reported from a chat',async()=>{
+  const [,,seller,buyer]=accounts; // Kenyan accounts from the browse test
+  const bag=await listing(seller,{title:'Kiondo basket bag',category:'BAGS',swap:false,price:2500,area:'Westlands',latitude:-1.27,longitude:36.81});
+  const chat=(await http.post('/conversations').set(as(buyer)).send({itemId:bag}).expect(201)).body.id;
+  await http.post(`/conversations/${chat}/messages`).set(as(buyer)).send({text:'Hi, still available?'}).expect(201);
+  // Report from the chat: the chat must be theirs, and the report lands in the moderator queue.
+  const sellerId=(await http.get('/me').set(as(seller)).expect(200)).body.id;
+  const buyerId=(await http.get('/me').set(as(buyer)).expect(200)).body.id;
+  await http.post(`/users/${sellerId}/report`).set(as(buyer)).send({reason:'Asked me to pay a deposit first',conversationId:chat}).expect(201);
+  await http.post(`/users/${sellerId}/report`).set(as(accounts[0])).send({reason:'Not my chat',conversationId:chat}).expect(403);
+  await http.post(`/users/${buyerId}/report`).set(as(buyer)).send({reason:'myself'}).expect(400);
+  assert.equal(await db.userReport.count({where:{reportedId:sellerId,resolvedAt:null}}),1);
+  // Block: the buyer stops seeing the seller and nobody can message or offer.
+  await http.post(`/blocks/${buyerId}`).set(as(buyer)).expect(400);
+  await http.post(`/blocks/${sellerId}`).set(as(buyer)).expect(201);
+  await http.post(`/blocks/${sellerId}`).set(as(buyer)).expect(201); // idempotent
+  assert.deepEqual((await http.get('/blocks').set(as(buyer)).expect(200)).body.map((b:{id:string;name:string})=>b.id),[sellerId]);
+  const ids=async(user:typeof buyer,path:string)=>(await http.get(path).set(as(user)).expect(200)).body.items.map((i:{id:string})=>i.id);
+  assert.equal((await ids(buyer,'/browse')).includes(bag),false,'blocked seller listings leave browse');
+  assert.equal((await ids(buyer,'/feed?mode=SHOP')).includes(bag),false,'and the swipe feed');
+  await http.get(`/items/${bag}`).set(as(buyer)).expect(404);
+  const mine=await listing(buyer,{title:'Leather sandals',category:'SHOES',swap:false,price:1800,area:'Kilimani',latitude:-1.29,longitude:36.78});
+  assert.equal((await ids(seller,'/browse')).includes(mine),false,'it works both ways');
+  const sent=await http.post(`/conversations/${chat}/messages`).set(as(seller)).send({text:'Hello?'}).expect(403);
+  assert.equal(sent.body.code,'BLOCKED');
+  assert.ok(!/blocked you/i.test(sent.body.message),'the blocked person is not told who blocked whom');
+  await http.post(`/conversations/${chat}/offers`).set(as(buyer)).send({amount:2000}).expect(403);
+  await http.post('/conversations').set(as(seller)).send({itemId:mine}).expect(403);
+  // History stays readable, flagged so the app can switch off the composer.
+  const thread=(await http.get(`/conversations/${chat}/messages`).set(as(buyer)).expect(200)).body;
+  assert.equal(thread.conversation.blocked,'me');
+  assert.equal((await http.get(`/conversations/${chat}/messages`).set(as(seller)).expect(200)).body.conversation.blocked,'them');
+  assert.equal((await http.get('/conversations').set(as(buyer)).expect(200)).body.find((c:{id:string})=>c.id===chat).blocked,'me');
+  // Unblock restores everything.
+  await http.delete(`/blocks/${sellerId}`).set(as(buyer)).expect(200);
+  assert.ok((await ids(buyer,'/browse')).includes(bag));
+  await http.post(`/conversations/${chat}/messages`).set(as(seller)).send({text:'Yes, still here'}).expect(201);
+});
+
 test('production ignores dev overrides, rejects outstanding dev challenges and sessions, and uses real delivery',async()=>{
   const keys=['NODE_ENV','DEV_OTP','ALLOW_DEV_OTP_IN_PRODUCTION','BREVO_API_KEY','OTP_EMAIL_FROM','OTP_WEBHOOK_URL'];
   const saved=Object.fromEntries(keys.map(key=>[key,process.env[key]]));

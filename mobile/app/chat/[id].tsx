@@ -16,12 +16,14 @@ import { ChatData, mergeHistory, mergeLatest } from '../../src/chat-cache';
 import { useScreenActive } from '../../src/useScreenActive';
 import { Message, User } from '../../src/types';
 import { Button, C, ErrorBox, Field, Loading, Page, T, money, s } from '../../src/ui';
+import { SafetySheet } from '../../src/SafetySheet';
 import { countryOf } from '../../src/countries';
 export default function ChatScreen() {
   const { id, haggle } = useLocalSearchParams<{ id: string; haggle?: string }>();
   const [text, setText] = useState(''),
     [amount, setAmount] = useState(''),
-    [showOffer, setShowOffer] = useState(haggle === '1');
+    [showOffer, setShowOffer] = useState(haggle === '1'),
+    [showSafety, setShowSafety] = useState(false);
   const scroll = useRef<FlatList<Message>>(null);
   const stickToBottom = useRef(true);
   const cache = useQueryClient();
@@ -129,6 +131,14 @@ export default function ChatScreen() {
               {c.item.title} · {c.swapItem ? 'Swap match' : money(c.item.price, c.item.currency)}
             </T>
           </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Report or block ${other?.name ?? 'this person'}`}
+            hitSlop={12}
+            onPress={() => setShowSafety(true)}
+          >
+            <T style={{ fontSize: 22, color: C.muted, paddingHorizontal: 6 }}>⋯</T>
+          </Pressable>
           {c.swapItem && (
             <>
               <T style={{ color: C.pink, fontSize: 23 }}>↔</T>
@@ -368,42 +378,69 @@ export default function ChatScreen() {
             </KeyboardAvoidingView>
           </Modal>
         )}
-        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
-          <View style={{ flex: 1 }}>
-            <Field
-              label="Message"
-              placeholder="Say hello…"
-              value={text}
-              onChangeText={setText}
-              maxLength={2000}
-            />
-          </View>
-          <Button
-            title="Send"
-            disabled={!text.trim() || send.isPending}
-            onPress={() => send.mutate(text)}
+        {showSafety && other && (
+          <SafetySheet
+            person={other}
+            conversationId={c.id}
+            blockedByMe={c.blocked === 'me'}
+            onClose={() => setShowSafety(false)}
           />
-        </View>
-        <View style={s.split}>
-          {!c.swapItem && c.item.status === 'LIVE' && (
-            <Pressable onPress={() => setShowOffer((v) => !v)}>
-              <T style={{ color: C.brand, fontSize: 13 }}>＋ Make an offer</T>
-            </Pressable>
-          )}
-          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-            <T style={{ fontSize: 11, color: C.muted }}>{rating ? 'Rated ✓' : 'Rate'}</T>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <Pressable
-                accessibilityLabel={`Rate ${n} stars`}
-                key={n}
-                disabled={rate.isPending}
-                onPress={() => rate.mutate(n)}
-              >
-                <T style={{ fontSize: 20, color: n <= rating ? C.mango : C.muted }}>★</T>
-              </Pressable>
-            ))}
+        )}
+        {c.blocked ? (
+          <View style={[s.box, { gap: 10 }]}>
+            <T style={{ color: C.muted, lineHeight: 20 }}>
+              {c.blocked === 'me'
+                ? `You blocked ${other?.name ?? 'this person'}. Neither of you can send messages or offers.`
+                : "You can't reply in this chat."}
+            </T>
+            {c.blocked === 'me' && (
+              <Button
+                title={`Unblock ${other?.name ?? ''}`.trim()}
+                outline
+                onPress={() => setShowSafety(true)}
+              />
+            )}
           </View>
-        </View>
+        ) : (
+          <>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
+              <View style={{ flex: 1 }}>
+                <Field
+                  label="Message"
+                  placeholder="Say hello…"
+                  value={text}
+                  onChangeText={setText}
+                  maxLength={2000}
+                />
+              </View>
+              <Button
+                title="Send"
+                disabled={!text.trim() || send.isPending}
+                onPress={() => send.mutate(text)}
+              />
+            </View>
+            <View style={s.split}>
+              {!c.swapItem && c.item.status === 'LIVE' && (
+                <Pressable onPress={() => setShowOffer((v) => !v)}>
+                  <T style={{ color: C.brand, fontSize: 13 }}>＋ Make an offer</T>
+                </Pressable>
+              )}
+              <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                <T style={{ fontSize: 11, color: C.muted }}>{rating ? 'Rated ✓' : 'Rate'}</T>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <Pressable
+                    accessibilityLabel={`Rate ${n} stars`}
+                    key={n}
+                    disabled={rate.isPending}
+                    onPress={() => rate.mutate(n)}
+                  >
+                    <T style={{ fontSize: 20, color: n <= rating ? C.mango : C.muted }}>★</T>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          </>
+        )}
       </Page>
     </KeyboardAvoidingView>
   );

@@ -16,9 +16,10 @@ import { PhotoStore, encodePhoto } from './photos';
 import { Push, isExpoPushToken } from './push';
 import { AdminGuard, Moderation } from './admin';
 import { Accounts } from './account';
+import { Safety } from './safety';
 import { LocationPrivacy } from './privacy';
 import { LegalController } from './legal';
-import { ConversationDto, FeedDto, ListingDto, MessagesDto, ProfileDto, PushCleanupDto, DeleteAccountDto, PushTokenDto, OfferActionDto, OfferDto, OtpDto, RatingDto, ReportDto, StatusDto, SwapActionDto, SwipeDto, TextDto, VerifyDto,BrowseDto } from './dto';
+import { ConversationDto, FeedDto, ListingDto, MessagesDto, ProfileDto, PushCleanupDto, DeleteAccountDto, PushTokenDto, OfferActionDto, OfferDto, OtpDto, RatingDto, ReportDto, UserReportDto, StatusDto, SwapActionDto, SwipeDto, TextDto, VerifyDto,BrowseDto } from './dto';
 import { ErrorCodes, coded } from './errors';
 @Controller()
 @UseGuards(OtpRateGuard)
@@ -55,15 +56,21 @@ class AuthController {
 @Controller('admin')
 @UseGuards(Guard,AdminGuard)
 class AdminController {
-  constructor(private moderation:Moderation) {}
+  constructor(private moderation:Moderation,private safety:Safety) {}
   @Get('reports') reports() { return this.moderation.reports(); }
   @Post('items/:id/restore') restore(@Param('id',ParseUUIDPipe) id:string) { return this.moderation.restore(id); }
   @Post('items/:id/remove') remove(@Param('id',ParseUUIDPipe) id:string) { return this.moderation.remove(id); }
+  @Get('user-reports') userReports() { return this.safety.openReports(); }
+  @Post('user-reports/:id/resolve') resolveUserReport(@Param('id',ParseUUIDPipe) id:string) { return this.safety.resolve(id); }
 }
 @Controller()
 @UseGuards(Guard,UserLimits)
 class ApiController {
-  constructor(private market:Market,private chat:Chat,private db:Db,private photos:PhotoStore,private push:Push,private accounts:Accounts) {}
+  constructor(private market:Market,private chat:Chat,private db:Db,private photos:PhotoStore,private push:Push,private accounts:Accounts,private safety:Safety) {}
+  @Get('blocks') blocks(@Req() r:AuthedRequest) { return this.safety.list(r.userId); }
+  @Post('blocks/:userId') block(@Req() r:AuthedRequest,@Param('userId',ParseUUIDPipe) userId:string) { return this.safety.block(r.userId,userId); }
+  @Delete('blocks/:userId') unblock(@Req() r:AuthedRequest,@Param('userId',ParseUUIDPipe) userId:string) { return this.safety.unblock(r.userId,userId); }
+  @Limit('report','reports',{max:10,seconds:HOUR},{max:30,seconds:DAY}) @Post('users/:userId/report') reportUser(@Req() r:AuthedRequest,@Param('userId',ParseUUIDPipe) userId:string,@Body() d:UserReportDto) { return this.safety.report(r.userId,userId,d.reason,d.conversationId); }
   @Get('me') me(@Req() r:AuthedRequest) { return this.market.me(r.userId,r.trusted); }
   @Post('me/push-token') pushToken(@Req() r:AuthedRequest,@Body() d:PushTokenDto) {
     if(!isExpoPushToken(d.token)) throw new BadRequestException(coded('INVALID_PUSH_TOKEN','That is not an Expo push token.'));
@@ -106,7 +113,7 @@ class ApiController {
     return {photos:paths};
   }
 }
-@Module({imports:[JwtModule.registerAsync({useFactory:()=>({secret:process.env.JWT_SECRET,signOptions:{expiresIn:'30d'}})})],controllers:[HealthController,LegalController,PublicPushController,AuthController,ApiController,AdminController],providers:[Db,Auth,Guard,OtpRateGuard,Market,Chat,PhotoStore,UserLimits,Push,AdminGuard,Moderation,Accounts]})
+@Module({imports:[JwtModule.registerAsync({useFactory:()=>({secret:process.env.JWT_SECRET,signOptions:{expiresIn:'30d'}})})],controllers:[HealthController,LegalController,PublicPushController,AuthController,ApiController,AdminController],providers:[Db,Auth,Guard,OtpRateGuard,Market,Chat,PhotoStore,UserLimits,Push,AdminGuard,Moderation,Accounts,Safety]})
 class AppModule {}
 export async function createApp() {
   if(!process.env.JWT_SECRET||process.env.JWT_SECRET.length<32) throw new Error('JWT_SECRET must contain at least 32 characters.');

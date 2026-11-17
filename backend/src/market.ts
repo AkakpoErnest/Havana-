@@ -7,6 +7,7 @@ import { Push } from './push';
 import { isAdminIdentity } from './admin';
 import { roundDistance } from './privacy';
 import { COUNTRIES, DEFAULT_COUNTRY, isCountry } from './countries';
+import { Safety } from './safety';
 const ownerSelect={id:true,name:true} as const;
 export const conversationInclude={item:true,swapItem:true,buyer:{select:ownerSelect},seller:{select:ownerSelect}} as const;
 /** Snap a coordinate to a 0.01° (~1.1 km) grid cell. */
@@ -17,7 +18,7 @@ export function distance(lat1:number,lon1:number,lat2:number,lon2:number) {
 }
 @Injectable()
 export class Market {
-  constructor(private db:Db,private push:Push) {}
+  constructor(private db:Db,private push:Push,private safety:Safety) {}
   async me(userId:string,trusted=false) {
     const [user,ratings]=await Promise.all([this.db.user.findUniqueOrThrow({where:{id:userId},include:{identities:{select:{type:true,value:true,verifiedAt:true}},items:{orderBy:{createdAt:'desc'}}}}),this.db.rating.aggregate({where:{toId:userId},_avg:{stars:true},_count:true})]);
     return {...user,rating:ratings._avg.stars,ratingCount:ratings._count,isAdmin:trusted&&isAdminIdentity(user.identities)};
@@ -39,14 +40,14 @@ export class Market {
   }
   async item(id:string,userId:string) {
     const item=await this.db.item.findUnique({where:{id},include:{owner:{select:ownerSelect}}});
-    if(!item || ((item.hidden||item.status==='REMOVED')&&item.ownerId!==userId)) throw new NotFoundException(coded('LISTING_UNAVAILABLE','This item is no longer available.'));
+    if(!item || ((item.hidden||item.status==='REMOVED')&&item.ownerId!==userId) || (item.ownerId!==userId&&await this.safety.between(userId,item.ownerId))) throw new NotFoundException(coded('LISTING_UNAVAILABLE','This item is no longer available.'));
     const rating=await this.db.rating.aggregate({where:{toId:item.ownerId},_avg:{stars:true},_count:true});
     return {...item,owner:{...item.owner,rating:rating._avg.stars,ratingCount:rating._count}};
   }
   async feed(userId:string,q:FeedDto) {
-    const [closet,user]=await Promise.all([this.db.item.findMany({where:{ownerId:userId,swap:true,status:'LIVE',hidden:false},select:{swapValue:true}}),this.db.user.findUniqueOrThrow({where:{id:userId},select:{latitude:true,longitude:true,country:true}})]);
+    const [closet,user,hidden]=await Promise.all([this.db.item.findMany({where:{ownerId:userId,swap:true,status:'LIVE',hidden:false},select:{swapValue:true}}),this.db.user.findUniqueOrThrow({where:{id:userId},select:{latitude:true,longitude:true,country:true}}),this.safety.hiddenPeople(userId)]);
     const home=isCountry(user.country)?user.country:DEFAULT_COUNTRY;
-    const items=await this.db.item.findMany({where:{ownerId:{not:userId},country:home,status:'LIVE',hidden:false,kind:'ITEM',...(q.mode==='SWAP'?{swap:true}:{sell:true}),category:q.category,swipes:{none:{userId,mode:q.mode}}},include:{owner:{select:ownerSelect}},orderBy:{createdAt:'desc'},take:500});
+    const items=await this.db.item.findMany({where:{ownerId:{notIn:[userId,...hidden]},country:home,status:'LIVE',hidden:false,kind:'ITEM',...(q.mode==='SWAP'?{swap:true}:{sell:true}),category:q.category,swipes:{none:{userId,mode:q.mode}}},include:{owner:{select:ownerSelect}},orderBy:{createdAt:'desc'},take:500});
     // Request location, then saved profile location, then the centre of their country's first city.
     const [lat,lon]=q.latitude!=null&&q.longitude!=null?[q.latitude,q.longitude]:user.latitude!=null&&user.longitude!=null?[user.latitude,user.longitude]:[...COUNTRIES[home].center];
     const ranked=items.map(item=>{
@@ -61,10 +62,10 @@ export class Market {
     return {items:ranked.map(r=>r.item),needsCloset:q.mode==='SWAP'&&!closet.length};
   }
   async browse(userId:string,q:BrowseDto) {
-    const user=await this.db.user.findUniqueOrThrow({where:{id:userId},select:{latitude:true,longitude:true,country:true}});
+    const [user,hidden]=await Promise.all([this.db.user.findUniqueOrThrow({where:{id:userId},select:{latitude:true,longitude:true,country:true}}),this.safety.hiddenPeople(userId)]);
     const home=isCountry(user.country)?user.country:DEFAULT_COUNTRY;
     const words=q.q?.trim();
-    const items=await this.db.item.findMany({where:{ownerId:{not:userId},country:home,status:'LIVE',hidden:false,kind:'ITEM',category:q.category,
+    const items=await this.db.item.findMany({where:{ownerId:{notIn:[userId,...hidden]},country:home,status:'LIVE',hidden:false,kind:'ITEM',category:q.category,
       ...(q.trade==='sell'?{sell:true}:q.trade==='swap'?{swap:true}:{}),
       ...(words?{OR:[{title:{contains:words,mode:'insensitive'}},{description:{contains:words,mode:'insensitive'}},{area:{contains:words,mode:'insensitive'}}]}:{})},
       include:{owner:{select:ownerSelect}},orderBy:[{createdAt:'desc'},{id:'desc'}],take:500});
@@ -90,7 +91,8 @@ export class Market {
     });
   }
   async saved(userId:string) {
-    return this.db.item.findMany({where:{hidden:false,status:{not:'REMOVED'},swipes:{some:{userId,mode:'SHOP',direction:'RIGHT'}}},include:{owner:{select:ownerSelect}},orderBy:{createdAt:'desc'}});
+    const hidden=await this.safety.hiddenPeople(userId);
+    return this.db.item.findMany({where:{hidden:false,status:{not:'REMOVED'},ownerId:{notIn:hidden},swipes:{some:{userId,mode:'SHOP',direction:'RIGHT'}}},include:{owner:{select:ownerSelect}},orderBy:{createdAt:'desc'}});
   }
   async unsave(userId:string,itemId:string) {
     await this.db.swipe.updateMany({where:{userId,itemId,mode:'SHOP',direction:'RIGHT'},data:{direction:'LEFT'}});
@@ -100,6 +102,7 @@ export class Market {
     const result=await this.db.atomic(async tx=>{
       const item=await tx.item.findUnique({where:{id:d.itemId}});
       if(!item||item.ownerId===userId||item.hidden||item.status!=='LIVE'||(d.mode==='SHOP'?!item.sell:!item.swap)) throw new BadRequestException(coded('LISTING_UNAVAILABLE','This item is unavailable in this mode.'));
+      if(item.ownerId!==userId&&await this.safety.between(userId,item.ownerId,tx)) throw new BadRequestException(coded('LISTING_UNAVAILABLE','This item is unavailable in this mode.'));
       if(d.mode==='SWAP'&&d.direction==='UP') throw new BadRequestException('Offers are available in Shop mode.');
       const closet=d.mode==='SWAP'&&d.direction==='RIGHT'?await tx.item.findMany({where:{ownerId:userId,swap:true,hidden:false,status:'LIVE'}}):[];
       if(d.mode==='SWAP'&&d.direction==='RIGHT'&&!closet.length) throw new BadRequestException(coded('CLOSET_EMPTY','List something in your Swap Closet first.'));
@@ -127,6 +130,7 @@ export class Market {
   async shopConversation(tx:Prisma.TransactionClient,userId:string,itemId:string) {
     const item=await tx.item.findUnique({where:{id:itemId}});
     if(!item||!item.sell||item.hidden||item.status!=='LIVE'||item.ownerId===userId) throw new BadRequestException(coded('LISTING_UNAVAILABLE','This item is unavailable for buying.'));
+    await this.safety.assertCanContact(userId,item.ownerId,tx);
     const matchKey=`shop:${userId}:${itemId}`;
     return tx.conversation.upsert({where:{matchKey},update:{},create:{buyerId:userId,sellerId:item.ownerId,itemId,matchKey,messages:{create:{type:'SYSTEM',text:'Meet in public. Check the item before paying. Pay directly by mobile money (MoMo, M-Pesa) or cash on pickup; Havana never collects payment.'}}},include:conversationInclude});
   }

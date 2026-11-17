@@ -44,6 +44,17 @@ export default function Profile() {
   );
   const me = useQuery({ queryKey: ['me'], queryFn: () => api<User>('/me') });
   const saved = useQuery({ queryKey: ['saved'], queryFn: () => api<Item[]>('/saved') });
+  const blocks = useQuery({
+    queryKey: ['blocks'],
+    queryFn: () => api<{ id: string; name: string }[]>('/blocks'),
+  });
+  const unblock = useMutation({
+    mutationFn: (userId: string) => api(`/blocks/${userId}`, 'DELETE'),
+    onSuccess: () => {
+      for (const key of ['blocks', 'feed', 'browse', 'inbox', 'chat'])
+        void cache.invalidateQueries({ queryKey: [key] });
+    },
+  });
   const update = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       api(`/items/${id}/status`, 'PATCH', { status }),
@@ -150,6 +161,7 @@ export default function Profile() {
         ['Backup login', 'Manage'],
         ['My listings', String(me.data?.items.length ?? 0)],
         ['Saved items', 'Your favourites'],
+        ['Blocked people', blocks.data?.length ? String(blocks.data.length) : 'None'],
         ...(me.data?.isAdmin ? [['Review reports', 'Admin']] : []),
         ['Delete account', ''],
         ['Log out', ''],
@@ -291,6 +303,30 @@ export default function Profile() {
                         disabled={profile.isPending || locating}
                         onPress={() => void saveLocation()}
                       />
+                    </>
+                  )}
+                  {sheet === 'Blocked people' && (
+                    <>
+                      <T style={{ color: C.muted, lineHeight: 20 }}>
+                        People you block can’t message you or make offers, and you won’t see each
+                        other’s listings. To block someone, tap ⋯ at the top of your chat with them.
+                      </T>
+                      <ErrorBox
+                        error={blocks.error ?? unblock.error}
+                        retry={() => void blocks.refetch()}
+                      />
+                      {blocks.data?.map((person) => (
+                        <View key={person.id} style={s.split}>
+                          <T>{person.name}</T>
+                          <Button
+                            title="Unblock"
+                            outline
+                            disabled={unblock.isPending}
+                            onPress={() => unblock.mutate(person.id)}
+                          />
+                        </View>
+                      ))}
+                      {blocks.data?.length === 0 && <T>You haven’t blocked anyone.</T>}
                     </>
                   )}
                   {(sheet === 'My listings' || sheet === 'Saved items') && (
