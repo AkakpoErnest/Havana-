@@ -11,7 +11,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Item, Mode } from './types';
-import { C, T, label, money } from './ui';
+import { C, T, conditionLabel, money } from './ui';
 import { photoUrl, thumbUrl } from './api';
 export function SwipeCard({
   item,
@@ -186,7 +186,7 @@ export function SwipeCard({
             <T style={{ color: C.muted, fontSize: 13 }}>
               {item.area} ·{' '}
               {item.distanceKm != null ? `${item.distanceKm.toFixed(1)} km away · ` : ''}
-              {label(item.condition)}
+              {conditionLabel(item.condition)}
             </T>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <T style={{ fontSize: 12, color: C.brand }}>{item.owner.name}</T>

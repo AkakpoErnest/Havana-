@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import * as Linking from 'expo-linking';
+import { Linking } from 'react-native';
 import { photoUrl } from './api';
 import { C, T } from './ui';
 

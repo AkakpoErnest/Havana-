@@ -27,6 +27,7 @@ export default function Browse() {
   const [category, setCategory] = useState('ALL');
   const [trade, setTrade] = useState('all');
   const [sort, setSort] = useState('new');
+  const [condition, setCondition] = useState('all');
   const active = useScreenActive();
   const me = useQuery({ queryKey: ['me'], queryFn: () => api<User>('/me') });
   useEffect(() => {
@@ -42,12 +43,13 @@ export default function Browse() {
       q,
       category,
       trade,
+      condition,
       sort,
     ],
     enabled: active && !!me.data,
     initialPageParam: 0,
     queryFn: ({ pageParam, signal }) => {
-      const params = new URLSearchParams({ q, trade, sort, offset: String(pageParam) });
+      const params = new URLSearchParams({ q, trade, condition, sort, offset: String(pageParam) });
       if (category !== 'ALL') params.set('category', category);
       return api<{ items: Item[]; nextOffset: number | null }>(
         `/browse?${params}`,
@@ -81,6 +83,14 @@ export default function Browse() {
       </View>
       <View>
         <Chips values={['all', 'sell', 'swap']} value={trade} onChange={setTrade} />
+      </View>
+      <View>
+        <Chips
+          values={['all', 'new', 'used']}
+          labels={{ all: 'New & used', new: 'Brand new', used: 'Used' }}
+          value={condition}
+          onChange={setCondition}
+        />
       </View>
       <View>
         <Chips

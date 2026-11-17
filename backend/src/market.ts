@@ -74,6 +74,7 @@ export class Market {
     const words=q.q?.trim();
     const items=await this.db.item.findMany({where:{ownerId:{notIn:[userId,...hidden]},country:home,status:'LIVE',hidden:false,kind:'ITEM',category:q.category,
       ...(q.trade==='sell'?{sell:true}:q.trade==='swap'?{swap:true}:{}),
+      ...(q.condition==='new'?{condition:'NEW' as const}:q.condition==='used'?{condition:{not:'NEW' as const}}:{}),
       ...(words?{OR:[{title:{contains:words,mode:'insensitive'}},{description:{contains:words,mode:'insensitive'}},{area:{contains:words,mode:'insensitive'}}]}:{})},
       include:{owner:{select:ownerSelect}},orderBy:[{createdAt:'desc'},{id:'desc'}],take:500});
     const [lat,lon]=q.latitude!=null&&q.longitude!=null?[q.latitude,q.longitude]:user.latitude!=null&&user.longitude!=null?[user.latitude,user.longitude]:[...COUNTRIES[home].center];

@@ -47,6 +47,8 @@ export class BrowseDto {
   @IsOptional() @IsString() @MaxLength(60) q?: string;
   @IsOptional() @IsIn(['new','near','price_low','price_high']) sort: 'new'|'near'|'price_low'|'price_high' = 'new';
   @IsOptional() @IsIn(['all','sell','swap']) trade: 'all'|'sell'|'swap' = 'all';
+  /** Brand new only, used only (any other condition), or both. */
+  @IsOptional() @IsIn(['all','new','used']) condition: 'all'|'new'|'used' = 'all';
   @IsOptional() @Type(()=>Number) @IsInt() @Min(0) @Max(480) offset = 0;
   @IsOptional() @Type(()=>Number) @IsNumber() @Min(-90) @Max(90) latitude?: number;
   @IsOptional() @Type(()=>Number) @IsNumber() @Min(-180) @Max(180) longitude?: number;

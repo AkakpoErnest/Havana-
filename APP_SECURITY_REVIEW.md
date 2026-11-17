@@ -157,3 +157,10 @@ Codex reviewed ced9b37. Backend 21/21 (dedicated local havana_test), mobile 22/2
 - Status: Open; source-reviewed, UI reproduction pending.
 - Proposed correction: include saved and item in profile unblock invalidation.
 - Verification: save a listing, block its seller, load Saved while blocked, unblock from You, reopen Saved and item details; confirm restoration without manual refresh.
+
+
+## Mobile acceptance follow-up — 2026-11-17
+
+- APP-002: Codex added saved/item invalidation to profile unblock. Status: fixed awaiting runtime verification of save → block → Saved → unblock via You → Saved/item recovery. Typecheck/lint pass; no full browser sequence claimed.
+- APP-003 (P2, owner Codex/mobile): expo-linking legal links replaced the web app tab, interrupting onboarding. Corrected LegalLink and profile link actions to React Native Linking. Status: fixed and browser-verified locally: rules/privacy open in a separate tab; returning retains the onboarding draft. Native link handling still requires device acceptance.
+- Terms/legal/support integration: backend 22/22, mobile 22/22, root typecheck/lint, verified production-API web export pass. Local Chrome verifies new/existing unaccepted onboarding, explicit agreement, profile content rejection with retained draft, saved acceptance after reload, legal tabs, optional support row, and no-login-method state. Not production or signed-device approval. Full evidence in CONVERSATION.md.

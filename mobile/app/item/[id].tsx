@@ -16,6 +16,7 @@ import {
   Safety,
   T,
   Title,
+  conditionLabel,
   label,
   money,
   s,
@@ -74,7 +75,7 @@ export default function ItemDetail() {
       </ScrollView>
       <View style={s.split}>
         <T style={{ color: C.muted, fontSize: 12 }}>
-          {label(item.category)} · {label(item.condition)}
+          {label(item.category)} · {conditionLabel(item.condition)}
         </T>
         <T style={{ color: C.leaf }}>{label(item.status)}</T>
       </View>

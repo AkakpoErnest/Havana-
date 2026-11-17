@@ -89,3 +89,10 @@ The generated project uses a development signing key for this local preview. Sto
 - On phones: report from chat, block both directions, verify messages/offers/swaps are stopped, retain readable history, and unblock from chat and You. Verify mutual blocks remain effective after only one side unblocks.
 - Check saved listings and item details refresh after unblocking through You (APP-002 open cache invalidation finding).
 - Verify moderator-only user-report queue and resolve action, including denied access for ordinary accounts.
+
+
+## Terms/legal/support acceptance — 2026-11-17
+
+- Codex locally verified Chrome new/existing unaccepted onboarding, unchecked agreement/disabled Explore, friendly rejected profile save preserving draft, acceptance persistence after reload, rules/privacy in separate tabs, support row hidden/present according to configuration, and no-method login state.
+- Backend 22/22, mobile 22/22, root typecheck/lint and production-API web export pass. No signed native build or production acceptance in this pass.
+- Device follow-up: legal browser/mail handlers, keyboard/accessibility and acceptance persistence on Android/iPhone. Verify APP-002 saved/item restoration after unblocking through You; invalidation is now corrected.

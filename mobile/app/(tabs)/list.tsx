@@ -10,7 +10,19 @@ import { api } from '../../src/api';
 import { photoForm } from '../../src/upload-form';
 import { User } from '../../src/types';
 import { countryOf } from '../../src/countries';
-import { Button, C, Chips, ErrorBox, Field, Page, T, Title, categories, s } from '../../src/ui';
+import {
+  Button,
+  C,
+  CONDITION_LABELS,
+  Chips,
+  ErrorBox,
+  Field,
+  Page,
+  T,
+  Title,
+  categories,
+  s,
+} from '../../src/ui';
 export default function ListItem() {
   const [photos, setPhotos] = useState<string[]>([]),
     [title, setTitle] = useState(''),
@@ -181,6 +193,7 @@ export default function ListItem() {
       <T style={s.label}>Condition</T>
       <Chips
         values={['NEW', 'LIKE_NEW', 'GOOD', 'FAIR']}
+        labels={CONDITION_LABELS}
         value={condition}
         onChange={setCondition}
         disabled={publish.isPending}

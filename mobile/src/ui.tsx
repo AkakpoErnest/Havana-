@@ -38,6 +38,15 @@ export const categories = [
   'HOUSEHOLD',
   'OTHER',
 ] as const;
+/** Item condition as buyers see it: new goods are clearly "Brand new", everything else says "Used". */
+export const CONDITION_LABELS: Record<string, string> = {
+  NEW: 'Brand new',
+  LIKE_NEW: 'Used · like new',
+  GOOD: 'Used · good',
+  FAIR: 'Used · fair',
+};
+export const conditionLabel = (condition: string) =>
+  CONDITION_LABELS[condition] ?? label(condition);
 export const label = (s: string) =>
   s
     .toLowerCase()

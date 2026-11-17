@@ -19,10 +19,10 @@ Play Console → **Create app**
 ## 2. Store listing (Grow → Store presence → Main store listing)
 
 **Short description (max 80):**
-> Buy, haggle and swap second-hand finds near you in Ghana, Nigeria and Kenya.
+> Buy, haggle and swap new and pre-loved finds near you in Ghana, Nigeria and Kenya.
 
 **Full description:**
-> Havana is Africa's second-hand sweet spot. Swipe through good finds from people near you, haggle a little, or swap something you no longer need for something you'll love.
+> Havana is Africa's sweet spot for new and pre-loved finds. Swipe through good things from people near you (every listing says if it's brand new or used), haggle a little, or swap something you no longer need for something you'll love.
 >
 > • Swipe or browse: clothes, shoes, bags, furniture, electronics and household items
 > • Haggle in chat: make an offer, counter, and agree a price

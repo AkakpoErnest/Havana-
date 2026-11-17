@@ -75,7 +75,7 @@ export default function Login() {
         {!keyboardVisible && (
           <>
             <T style={{ color: C.leaf, fontSize: 12, letterSpacing: 3 }}>
-              AFRICA’S SECOND-HAND SWEET SPOT
+              NEW & PRE-LOVED · AFRICA’S SWEET SPOT
             </T>
             <Title>Good things.{'\n'}New stories.</Title>
             <T style={{ color: C.muted, lineHeight: 24 }}>

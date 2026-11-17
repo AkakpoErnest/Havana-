@@ -504,7 +504,7 @@ test('browse lists every live listing in my country, with search, filters, sorti
   for(const u of [seller,buyer]) await http.patch('/me').set(as(u)).send({country:'KE',latitude:-1.29,longitude:36.82}).expect(200);
   const desk=await listing(seller,{title:'Zebrawood study desk',category:'FURNITURE',swap:false,price:9000,area:'Kilimani',latitude:-1.29,longitude:36.78});
   const kettle=await listing(seller,{title:'Electric kettle',category:'HOUSEHOLD',sell:false,swapValue:1500,area:'Westlands',latitude:-1.27,longitude:36.81});
-  const lamp=await listing(seller,{title:'Reading lamp',description:'Warm light, matches a zebrawood desk.',category:'HOUSEHOLD',swap:false,price:1200,area:'Kasarani',latitude:-1.22,longitude:36.90});
+  const lamp=await listing(seller,{title:'Reading lamp',description:'Warm light, matches a zebrawood desk.',category:'HOUSEHOLD',condition:'NEW',swap:false,price:1200,area:'Kasarani',latitude:-1.22,longitude:36.90});
   // A card I already passed on still shows in browse (that's the point of it).
   await http.post('/swipes').set(as(buyer)).send({itemId:desk,mode:'SHOP',direction:'LEFT'}).expect(201);
   const all=(await http.get('/browse?category=FURNITURE').set(as(buyer)).expect(200)).body;
@@ -521,6 +521,10 @@ test('browse lists every live listing in my country, with search, filters, sorti
   const near=(await http.get('/browse?sort=near').set(as(buyer)).expect(200)).body.items;
   assert.ok(near.every((i:{distanceKm:number},n:number)=>n===0||near[n-1].distanceKm<=i.distanceKm));
   assert.equal((await http.get('/browse').set(as(buyer)).expect(200)).body.nextOffset,null);
+  // Brand new vs used (every other condition).
+  assert.deepEqual((await http.get('/browse?category=HOUSEHOLD&condition=new').set(as(buyer)).expect(200)).body.items.map((i:{id:string})=>i.id),[lamp]);
+  assert.deepEqual((await http.get('/browse?category=HOUSEHOLD&condition=used').set(as(buyer)).expect(200)).body.items.map((i:{id:string})=>i.id),[kettle]);
+  await http.get('/browse?condition=mint').set(as(buyer)).expect(400);
   await http.get('/browse?sort=cheapest').set(as(buyer)).expect(400);
 });
 

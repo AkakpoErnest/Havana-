@@ -15,7 +15,7 @@ export class LegalController {
   privacy() {
     return page('Havana privacy policy', `
 <h2>Privacy policy</h2><p><i>Last updated: 26 September 2026</i></p>
-<p>Havana is a second-hand marketplace for Africa, currently in Ghana, Nigeria and Kenya, where people buy, haggle and swap used items. This policy explains what we collect, why, and your choices. Questions: ${contact()}.</p>
+<p>Havana is a marketplace for Africa, currently in Ghana, Nigeria and Kenya, where people buy, haggle and swap new and pre-loved items. This policy explains what we collect, why, and your choices. Questions: ${contact()}.</p>
 <h3>What we collect</h3><ul>
 <li><b>Account:</b> your phone number and/or email (to send login codes), your name, your country and your area (for example "Osu" or "Westlands").</li>
 <li><b>Location (optional):</b> only if you allow it, to show items near you and to place your listings. We store it rounded to about 1 km, never your exact spot, and <b>other people never see it</b>: only the area you type and a distance rounded to the nearest 0.5 km.</li>
@@ -41,7 +41,7 @@ export class LegalController {
 <p>Havana works because neighbours trust each other. By using Havana you confirm you are <b>18 or older</b> and agree to these rules.</p>
 <h3>Be kind and honest</h3><ul>
 <li>No insults, threats, harassment, hate speech or sexual messages.</li>
-<li>Describe items truthfully, with your own photos. Say if something is damaged.</li>
+<li>Describe items truthfully, with your own photos. Only mark something <b>Brand new</b> if it is unused, and say if anything is damaged.</li>
 <li>Only list things you own and have the right to sell or swap.</li></ul>
 <h3>Items you can't list</h3><ul>
 <li>Weapons, ammunition, explosives and their parts</li>
@@ -49,7 +49,7 @@ export class LegalController {
 <li>Stolen goods, counterfeits, fake documents, IDs or money</li>
 <li>Live animals, and products from protected animals (such as ivory)</li>
 <li>Adult content, and anything illegal in Ghana, Nigeria or Kenya</li>
-<li>Services, jobs, property rentals and digital accounts: Havana is for physical second-hand items</li></ul>
+<li>Services, jobs, property rentals and digital accounts: Havana is for physical items, new or used</li></ul>
 <h3>Trade safely</h3><ul>
 <li>Meet in a busy public place, in daylight if you can. Bring a friend for big items.</li>
 <li>Check the item before you pay. Pay the seller directly (mobile money such as MoMo or M-Pesa, or cash) at the handover.</li>

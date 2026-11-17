@@ -1,8 +1,7 @@
 import React, { useCallback, useState } from 'react';
-import { Modal, Platform, Pressable, ScrollView, View } from 'react-native';
+import { Linking, Modal, Platform, Pressable, ScrollView, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import * as Linking from 'expo-linking';
 import { useLoginMethods } from '../../src/login-methods';
 import { api, photoUrl } from '../../src/api';
 import { withDeadline } from '../../src/deadline';
@@ -55,7 +54,7 @@ export default function Profile() {
   const unblock = useMutation({
     mutationFn: (userId: string) => api(`/blocks/${userId}`, 'DELETE'),
     onSuccess: () => {
-      for (const key of ['blocks', 'feed', 'browse', 'inbox', 'chat'])
+      for (const key of ['blocks', 'feed', 'browse', 'inbox', 'chat', 'saved', 'item'])
         void cache.invalidateQueries({ queryKey: [key] });
     },
   });
