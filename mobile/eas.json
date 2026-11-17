@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">=16.0.0"
+    "version": ">=16.0.0",
+    "appVersionSource": "remote"
   },
   "build": {
     "preview": {
@@ -19,6 +20,11 @@
         "EXPO_PUBLIC_API_URL": "https://havana-api.onrender.com",
         "EXPO_PUBLIC_USE_RN_FETCH": "1"
       }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {}
     }
   }
 }
