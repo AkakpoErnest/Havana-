@@ -1,0 +1,185 @@
+/* "Three ways to trade" scroll story (owned by Claude). Driven by scrolly.js, which sets on .sy-pin:
+   data-step (1–3), --p (0–1 across the whole story) and --t (0–1 within the current step). */
+
+/* ---------- Phones, no-JS-friendly fallback: cards ease in one after another ---------- */
+.ways-enter .way { opacity: 0; transform: translateY(36px) scale(.98); transition: opacity .6s ease, transform .7s cubic-bezier(.2, .7, .3, 1); }
+.ways-enter .way:nth-child(2) { transition-delay: .08s; }
+.ways-enter .way:nth-child(3) { transition-delay: .16s; }
+.ways-enter .way.is-in { opacity: 1; transform: none; }
+.ways-enter .way .way-icon { transform: scale(.4) rotate(-20deg); transition: transform .6s cubic-bezier(.3, 1.6, .5, 1) .25s; }
+.ways-enter .way.is-in .way-icon { transform: none; }
+
+/* ---------- Wide screens: pinned story ---------- */
+#how.is-scrolly { max-width: none; padding: 0; }
+.sy-track { position: relative; height: 360vh; }
+.sy-pin {
+  position: sticky; top: 0; height: 100vh; overflow: hidden;
+  display: grid; grid-template-columns: minmax(280px, .85fr) 1.15fr; align-items: center;
+  gap: clamp(24px, 5vw, 80px); max-width: 1240px; margin: 0 auto; padding: 84px clamp(24px, 5vw, 56px) 32px;
+}
+.sy-glow {
+  position: absolute; left: 6%; top: 50%; width: min(56vh, 520px); aspect-ratio: 1; border-radius: 50%;
+  translate: 0 -50%; filter: blur(70px); opacity: .45; background: var(--leaf);
+  transition: background-color .8s ease; pointer-events: none;
+}
+.sy-pin[data-step="2"] .sy-glow { background: var(--mango); }
+.sy-pin[data-step="3"] .sy-glow { background: var(--pink); }
+.sy-stage { position: relative; display: grid; place-items: center; z-index: 1; }
+
+/* Steps: one explanation card at a time */
+.sy-steps { position: relative; z-index: 1; }
+.sy-steps h2 { margin-bottom: 28px; }
+.is-scrolly .ways { display: block; position: relative; height: min(52vh, 420px); }
+.is-scrolly .way {
+  position: absolute; inset: 0; display: grid; grid-template-columns: .9fr 1fr; gap: 26px; align-items: center;
+  opacity: 0; transform: translateY(46px) scale(.97); pointer-events: none;
+  transition: opacity .55s ease, transform .7s cubic-bezier(.2, .7, .3, 1);
+  box-shadow: 0 24px 60px rgba(35, 32, 107, .12);
+}
+.is-scrolly .way.is-active { opacity: 1; transform: none; pointer-events: auto; }
+.is-scrolly .way-photo { grid-row: 1 / span 3; margin: 0; height: 100%; max-height: 360px; }
+.is-scrolly .way-icon { transform: scale(.4) rotate(-25deg); transition: transform .6s cubic-bezier(.3, 1.6, .5, 1) .15s; }
+.is-scrolly .way.is-active .way-icon { transform: none; }
+.is-scrolly .way h3 { font-size: clamp(1.5rem, 2.4vw, 2.1rem); margin: 0 0 10px; }
+.is-scrolly .way p { font-size: 1.08rem; }
+
+.sy-dots { position: absolute; right: clamp(10px, 2vw, 28px); top: 50%; translate: 0 -50%; display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; z-index: 2; }
+.sy-dots li { width: 10px; height: 10px; border-radius: 50%; background: var(--line); transition: background-color .3s, transform .3s; }
+.sy-pin[data-step="1"] .sy-dots li:nth-child(1) { background: var(--leaf); transform: scale(1.5); }
+.sy-pin[data-step="2"] .sy-dots li:nth-child(2) { background: var(--mango); transform: scale(1.5); }
+.sy-pin[data-step="3"] .sy-dots li:nth-child(3) { background: var(--pink); transform: scale(1.5); }
+
+/* ---------- The phone ---------- */
+.ph {
+  position: relative; height: min(640px, 74vh); aspect-ratio: 9 / 18.5; padding: 11px; border-radius: 46px;
+  background: #16152E; box-shadow: 0 40px 80px rgba(22, 21, 46, .35), inset 0 0 0 2px #2c2a52;
+  transform: rotate(calc(-4deg + var(--p, 0) * 8deg)); transition: transform .2s linear;
+}
+.ph-notch { position: absolute; top: 18px; left: 50%; width: 30%; height: 22px; translate: -50% 0; border-radius: 14px; background: #16152E; z-index: 3; }
+.ph-screen { position: relative; height: 100%; border-radius: 36px; overflow: hidden; background: #F6F6FA; }
+.ph-top { position: absolute; inset: 44px 16px auto; display: flex; justify-content: space-between; align-items: baseline; z-index: 2; }
+.ph-top b { font-family: var(--display, inherit); font-size: 1.3rem; color: var(--brand); }
+.ph-top b span { color: var(--pink); }
+.ph-top i { font-style: normal; font-size: .72rem; color: var(--brand); font-weight: 600; }
+
+/* Each act fades in for its step */
+.act { position: absolute; inset: 84px 0 0; opacity: 0; transition: opacity .45s ease; }
+.sy-pin[data-step="1"] .act-1, .sy-pin[data-step="2"] .act-2, .sy-pin[data-step="3"] .act-3 { opacity: 1; }
+
+/* Listing cards inside the phone */
+.pc { position: absolute; left: 7%; right: 7%; top: 2%; height: 74%; border-radius: 22px; overflow: hidden; background: #fff; box-shadow: 0 14px 30px rgba(35, 32, 107, .18); }
+.pc img { width: 100%; height: 72%; object-fit: cover; display: block; }
+.pc-body { padding: 10px 14px; display: grid; gap: 2px; }
+.pc-body b { font-size: .95rem; color: var(--ink); line-height: 1.2; }
+.pc-body small { font-size: .7rem; color: var(--muted); }
+.pc-price { position: absolute; top: 12px; right: 12px; background: var(--mango); color: var(--ink); font-weight: 800; font-size: .85rem; padding: 6px 10px; border-radius: 10px; rotate: 4deg; }
+.pc-stamp { position: absolute; top: 18px; left: 14px; padding: 4px 10px; border: 3px solid; border-radius: 10px; font-weight: 900; font-size: .9rem; text-transform: uppercase; letter-spacing: .04em; background: rgba(255, 255, 255, .85); }
+.pc-want { color: var(--leaf); rotate: -12deg; }
+.pc-offer { color: #B07400; rotate: -6deg; }
+
+/* Act 1: swipe right to save */
+.act-1 { --s: clamp(0, calc((var(--t, 0) - .3) * 2.2), 1); }
+.act-1 .pc-back { transform: scale(calc(.93 + var(--s) * .07)); opacity: calc(.6 + var(--s) * .4); }
+.act-1 .pc-back img { height: 100%; }
+.act-1 .pc-front { transform: translateX(calc(var(--s) * 135%)) rotate(calc(var(--s) * 20deg)); }
+.act-1 .pc-want { opacity: clamp(0, calc((var(--t, 0) - .08) * 5), 1); }
+.ph-heart {
+  position: absolute; left: 50%; top: 32%; translate: -50% -50%; font-size: 4.5rem; color: var(--leaf);
+  opacity: clamp(0, calc((var(--t, 0) - .55) * 6), 1);
+  transform: scale(calc(.4 + clamp(0, calc((var(--t, 0) - .55) * 4), 1) * .8));
+  text-shadow: 0 10px 24px rgba(31, 167, 116, .35);
+}
+.ph-toast {
+  position: absolute; left: 10%; right: 10%; bottom: 6%; padding: 10px 12px; border-radius: 14px; text-align: center;
+  background: var(--brand); color: #fff; font-size: .78rem; font-weight: 700;
+  transform: translateY(calc((1 - clamp(0, calc((var(--t, 0) - .7) * 5), 1)) * 160%));
+}
+
+/* Act 2: swipe up, offer, accepted */
+.act-2 { --u: clamp(0, calc((var(--t, 0) - .12) * 3), 1); --o: clamp(0, calc((var(--t, 0) - .3) * 3.5), 1); }
+.act-2 .pc-up { transform-origin: top center; transform: translateY(calc(var(--u) * -4%)) scale(calc(1 - var(--u) * .2)); }
+.act-2 .pc-offer { opacity: clamp(0, calc((var(--t, 0) - .02) * 6), 1); }
+.ph-sheet {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 14px 18px; border-radius: 22px 22px 0 0; background: #fff;
+  box-shadow: 0 -10px 30px rgba(35, 32, 107, .14); display: grid; gap: 8px;
+  transform: translateY(calc((1 - var(--o)) * 105%));
+}
+.ph-sheet small { font-size: .7rem; color: var(--muted); font-weight: 700; }
+.ph-chips { display: flex; gap: 5px; }
+.ph-chips span { flex: 1; text-align: center; font-size: .66rem; padding: 6px 0; border-radius: 9px; background: #FFF0D2; color: var(--ink); }
+.ph-chips .on { background: var(--mango); font-weight: 800; }
+.ph-offer { font-size: 1.6rem; font-weight: 900; color: var(--ink); }
+.ph-bubble { position: absolute; max-width: 72%; padding: 9px 12px; border-radius: 16px; font-size: .76rem; font-weight: 600; z-index: 2; }
+.ph-bubble em { display: block; font-style: normal; font-size: .65rem; opacity: .8; }
+.ph-mine { right: 6%; top: 46%; background: var(--brand); color: #fff; border-bottom-right-radius: 4px;
+  opacity: clamp(0, calc((var(--t, 0) - .55) * 6), 1); transform: translateY(calc((1 - clamp(0, calc((var(--t, 0) - .55) * 6), 1)) * 14px)); }
+.ph-theirs { left: 6%; top: 58%; background: #fff; color: var(--ink); border-bottom-left-radius: 4px; box-shadow: 0 8px 20px rgba(35, 32, 107, .14);
+  opacity: clamp(0, calc((var(--t, 0) - .75) * 6), 1); transform: translateY(calc((1 - clamp(0, calc((var(--t, 0) - .75) * 6), 1)) * 14px)); }
+.ph-theirs em { color: var(--leaf); opacity: 1; font-weight: 800; }
+
+/* Act 3: swap, then walk to a public meeting spot */
+.act-3 { --w: clamp(0, calc((var(--t, 0) - .15) * 2.6), 1); --m: clamp(0, calc((var(--t, 0) - .55) * 2.4), 1); }
+.ph-match {
+  position: absolute; left: 8%; right: 8%; top: 0; text-align: center; padding: 10px; border-radius: 16px;
+  background: linear-gradient(120deg, var(--pink), var(--mango)); color: #fff; font-weight: 900; font-size: 1rem;
+  transform: scale(calc(.6 + clamp(0, calc(var(--t, 0) * 6), 1) * .4)); opacity: clamp(0, calc(var(--t, 0) * 6), 1);
+}
+.sw { position: absolute; top: 18%; width: 38%; border-radius: 18px; overflow: hidden; background: #fff; box-shadow: 0 12px 26px rgba(35, 32, 107, .18); }
+.sw img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+.sw small { display: block; padding: 6px 8px; font-size: .68rem; font-weight: 700; color: var(--brand); text-align: center; }
+/* The two cards trade places along a little arc. */
+.sw-a { left: 8%; transform: translateX(calc(var(--w) * 121%)) translateY(calc(var(--w) * (1 - var(--w)) * -90px)) rotate(calc(var(--w) * 8deg)); z-index: 2; }
+.sw-b { right: 8%; transform: translateX(calc(var(--w) * -121%)) translateY(calc(var(--w) * (1 - var(--w)) * 90px)) rotate(calc(var(--w) * -8deg)); }
+.sw-arrows { position: absolute; top: 30%; left: 50%; translate: -50% 0; font-size: 1.8rem; color: var(--pink); font-weight: 900;
+  transform: rotate(calc(var(--w) * 180deg)); }
+.ph-map {
+  position: absolute; left: 6%; right: 6%; bottom: 5%; height: 25%; border-radius: 18px; overflow: hidden;
+  background: radial-gradient(circle at 20% 30%, #E6F5EE 0 18%, transparent 19%), radial-gradient(circle at 80% 70%, #FFF0D2 0 16%, transparent 17%), #EFEFF7;
+  opacity: clamp(0, calc((var(--t, 0) - .45) * 6), 1);
+}
+.ph-map small { position: absolute; left: 0; right: 0; bottom: 6px; text-align: center; font-size: .66rem; font-weight: 700; color: var(--brand); }
+.pin { position: absolute; top: 28%; font-size: 1.2rem; color: var(--pink); font-weight: 900; }
+.pin-a { left: 10%; }
+.pin-b { right: 10%; color: var(--leaf); }
+.route { position: absolute; left: 18%; right: 18%; top: 42%; border-top: 3px dashed #B9B7D6; }
+/* A little walking person: legs swing while they cross the map. */
+.walker { position: absolute; top: 18%; left: calc(14% + var(--m) * 62%); width: 18px; height: 30px; }
+.walker::before { content: ''; position: absolute; left: 5px; top: 0; width: 9px; height: 9px; border-radius: 50%; background: var(--brand); }
+.walker i { position: absolute; left: 7px; top: 9px; width: 5px; height: 11px; border-radius: 3px; background: var(--brand); }
+.walker i::before, .walker i::after { content: ''; position: absolute; top: 9px; left: 1px; width: 3px; height: 11px; border-radius: 2px; background: var(--brand); transform-origin: top center; animation: sy-step .5s ease-in-out infinite alternate; }
+.walker i::after { animation-direction: alternate-reverse; }
+.sy-pin:not([data-step="3"]) .walker i::before, .sy-pin:not([data-step="3"]) .walker i::after { animation-play-state: paused; }
+@keyframes sy-step { from { transform: rotate(28deg); } to { transform: rotate(-28deg); } }
+
+/* Phones and tablets: phone on top, a compact caption underneath (no photo) */
+@media (max-width: 899px) {
+  .sy-track { height: 330vh; }
+  .sy-pin { grid-template-columns: 1fr; grid-template-rows: auto 1fr; align-items: start; justify-items: center; gap: 10px; padding: 92px 16px 18px; }
+  .sy-glow { left: 50%; top: 32%; translate: -50% -50%; width: 80vw; }
+  .ph { height: min(50vh, 440px); border-radius: 38px; padding: 9px; }
+  .ph-match { font-size: .8rem; padding: 8px; }
+  .ph-bubble { font-size: .68rem; }
+  .ph-screen { border-radius: 30px; }
+  .sy-steps { width: 100%; max-width: 520px; }
+  .sy-steps h2 { font-size: clamp(1.4rem, 6vw, 1.9rem); margin: 4px 0 10px; text-align: center; }
+  .is-scrolly .ways { height: min(26vh, 200px); }
+  .is-scrolly .way { display: block; padding: 16px 18px; }
+  .is-scrolly .way-photo { display: none; }
+  .is-scrolly .way-icon { width: 38px; height: 38px; font-size: 1.1rem; margin: 0 10px 0 0; float: left; }
+  .is-scrolly .way h3 { font-size: 1.25rem; margin: 4px 0 8px; line-height: 38px; }
+  .is-scrolly .way p { clear: both; font-size: .95rem; }
+  .sy-dots { top: auto; bottom: 14px; right: 50%; translate: 50% 0; display: flex; }
+  .ph-top { top: 36px; }
+  .act { inset: 70px 0 0; }
+}
+
+/* Short screens: smaller phone and cards so the whole story fits */
+@media (max-height: 760px) {
+  .ph { height: min(560px, 70vh); }
+  .is-scrolly .ways { height: min(48vh, 360px); }
+  .sy-steps h2 { margin-bottom: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ways-enter .way, .is-scrolly .way { transition: none; }
+  .walker i::before, .walker i::after { animation: none; }
+}

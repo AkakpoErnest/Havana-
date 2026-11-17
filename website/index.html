@@ -15,6 +15,8 @@
   <link rel="preload" href="assets/fonts/bricolage-800ExtraBold.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="motion.css">
+  <link rel="stylesheet" href="scrolly.css">
+  <link rel="stylesheet" href="ring.css">
 </head>
 <body>
   <!-- Background: motion.js fills .bg-float with these icons drifting upward and switches them to match the section in view (skipped under reduced motion). -->
@@ -122,13 +124,56 @@
       </div>
     </section>
 
-    <section class="section section-tint" data-bg="cats" aria-labelledby="cats-title">
+    <!-- CODEX: categories ring (start). Codex owns this section, ring.css and ring.js. -->
+    <section class="section section-tint category-ring" data-bg="cats" aria-labelledby="cats-title">
       <h2 id="cats-title">Find it on Havana</h2>
-      <ul class="chips" role="list">
+      <ul class="chips ring-chips" role="list">
         <li>Clothes</li><li>Shoes</li><li>Bags</li><li>Furniture</li><li>Electronics</li><li>Household</li><li>Other good things</li>
       </ul>
+      <div class="ring-stage" aria-hidden="true">
+        <div class="ring-orbit">
+          <article class="ring-card ring-card-0">
+            <img src="assets/way-swap.webp" width="600" height="600" loading="lazy" decoding="async" alt="">
+            <span class="ring-price">GH₵120</span>
+            <div class="ring-card-info"><span class="ring-condition">Used</span><b>Clothes</b></div>
+          </article>
+          <article class="ring-card ring-card-1">
+            <img src="assets/way-shop.webp" width="600" height="600" loading="lazy" decoding="async" alt="">
+            <span class="ring-price">KSh 2,400</span>
+            <div class="ring-card-info"><span class="ring-condition">Brand new</span><b>Shoes</b></div>
+          </article>
+          <article class="ring-card ring-card-2">
+            <img src="assets/deck/handbag.webp" width="720" height="720" loading="lazy" decoding="async" alt="">
+            <span class="ring-price">₦18,000</span>
+            <div class="ring-card-info"><span class="ring-condition">Used</span><b>Bags</b></div>
+          </article>
+          <article class="ring-card ring-card-3">
+            <img src="assets/deck/sofa.webp" width="720" height="720" loading="lazy" decoding="async" alt="">
+            <span class="ring-price">GH₵850</span>
+            <div class="ring-card-info"><span class="ring-condition">Used</span><b>Furniture</b></div>
+          </article>
+          <article class="ring-card ring-card-4">
+            <img src="assets/deck/headphones.webp" width="720" height="720" loading="lazy" decoding="async" alt="">
+            <span class="ring-price">KSh 3,500</span>
+            <div class="ring-card-info"><span class="ring-condition">Brand new</span><b>Electronics</b></div>
+          </article>
+          <article class="ring-card ring-card-5">
+            <img src="assets/deck/stool.webp" width="720" height="720" loading="lazy" decoding="async" alt="">
+            <span class="ring-price">₦12,000</span>
+            <div class="ring-card-info"><span class="ring-condition">Used</span><b>Household</b></div>
+          </article>
+          <article class="ring-card ring-card-6">
+            <img src="assets/deck/plant.webp" width="720" height="720" loading="lazy" decoding="async" alt="">
+            <span class="ring-price">GH₵65</span>
+            <div class="ring-card-info"><span class="ring-condition">Brand new</span><b>Other good things</b></div>
+          </article>
+        </div>
+      </div>
+      <div class="ring-caption"><span>Good finds. A whole new orbit.</span><button class="ring-pause" type="button" hidden>Pause rotation</button></div>
+      <p class="ring-example">Illustrative finds and prices.</p>
       <p class="section-note">Make room for something new: up to 6 photos (we keep them small to save your data), a price in your local currency, and your area, from Osu to Westlands.</p>
     </section>
+    <!-- CODEX: categories ring (end) -->
 
     <section id="why" class="section" data-bg="why" aria-labelledby="why-title">
       <p class="eyebrow">Why Havana?</p>
@@ -227,5 +272,7 @@
     <p class="fineprint">© 2026 Havana</p>
   </footer>
   <script src="motion.js" defer></script>
+  <script src="scrolly.js" defer></script>
+  <script src="ring.js" defer></script>
 </body>
 </html>

@@ -1,0 +1,47 @@
+/* Categories: static swipe row first; JS opts into the 3D orbit. */
+.category-ring { overflow: hidden; position: relative; }
+.category-ring h2 { text-align: center; }
+.category-ring .ring-chips { justify-content: center; position: relative; z-index: 1; max-width: 900px; }
+.category-ring .ring-chips li { font-size: .88rem; padding: 10px 16px; }
+.category-ring .ring-chips .is-front { background: var(--mango); border-color: var(--mango); color: var(--brand); }
+.category-ring .ring-stage { max-width: 1088px; position: relative; margin: 28px auto 0; }
+.ring-orbit { display: flex; gap: 18px; overflow-x: auto; padding: 18px 12px 30px; scroll-snap-type: x mandatory; }
+.ring-card { position: relative; flex: 0 0 220px; width: 220px; border: 5px solid var(--white); border-radius: 22px; overflow: hidden; background: var(--white); color: var(--brand); box-shadow: 0 18px 30px #100e3b30; scroll-snap-align: center; }
+.ring-card img { width: 100%; height: 220px; object-fit: cover; }
+.ring-price { position: absolute; top: 15px; right: 10px; background: var(--mango); padding: 6px 11px; border-radius: 7px; font-weight: 800; font-size: 1rem; transform: rotate(7deg); box-shadow: 0 3px 0 #16152e16; }
+.ring-card-info { padding: 12px 11px 15px; display: grid; gap: 6px; }
+.ring-card-info b { font-size: 1.1rem; line-height: 1.15; }
+.ring-condition { color: #146347; background: #e7f5ee; border-radius: 20px; padding: 2px 8px; font-size: .65rem; width: fit-content; }
+.ring-card:nth-child(3n) .ring-price { background: var(--pink); color: var(--white); }
+.category-ring .ring-caption { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 12px 24px; margin: 12px auto; }
+.ring-caption > span { font-size: 1.1rem; font-weight: 700; }
+.ring-pause { font: inherit; font-size: .8rem; color: var(--white); background: transparent; border: 1px solid #ffffff65; border-radius: 999px; min-height: 48px; padding: 8px 18px; cursor: pointer; }
+.ring-pause[hidden] { display: none; }
+.ring-pause:hover { background: #ffffff18; }
+.category-ring .ring-example { color: #d9d8f0; text-align: center; font-size: .72rem; margin: 0 auto 24px; }
+.category-ring .section-note { text-align: center; }
+/* Radius is wider than half a card / tan(PI / 7), leaving air between faces. */
+.ring-is-live .ring-stage { height: 440px; perspective: 1100px; }
+.ring-is-live .ring-orbit { position: absolute; left: 50%; top: 42%; width: 220px; height: 320px; margin: -160px 0 0 -110px; padding: 0; overflow: visible; display: block; transform-style: preserve-3d; will-change: transform; }
+.ring-is-live .ring-card { position: absolute; inset: 0; height: 320px; backface-visibility: hidden; transform: rotateY(var(--ring-angle)) translateZ(320px); }
+.ring-card-0 { --ring-angle: 0deg; }
+.ring-card-1 { --ring-angle: 51.428571deg; }
+.ring-card-2 { --ring-angle: 102.857143deg; }
+.ring-card-3 { --ring-angle: 154.285714deg; }
+.ring-card-4 { --ring-angle: 205.714286deg; }
+.ring-card-5 { --ring-angle: 257.142857deg; }
+.ring-card-6 { --ring-angle: 308.571429deg; }
+@media (max-width: 600px) {
+  .category-ring .ring-chips { gap: 7px; }
+  .category-ring .ring-chips li { font-size: .72rem; padding: 7px 11px; }
+  .ring-is-live .ring-stage { height: 335px; perspective: 850px; margin-top: 12px; }
+  .ring-is-live .ring-orbit { width: 154px; height: 241px; margin: -120px 0 0 -77px; }
+  .ring-is-live .ring-card { width: 154px; height: 241px; border-width: 4px; border-radius: 17px; transform: rotateY(var(--ring-angle)) translateZ(195px); }
+  .ring-is-live .ring-card img { height: 154px; }
+  .ring-is-live .ring-card-info { padding: 9px 7px; gap: 5px; }
+  .ring-is-live .ring-card-info b { font-size: .86rem; }
+  .ring-is-live .ring-price { top: 10px; right: 5px; font-size: .8rem; padding: 4px 7px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .category-ring .ring-orbit { scroll-behavior: auto; }
+}
