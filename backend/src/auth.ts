@@ -17,7 +17,7 @@ export function otpChannel(type:'EMAIL'|'PHONE'):OtpChannel|null {
   if(process.env.NODE_ENV!=='production'&&process.env.DEV_OTP==='true') return 'dev';
   return null;
 }
-export const loginMethods=()=>({email:otpChannel('EMAIL')!==null,phone:otpChannel('PHONE')!==null});
+export const loginMethods=()=>({email:otpChannel('EMAIL')!==null,phone:otpChannel('PHONE')!==null,supportEmail:process.env.SUPPORT_EMAIL||null});
 async function sendEmailCode(to:string,code:string) {
   const text=`Your Havana code is ${code}. It expires in 5 minutes.\n\nIf you didn't try to sign in to Havana, you can ignore this email.`;
   const html=`<div style="font-family:Arial,sans-serif;max-width:420px;margin:auto;padding:24px;color:#16152E">

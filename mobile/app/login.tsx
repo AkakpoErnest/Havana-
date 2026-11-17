@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Keyboard, View } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
+import { LegalLink } from '../src/LegalLink';
 import { api } from '../src/api';
 import { useSession } from '../src/session';
 import { LoginType, useLoginMethods } from '../src/login-methods';
@@ -37,7 +38,7 @@ export default function Login() {
       hidden.remove();
     };
   }, []);
-  const { offered, phoneOff } = useLoginMethods();
+  const { offered, methods } = useLoginMethods();
   // Fall back to an offered type (e.g. EMAIL while phone login waits for SMS).
   const type = offered.includes(chosen) ? chosen : (offered[0] ?? chosen);
   const session = useSession();
@@ -93,38 +94,44 @@ export default function Login() {
               disabled={send.isPending}
             />
           )}
-          <Chips
-            values={COUNTRY_CODES}
-            labels={COUNTRY_LABELS}
-            value={country}
-            onChange={(next) => setCountry(next as CountryCode)}
-            disabled={send.isPending}
-          />
-          {phoneOff && (
-            <T style={{ color: C.muted, fontSize: 13 }}>
-              Phone login is coming soon. Sign in with your email for now.
-            </T>
+          {offered.length > 0 && (
+            <>
+              <Chips
+                values={COUNTRY_CODES}
+                labels={COUNTRY_LABELS}
+                value={country}
+                onChange={(next) => setCountry(next as CountryCode)}
+                disabled={send.isPending}
+              />
+              <Field
+                label={
+                  type === 'PHONE' ? `Your ${COUNTRIES[country].name} phone number` : 'Your email'
+                }
+                value={value}
+                onChangeText={setValue}
+                editable={!send.isPending}
+                keyboardType={type === 'PHONE' ? 'phone-pad' : 'email-address'}
+                autoCapitalize="none"
+                returnKeyType="send"
+                onSubmitEditing={() => {
+                  if (offered.length && value.trim() && !send.isPending) send.mutate();
+                }}
+                autoCorrect={false}
+                autoComplete={type === 'PHONE' ? 'tel' : 'email'}
+                placeholder={type === 'PHONE' ? COUNTRIES[country].example : 'you@example.com'}
+              />
+              <Button
+                title={send.isPending ? 'Sending…' : 'Send my code →'}
+                disabled={send.isPending || !value.trim()}
+                onPress={() => send.mutate()}
+              />
+            </>
           )}
-          <Field
-            label={type === 'PHONE' ? `Your ${COUNTRIES[country].name} phone number` : 'Your email'}
-            value={value}
-            onChangeText={setValue}
-            editable={!send.isPending}
-            keyboardType={type === 'PHONE' ? 'phone-pad' : 'email-address'}
-            autoCapitalize="none"
-            returnKeyType="send"
-            onSubmitEditing={() => {
-              if (value.trim() && !send.isPending) send.mutate();
-            }}
-            autoCorrect={false}
-            autoComplete={type === 'PHONE' ? 'tel' : 'email'}
-            placeholder={type === 'PHONE' ? COUNTRIES[country].example : 'you@example.com'}
-          />
-          <Button
-            title={send.isPending ? 'Sending…' : 'Send my code →'}
-            disabled={send.isPending || !value.trim()}
-            onPress={() => send.mutate()}
-          />
+          {methods.isPending && <T>Checking available login methods…</T>}
+          {methods.isSuccess && offered.length === 0 && (
+            <T>Sign-in is unavailable right now. Please try again later.</T>
+          )}
+          <ErrorBox error={methods.error} retry={() => void methods.refetch()} />
         </>
       ) : (
         <>
@@ -165,6 +172,10 @@ export default function Login() {
       )}
       {(send.isPending || verify.isPending) && <ConnectionWait />}
       <ErrorBox error={send.error ?? verify.error} />
+      <T style={{ color: C.muted, fontSize: 12 }}>
+        By continuing you agree to the <LegalLink path="/rules">Community rules</LegalLink> and{' '}
+        <LegalLink path="/privacy">Privacy policy</LegalLink>
+      </T>
       <Safety />
     </Page>
   );

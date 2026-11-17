@@ -65,6 +65,8 @@ model User {
   longitude Float?
   // Set when the person deletes their account; their sessions stop working immediately.
   deletedAt DateTime?
+  // When they confirmed they're 18+ and agreed to the community rules (onboarding). Null = not yet.
+  termsAcceptedAt DateTime?
   createdAt DateTime @default(now())
   identities AuthIdentity[]
   items Item[]

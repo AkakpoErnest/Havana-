@@ -8,6 +8,7 @@ import { isAdminIdentity } from './admin';
 import { roundDistance } from './privacy';
 import { COUNTRIES, DEFAULT_COUNTRY, isCountry } from './countries';
 import { Safety } from './safety';
+import { assertAllowed } from './content';
 const ownerSelect={id:true,name:true} as const;
 export const conversationInclude={item:true,swapItem:true,buyer:{select:ownerSelect},seller:{select:ownerSelect}} as const;
 /** Snap a coordinate to a 0.01° (~1.1 km) grid cell. */
@@ -25,13 +26,19 @@ export class Market {
   }
   async profile(userId:string,d:ProfileDto,trusted=false) {
     if((d.latitude==null)!==(d.longitude==null)) throw new BadRequestException('Both location coordinates are required.');
-    await this.db.user.update({where:{id:userId},data:d});
+    assertAllowed('text',d.name,d.area);
+    const {acceptTerms,...changes}=d;
+    // Store only the ~1.1 km grid cell, never the exact spot (data minimisation).
+    if(changes.latitude!=null&&changes.longitude!=null) { changes.latitude=gridCell(changes.latitude); changes.longitude=gridCell(changes.longitude); }
+    await this.db.user.update({where:{id:userId},data:{...changes,...(acceptTerms?{termsAcceptedAt:new Date()}:{})}});
     return this.me(userId,trusted);
   }
   async create(userId:string,d:ListingDto) {
     if(!d.sell&&!d.swap) throw new BadRequestException('Choose selling, swapping, or both.');
     if(d.sell&&!d.price || d.swap&&!d.swapValue) throw new BadRequestException('Add a whole-number price or swap value.');
     if((d.latitude==null)!==(d.longitude==null)) throw new BadRequestException('Both location coordinates are required.');
+    assertAllowed('listing',d.title,d.description,d.area);
+    if(d.latitude!=null&&d.longitude!=null) { d.latitude=gridCell(d.latitude); d.longitude=gridCell(d.longitude); }
     const paths=[...new Set(d.photos)];
     if(paths.length!==d.photos.length || await this.db.upload.count({where:{userId,path:{in:paths}}})!==paths.length) throw new BadRequestException(coded('PHOTOS_NOT_OWNED','Upload your own photos first.'));
     const {country}=await this.db.user.findUniqueOrThrow({where:{id:userId},select:{country:true}});

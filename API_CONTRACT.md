@@ -144,3 +144,6 @@ Everyone else gets 403 `NOT_ADMIN`.
 
 ## Account deletion page
 `GET /account-deletion` → public HTML page for Google Play's "account deletion URL" (shows `SUPPORT_EMAIL` if set).
+
+**Community rules (2026-11-17).** `PATCH /me` accepts `acceptTerms: true` (only `true`; sets `termsAcceptedAt`, returned by `GET /me`; null means the app must show the 18+ / rules step). `GET /auth/methods` → `{email, phone, supportEmail|null}`. Public pages: `/rules`, `/privacy`, `/account-deletion`. Listing title/description/area, profile name/area and chat text are screened: abusive wording (everywhere) and prohibited items (listings) → 400 `CONTENT_NOT_ALLOWED` with a friendly message. Saved locations (profile and listings) are stored as the ~1.1 km grid cell, so even the owner gets the rounded value back. Message push notifications say "New message about <item>" instead of the message text.
+

@@ -81,3 +81,11 @@ The generated project uses a development signing key for this local preview. Sto
 - Production refuses development codes and development/legacy sessions even if stale DEV_OTP/ALLOW flags remain. Testers must sign in again using delivered codes.
 - Configure a verified Brevo sender and BREVO_API_KEY/OTP_EMAIL_FROM (or real SMS webhook) on Render. Without a provider, login stays unavailable; never restore the old override.
 - After deploying, confirm /auth/methods matches configured delivery, no devCode is returned, a real delivered code logs in, and an old development token receives 401. No APK rebuild is needed for this backend enforcement.
+
+
+## Blocking/reporting acceptance — 2026-11-17
+
+- Codex: backend 21/21 and mobile 22/22 pass; root typecheck/lint pass. This does not establish native safety UI or production migration acceptance.
+- On phones: report from chat, block both directions, verify messages/offers/swaps are stopped, retain readable history, and unblock from chat and You. Verify mutual blocks remain effective after only one side unblocks.
+- Check saved listings and item details refresh after unblocking through You (APP-002 open cache invalidation finding).
+- Verify moderator-only user-report queue and resolve action, including denied access for ordinary accounts.

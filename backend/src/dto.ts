@@ -1,4 +1,4 @@
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsEnum, IsIn, IsInt, IsNumber, IsOptional, IsString, IsUUID, Length, Matches, Max, MaxLength, Min } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, Equals, IsArray, IsBoolean, IsEnum, IsIn, IsInt, IsNumber, IsOptional, IsString, IsUUID, Length, Matches, Max, MaxLength, Min } from 'class-validator';
 import { Category, Condition, Direction, IdentityType, ItemStatus, Mode } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { COUNTRY_CODES, CountryCode } from './countries';
@@ -18,6 +18,8 @@ export class ProfileDto {
   @IsOptional() @IsString() @Length(2,80) area?: string;
   @IsOptional() @IsNumber() @Min(-90) @Max(90) latitude?: number;
   @IsOptional() @IsNumber() @Min(-180) @Max(180) longitude?: number;
+  /** "I'm 18 or older and agree to the community rules". Only `true` is accepted; it can't be withdrawn here. */
+  @IsOptional() @Equals(true) acceptTerms?: true;
 }
 export class ListingDto {
   @IsString() @Length(3,100) title!: string;

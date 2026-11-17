@@ -16,6 +16,14 @@ export class Accounts {
       const identities = await tx.authIdentity.findMany({ where: { userId }, select: { value: true } });
       await tx.item.updateMany({ where: { ownerId: userId }, data: { status: 'REMOVED', hidden: true, photos: [], description: '', latitude: null, longitude: null } });
       await tx.message.updateMany({ where: { senderId: userId, type: 'TEXT' }, data: { text: 'Message deleted' } });
+      // System notes in shared chats can name this person ("Ama agreed to the swap."): swap the name out.
+      const { name } = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { name: true } });
+      const notes = await tx.message.findMany({
+        where: { type: 'SYSTEM', text: { contains: name }, conversation: { OR: [{ buyerId: userId }, { sellerId: userId }] } },
+        select: { id: true, text: true },
+      });
+      for (const note of notes) await tx.message.update({ where: { id: note.id }, data: { text: note.text!.split(name).join('Deleted user') } });
+      await tx.item.updateMany({ where: { ownerId: userId }, data: { title: 'Removed listing', area: '' } });
       await tx.swipe.deleteMany({ where: { userId } });
       await tx.rating.deleteMany({ where: { OR: [{ fromId: userId }, { toId: userId }] } });
       await tx.report.deleteMany({ where: { userId } });

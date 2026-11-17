@@ -10,7 +10,7 @@ export default function Backup() {
     [code, setCode] = useState('');
   const cache = useQueryClient();
   const me = useQuery({ queryKey: ['me'], queryFn: () => api<User>('/me') });
-  const { offered, phoneOff } = useLoginMethods(['EMAIL', 'PHONE']);
+  const { offered } = useLoginMethods(['EMAIL', 'PHONE']);
   // Only offer types the server can deliver and the account doesn't already have.
   const addable = offered.filter((t) => !me.data?.identities.some((i) => i.type === t));
   const type = addable.includes(chosen) ? chosen : (addable[0] ?? chosen);
@@ -45,11 +45,7 @@ export default function Backup() {
       {me.data?.identities.length === 2 ? (
         <T>You’re covered — both login methods are attached.</T>
       ) : addable.length === 0 ? (
-        <T>
-          {phoneOff
-            ? 'Phone backup is coming soon. Your email login is all set.'
-            : 'Nothing more to add right now.'}
-        </T>
+        <T>Nothing more to add right now.</T>
       ) : !send.data ? (
         <>
           {addable.length > 1 && (

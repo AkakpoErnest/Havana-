@@ -22,6 +22,7 @@ export type Item = {
   owner: { id: string; name: string; rating?: number | null; ratingCount?: number };
 };
 export type User = {
+  termsAcceptedAt: string | null;
   id: string;
   name: string;
   country?: string;

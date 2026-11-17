@@ -143,3 +143,17 @@ User authorized immediate production development-OTP shutdown. Production otpCha
 ### SEC-004 production verification — 2026-11-12
 
 **Fixed and live verified** after deploy of 46f93a1: GET /auth/methods → 200 {email:false,phone:false}; synthetic email POST /auth/request → 503 EMAIL_LOGIN_UNAVAILABLE, no devCode; GET /health → 200. No existing user account was accessed. Old-dev-session and pending-challenge rejection are code-enforced and tested locally, not exercised with a production user token. Real login remains unavailable pending delivery-provider configuration. Dashboard flag synchronization could not be inspected (no Render API credential/browser access), but production ignores dev flags regardless.
+
+
+## Blocking/reporting independent review — 2026-11-17
+
+Codex reviewed ced9b37. Backend 21/21 (dedicated local havana_test), mobile 22/22 (Node 22), root typecheck/lint pass. Exercised bilateral browse/feed/item filtering, message/offer/new-conversation denial, report chat membership, history state and unblock recovery are co-signed. Pending-offer response, swaps/matching under block, saved listings, mutual blocks, moderator user-report endpoints and account cleanup need targeted regression coverage. Native/device and production rollout unverified; remaining App Store audit gaps remain open. Details in CONVERSATION.md.
+
+### APP-002 — Profile unblock leaves saved/item caches stale
+
+- Severity: P2 (UI consistency).
+- Evidence: mobile/app/(tabs)/profile.tsx unblock.onSuccess invalidates blocks/feed/browse/inbox/chat but not saved/item; mobile/src/SafetySheet.tsx refresh invalidates both. A cached saved result excluding a blocked seller is not refreshed by the profile unblock action.
+- Owner: Claude/mobile.
+- Status: Open; source-reviewed, UI reproduction pending.
+- Proposed correction: include saved and item in profile unblock invalidation.
+- Verification: save a listing, block its seller, load Saved while blocked, unblock from You, reopen Saved and item details; confirm restoration without manual refresh.

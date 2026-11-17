@@ -39,7 +39,7 @@ class HealthController {
 <h1 style="color:#23206B">havana<span style="color:#F0437B">.</span></h1><h2>Delete your account</h2>
 <p>In the Havana app, open <b>You</b> (Profile), tap <b>Delete account</b> and confirm.</p>${support}
 <h3>What is deleted</h3><ul><li>Your name, area and location</li><li>Your phone number and email logins</li><li>Your listings and their photos</li><li>Your chat messages (the other person sees “Message deleted”), swipes, saved items, ratings and reports</li><li>Notification settings for your phones</li></ul>
-<h3>What is kept</h3><p>Offer amounts and system notes inside chats stay, without your name, so the other person's chat history still makes sense. Nothing else is kept.</p></body></html>`;
+<h3>What is kept</h3><p>Offer amounts and system notes inside chats stay, without your name, so the other person's chat history still makes sense. Reports other people made about your account are kept for up to 12 months so moderators can act on repeated abuse.</p></body></html>`;
   }
   // Which login types this server can deliver codes for; the app hides the rest.
   @Get('auth/methods') methods() { return loginMethods(); }

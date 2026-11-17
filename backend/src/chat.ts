@@ -7,6 +7,7 @@ import { coded } from './errors';
 import { Push } from './push';
 import { money } from './countries';
 import { Safety } from './safety';
+import { assertAllowed } from './content';
 // Poll cursors overlap by this much so rows from transactions that committed late are not missed.
 const CURSOR_OVERLAP_MS=5000;
 @Injectable()
@@ -59,12 +60,13 @@ export class Chat {
   }
   async text(id:string,userId:string,text:string) {
     if(!text.trim()) throw new BadRequestException('Write a message first.');
+    assertAllowed('text',text);
     const {message,c}=await this.db.atomic(async tx=>{
       const c=await this.contact(tx,id,userId);
       const message=await tx.message.create({data:{conversationId:id,senderId:userId,type:'TEXT',text:text.trim()}});
       await tx.conversation.update({where:{id},data:{updatedAt:new Date()}}); return {message,c};
     });
-    this.push.notify(this.other(c,userId),{title:this.nameOf(c,userId),body:message.text!,data:{conversationId:id,kind:'message'}});
+    this.push.notify(this.other(c,userId),{title:this.nameOf(c,userId),body:`New message about ${c.item.title}`,data:{conversationId:id,kind:'message'}});
     return message;
   }
   async offer(id:string,userId:string,amount:number) {

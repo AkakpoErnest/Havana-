@@ -10,6 +10,7 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.havana.market",
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
         "NSAppTransportSecurity": {
           "NSAllowsLocalNetworking": true
         }
@@ -38,7 +39,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Find good things near you in Accra."
+          "locationWhenInUsePermission": "Use your location to find nearby items and set your listing location."
         }
       ],
       [

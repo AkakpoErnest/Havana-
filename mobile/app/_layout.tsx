@@ -62,7 +62,8 @@ function Routes() {
     retry: false,
     enabled: ready && signedIn,
   });
-  const needsOnboarding = profile.data?.name === 'Havana neighbour';
+  const needsOnboarding =
+    !!profile.data && (profile.data.name === 'Havana neighbour' || !profile.data.termsAcceptedAt);
   usePushNotifications(signedIn && !!profile.data && !needsOnboarding);
   const retryProfile = async () => {
     await client.cancelQueries({ queryKey: ['me'], exact: true });

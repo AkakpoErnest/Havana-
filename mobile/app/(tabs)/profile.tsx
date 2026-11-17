@@ -2,7 +2,9 @@ import React, { useCallback, useState } from 'react';
 import { Modal, Platform, Pressable, ScrollView, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../src/api';
+import * as Linking from 'expo-linking';
+import { useLoginMethods } from '../../src/login-methods';
+import { api, photoUrl } from '../../src/api';
 import { withDeadline } from '../../src/deadline';
 import * as Location from 'expo-location';
 import { Item, User } from '../../src/types';
@@ -43,6 +45,8 @@ export default function Profile() {
     ),
   );
   const me = useQuery({ queryKey: ['me'], queryFn: () => api<User>('/me') });
+  const { supportEmail } = useLoginMethods();
+  const openLink = useMutation({ mutationFn: (url: string) => Linking.openURL(url) });
   const saved = useQuery({ queryKey: ['saved'], queryFn: () => api<Item[]>('/saved') });
   const blocks = useQuery({
     queryKey: ['blocks'],
@@ -163,6 +167,9 @@ export default function Profile() {
         ['Saved items', 'Your favourites'],
         ['Blocked people', blocks.data?.length ? String(blocks.data.length) : 'None'],
         ...(me.data?.isAdmin ? [['Review reports', 'Admin']] : []),
+        ['Community rules', ''],
+        ['Privacy policy', ''],
+        ...(supportEmail ? [['Contact support', supportEmail]] : []),
         ['Delete account', ''],
         ['Log out', ''],
       ].map(([title, detail]) => (
@@ -173,7 +180,11 @@ export default function Profile() {
           onPress={() => {
             profile.reset();
             setLocationError(null);
-            if (title === 'Backup login') router.push('/backup');
+            if (title === 'Community rules') openLink.mutate(photoUrl('/rules')!);
+            else if (title === 'Privacy policy') openLink.mutate(photoUrl('/privacy')!);
+            else if (title === 'Contact support' && supportEmail)
+              openLink.mutate(`mailto:${supportEmail}`);
+            else if (title === 'Backup login') router.push('/backup');
             else if (title === 'Review reports') router.push('/moderation');
             else if (title === 'Delete account') setConfirmDelete(true);
             else if (title === 'Log out') logout.mutate();
@@ -194,7 +205,10 @@ export default function Profile() {
           <T style={{ color: C.muted }}>{detail} ›</T>
         </Pressable>
       ))}
-      <ErrorBox error={me.error ?? logout.error} retry={() => void me.refetch()} />
+      <ErrorBox
+        error={openLink.error ?? me.error ?? logout.error}
+        retry={() => void me.refetch()}
+      />
       <Modal
         visible={!!sheet}
         transparent

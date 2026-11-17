@@ -234,7 +234,7 @@ test('email codes go out through Brevo and phone login is switched off without S
   }) as typeof fetch;
   try {
     delete process.env.DEV_OTP; process.env.BREVO_API_KEY='test-brevo-key'; process.env.OTP_EMAIL_FROM='hello@havana.test';
-    assert.deepEqual((await http.get('/auth/methods').expect(200)).body,{email:true,phone:false});
+    assert.deepEqual((await http.get('/auth/methods').expect(200)).body,{email:true,phone:false,supportEmail:null});
     const req=await http.post('/auth/request').send({type:'EMAIL',value:'Brevo.User@Test.com'}).expect(201);
     assert.equal(req.body.devCode,undefined);
     assert.equal(sent.length,1);
@@ -257,7 +257,7 @@ test('email codes go out through Brevo and phone login is switched off without S
     globalThis.fetch=realFetch;
     for(const [k,v] of Object.entries(saved)) if(v===undefined) delete process.env[k]; else process.env[k]=v;
   }
-  assert.deepEqual((await http.get('/auth/methods').expect(200)).body,{email:true,phone:true});
+  assert.deepEqual((await http.get('/auth/methods').expect(200)).body,{email:true,phone:true,supportEmail:null});
 });
 test('push notifications reach the other person and per-user limits stop floods',async()=>{
   (app.get(OtpRateGuard) as unknown as {buckets:Map<string,unknown>}).buckets.clear();
@@ -280,7 +280,7 @@ test('push notifications reach the other person and per-user limits stop floods'
   try {
     await http.post(`/conversations/${chat}/messages`).set(as(x)).send({text:'Hi, is the radio still available?'}).expect(201);
     await until(()=>pushes.length===1);
-    assert.deepEqual(pushes[0],{...pushes[0],to:'ExponentPushToken[seller-phone]',title:'Abena',body:'Hi, is the radio still available?',data:{conversationId:chat,kind:'message'}});
+    assert.deepEqual(pushes[0],{...pushes[0],to:'ExponentPushToken[seller-phone]',title:'Abena',body:'New message about Push test radio',data:{conversationId:chat,kind:'message'}}); // the message itself stays off the lock screen
     const offer=(await http.post(`/conversations/${chat}/offers`).set(as(x)).send({amount:80}).expect(201)).body.id;
     await until(()=>pushes.length===2);
     assert.equal(pushes[1].title,'New offer on Push test radio');assert.match(pushes[1].body,/Abena offered GH₵80/);
@@ -407,7 +407,7 @@ test('deleting an account removes personal data, ends sessions and keeps the oth
   const page=await http.get('/account-deletion').expect(200).expect('Content-Type',/text\/html/);
   assert.match(page.text,/Delete your account/);
   const privacy=await http.get('/privacy').expect(200).expect('Content-Type',/text\/html/);
-  assert.match(privacy.text,/Privacy policy/);assert.match(privacy.text,/never see your exact location/);
+  assert.match(privacy.text,/Privacy policy/);assert.match(privacy.text,/never your exact spot/);
 });
 test('other people never receive a seller\'s exact coordinates, and distances are coarse',async()=>{
   const [a,b]=accounts;
@@ -418,12 +418,12 @@ test('other people never receive a seller\'s exact coordinates, and distances ar
   const asViewer=(await http.get(`/items/${item}`).set(as(a)).expect(200)).body;
   assert.equal(asViewer.latitude,null);
   const asOwner=(await http.get(`/items/${item}`).set(as(b)).expect(200)).body;
-  assert.equal(asOwner.latitude,5.5612345);assert.equal(asOwner.longitude,-0.1823456);
+  assert.equal(asOwner.latitude,5.56);assert.equal(asOwner.longitude,-0.18); // stored as the grid cell, even for the owner
   // Nested items (chat headers) are scrubbed for the buyer but not for the seller.
   const chat=(await http.post('/conversations').set(as(a)).send({itemId:item}).expect(201)).body;
   assert.equal(chat.item.latitude,null);
   const sellerView=(await http.get(`/conversations/${chat.id}/messages`).set(as(b)).expect(200)).body;
-  assert.equal(sellerView.conversation.item.latitude,5.5612345);
+  assert.equal(sellerView.conversation.item.latitude,5.56);
   const buyerInbox=((await http.get('/conversations').set(as(a))).body as {id:string;item:{latitude:number|null}}[]).find(c=>c.id===chat.id)!;
   assert.equal(buyerInbox.item.latitude,null);
   // My own profile keeps my saved location.
@@ -563,6 +563,39 @@ test('blocking stops chats, offers and listings both ways; people can be reporte
   await http.post(`/conversations/${chat}/messages`).set(as(seller)).send({text:'Yes, still here'}).expect(201);
 });
 
+test('community rules: 18+ agreement, blocked wording and items, and rounded locations',async()=>{
+  const [,seller,,buyer]=accounts;
+  await db.rateBucket.deleteMany({}); // earlier tests used up these accounts' hourly listing allowance
+  // 18+ / community rules agreement is recorded once, and only `true` is accepted.
+  assert.equal((await http.get('/me').set(as(buyer)).expect(200)).body.termsAcceptedAt,null);
+  await http.patch('/me').set(as(buyer)).send({acceptTerms:false}).expect(400);
+  const agreed=(await http.patch('/me').set(as(buyer)).send({acceptTerms:true}).expect(200)).body;
+  assert.ok(agreed.termsAcceptedAt);
+  // Prohibited items and abuse are stopped before anyone sees them, with a friendly coded message.
+  const photo=await sharp({create:{width:8,height:8,channels:3,background:'#1FA774'}}).jpeg().toBuffer();
+  const photos=(await http.post('/uploads').set(as(seller)).attach('photos',photo,'x.jpg').expect(201)).body.photos;
+  for(const title of ['Shotgun, barely used','Fake passport','C0CAINE for sale']) {
+    const r=await http.post('/items').set(as(seller)).send({...base,title,photos}).expect(400);
+    assert.equal(r.body.code,'CONTENT_NOT_ALLOWED',title);
+  }
+  for(const ok of ['Hot glue gun, ivory coloured','Water pistol, not stolen']) await http.post('/items').set(as(seller)).send({...base,title:ok,photos}).expect(201);
+  await http.patch('/me').set(as(seller)).send({name:'Big Fuuuck'}).expect(400);
+  const item=await listing(seller,{title:'Mango wood bowl'});
+  const chat=(await http.post('/conversations').set(as(buyer)).send({itemId:item}).expect(201)).body.id;
+  const rude=await http.post(`/conversations/${chat}/messages`).set(as(buyer)).send({text:'you b1tch'}).expect(400);
+  assert.equal(rude.body.code,'CONTENT_NOT_ALLOWED');
+  await http.post(`/conversations/${chat}/messages`).set(as(buyer)).send({text:'Is the bowl still available?'}).expect(201);
+  // Locations are stored as the ~1.1 km grid cell, never the exact spot.
+  await http.patch('/me').set(as(buyer)).send({latitude:-1.286389,longitude:36.817223}).expect(200);
+  const me=(await http.get('/me').set(as(buyer)).expect(200)).body;
+  assert.deepEqual([me.latitude,me.longitude],[-1.29,36.82]);
+  const stored=await db.item.findUniqueOrThrow({where:{id:item}});
+  assert.deepEqual([stored.latitude,stored.longitude],[5.56,-0.18]);
+  // Support contact and the rules page are public.
+  assert.ok('supportEmail' in (await http.get('/auth/methods').expect(200)).body);
+  assert.match((await http.get('/rules').expect(200)).text,/18 or older/);
+});
+
 test('production ignores dev overrides, rejects outstanding dev challenges and sessions, and uses real delivery',async()=>{
   const keys=['NODE_ENV','DEV_OTP','ALLOW_DEV_OTP_IN_PRODUCTION','BREVO_API_KEY','OTP_EMAIL_FROM','OTP_WEBHOOK_URL'];
   const saved=Object.fromEntries(keys.map(key=>[key,process.env[key]]));
@@ -576,7 +609,7 @@ test('production ignores dev overrides, rejects outstanding dev challenges and s
     process.env.DEV_OTP='true';
     process.env.ALLOW_DEV_OTP_IN_PRODUCTION='true';
     delete process.env.BREVO_API_KEY; delete process.env.OTP_EMAIL_FROM; delete process.env.OTP_WEBHOOK_URL;
-    assert.deepEqual((await http.get('/auth/methods').expect(200)).body,{email:false,phone:false});
+    assert.deepEqual((await http.get('/auth/methods').expect(200)).body,{email:false,phone:false,supportEmail:null});
     const unavailable=await http.post('/auth/request').send({type:'EMAIL',value:'sec004-off@test.com'}).expect(503);
     assert.equal(unavailable.body.devCode,undefined);
     await http.post('/auth/verify').send({challengeId:pending.body.challengeId,code:pending.body.devCode}).expect(401);
@@ -594,7 +627,7 @@ test('production ignores dev overrides, rejects outstanding dev challenges and s
       }
       return realFetch(input,init);
     }) as typeof fetch;
-    assert.deepEqual((await http.get('/auth/methods').expect(200)).body,{email:true,phone:false});
+    assert.deepEqual((await http.get('/auth/methods').expect(200)).body,{email:true,phone:false,supportEmail:null});
     await http.post('/auth/request').send({type:'PHONE',value:'0712345678',country:'KE'}).expect(503);
     const challenge=await http.post('/auth/request').send({type:'EMAIL',value:'sec004-real@test.com'}).expect(201);
     assert.equal(challenge.body.devCode,undefined);
