@@ -23,7 +23,11 @@
         "backgroundColor": "#23206B",
         "monochromeImage": "./assets/monochrome-icon.png"
       },
-      "versionCode": 1
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -77,6 +81,13 @@
     "icon": "./assets/icon.png",
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b5d37d24-26c6-4318-aba2-5d4fdcc3d321"
+      }
+    },
+    "owner": "africanbuilder"
   }
 }
