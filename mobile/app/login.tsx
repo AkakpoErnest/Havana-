@@ -127,7 +127,11 @@ export default function Login() {
               />
             </>
           )}
-          {methods.isPending && <T>Checking available login methods…</T>}
+          {methods.isPending && (
+            <T style={{ color: C.muted }}>
+              Waking up Havana… the first visit after a quiet spell can take up to a minute.
+            </T>
+          )}
           {methods.isSuccess && offered.length === 0 && (
             <T>Sign-in is unavailable right now. Please try again later.</T>
           )}
