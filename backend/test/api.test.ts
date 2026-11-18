@@ -607,6 +607,31 @@ test('community rules: 18+ agreement, blocked wording and items, and rounded loc
   assert.match((await http.get('/rules').expect(200)).text,/18 or older/);
 });
 
+test('the store review account signs in with its fixed code; nobody else can use that code',async()=>{
+  (app.get(OtpRateGuard) as unknown as {buckets:Map<string,unknown>}).buckets.clear();
+  const saved={email:process.env.REVIEW_LOGIN_EMAIL,code:process.env.REVIEW_LOGIN_CODE};
+  process.env.REVIEW_LOGIN_EMAIL='Review@Havana.test'; process.env.REVIEW_LOGIN_CODE='246810';
+  try {
+    const req=(await http.post('/auth/request').send({type:'EMAIL',value:'review@havana.test'}).expect(201)).body;
+    assert.equal(req.devCode,undefined,'the fixed code is never sent back');
+    await http.post('/auth/verify').send({challengeId:req.challengeId,code:'000000'}).expect(401);
+    const ok=(await http.post('/auth/verify').send({challengeId:req.challengeId,code:'246810'}).expect(201)).body;
+    assert.ok(ok.token);
+    // A different address does not accept the review code.
+    const other=(await http.post('/auth/request').send({type:'EMAIL',value:'someone-else@havana.test'}).expect(201)).body;
+    await http.post('/auth/verify').send({challengeId:other.challengeId,code:'246810'}).expect(401);
+    // Switched off when the code isn't 6 digits.
+    process.env.REVIEW_LOGIN_CODE='12';
+    await new Promise(r=>setTimeout(r,10));
+    await db.otpChallenge.deleteMany({where:{value:'review@havana.test'}});
+    const off=(await http.post('/auth/request').send({type:'EMAIL',value:'review@havana.test'}).expect(201)).body;
+    await http.post('/auth/verify').send({challengeId:off.challengeId,code:'000012'}).expect(401);
+  } finally {
+    if(saved.email===undefined) delete process.env.REVIEW_LOGIN_EMAIL; else process.env.REVIEW_LOGIN_EMAIL=saved.email;
+    if(saved.code===undefined) delete process.env.REVIEW_LOGIN_CODE; else process.env.REVIEW_LOGIN_CODE=saved.code;
+  }
+});
+
 test('production ignores dev overrides, rejects outstanding dev challenges and sessions, and uses real delivery',async()=>{
   const keys=['NODE_ENV','DEV_OTP','ALLOW_DEV_OTP_IN_PRODUCTION','BREVO_API_KEY','OTP_EMAIL_FROM','OTP_WEBHOOK_URL'];
   const saved=Object.fromEntries(keys.map(key=>[key,process.env[key]]));

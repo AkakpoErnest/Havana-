@@ -9,13 +9,22 @@ import { coded } from './errors';
 import { COUNTRIES, COUNTRY_CODES, CountryCode, DEFAULT_COUNTRY, countryOfPhone } from './countries';
 /** `trusted`: this session's login code went through a real channel (email/SMS), not dev mode. Required for admin powers. */
 export type AuthedRequest = Request & { userId: string; trusted: boolean };
-type OtpChannel='brevo'|'webhook'|'dev';
+type OtpChannel='brevo'|'webhook'|'dev'|'review';
 /** How a login type gets its code: Brevo email, the SMS/email webhook, dev mode (code logged + returned), or null = not offered yet. */
 export function otpChannel(type:'EMAIL'|'PHONE'):OtpChannel|null {
   if(type==='EMAIL'&&process.env.BREVO_API_KEY) return 'brevo';
   if(process.env.OTP_WEBHOOK_URL) return 'webhook';
   if(process.env.NODE_ENV!=='production'&&process.env.DEV_OTP==='true') return 'dev';
   return null;
+}
+/**
+ * App Store / Play review account: one fixed email that always accepts one fixed code, so store reviewers
+ * (who can't read our emails) can sign in. Both live only in the server's private env (REVIEW_LOGIN_EMAIL,
+ * REVIEW_LOGIN_CODE, 6 digits); unset either one to switch it off. Every other address gets real codes.
+ */
+function reviewLogin(type:'EMAIL'|'PHONE',value:string) {
+  const email=process.env.REVIEW_LOGIN_EMAIL?.trim().toLowerCase(); const code=process.env.REVIEW_LOGIN_CODE?.trim();
+  return type==='EMAIL'&&!!email&&!!code&&/^\d{6}$/.test(code)&&value===email?code:null;
 }
 export const loginMethods=()=>({email:otpChannel('EMAIL')!==null,phone:otpChannel('PHONE')!==null,supportEmail:process.env.SUPPORT_EMAIL||null});
 async function sendEmailCode(to:string,code:string) {
@@ -56,11 +65,13 @@ export class Auth {
     }
     const recent=await this.db.otpChallenge.count({where:{value,createdAt:{gte:new Date(Date.now()-60_000)}}});
     if(recent>=1) throw new HttpException(coded('OTP_RATE_LIMITED','Please wait a minute before requesting another code.'),429);
-    const channel=otpChannel(dto.type);
+    const reviewCode=linkUserId?null:reviewLogin(dto.type,value);
+    const channel:OtpChannel|null=reviewCode?'review':otpChannel(dto.type);
     if(!channel) throw new ServiceUnavailableException(coded(dto.type==='PHONE'?'PHONE_LOGIN_UNAVAILABLE':'EMAIL_LOGIN_UNAVAILABLE',dto.type==='PHONE'?'Phone login is coming soon. Please use your email for now.':'Email login is not available right now. Please try again later.'));
-    const code=randomInt(0,1000000).toString().padStart(6,'0');
+    const code=reviewCode??randomInt(0,1000000).toString().padStart(6,'0');
     const challenge=await this.db.otpChallenge.create({data:{type:dto.type,value,hash:this.hash(value,code),linkUserId,channel,country:dto.country??DEFAULT_COUNTRY,expiresAt:new Date(Date.now()+5*60_000)}});
     if(channel==='dev') console.log(`[DEV OTP] ${value}: ${code}`);
+    else if(channel==='review') console.log('Store review account requested a login code.');
     else {
       try {
         if(channel==='brevo') await sendEmailCode(value,code);
